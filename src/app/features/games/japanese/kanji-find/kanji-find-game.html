@@ -1,0 +1,61 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="onRestOverlayBack()"
+></game-rest-overlay>
+
+<div class="kanji-find-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        <span *ngFor="let s of [1,2,3,4,5]; let i = index" [class.active]="i < consecutiveCorrect()">⭐</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA DEL EJERCICIO -->
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="getModalityFeedbackMessages()"
+      [customMessage]="idleMessage"
+    ></game-feedback>
+
+    <!-- INDICADOR DE MODALIDAD -->
+    <div class="modality-indicator">
+      <span class="modality-icon">{{ getModalityIcon() }}</span>
+      <span class="modality-text">{{ getQuestionDisplay().label }}</span>
+    </div>
+
+    <!-- PREGUNTA PRINCIPAL -->
+    <div class="question-area" (click)="replayAudio()">
+      <div class="question-main">{{ getQuestionDisplay().main }}</div>
+      @if (questionRepresentation() === 'audio') {
+        <p class="audio-hint">Toca para volver a escuchar</p>
+      }
+    </div>
+
+    <!-- OPCIONES DE RESPUESTA -->
+    <div class="options-grid">
+      @for (opt of options(); track opt.id; let idx = $index) {
+        <button
+          class="option-btn"
+          [class.disabled]="_disabledOptions().includes(opt.id)"
+          [class.correct]="feedbackState() === 'success' && idx === correctIndex()"
+          (click)="selectOption(opt.id)"
+        >
+          <div class="option-content">
+            <span class="option-main">{{ getOptionDisplay(opt) }}</span>
+            @if (getOptionSubLabel(opt)) {
+              <span class="option-sub">{{ getOptionSubLabel(opt) }}</span>
+            }
+          </div>
+        </button>
+      }
+    </div>
+  </main>
+</div>

@@ -1,0 +1,48 @@
+@if (profileState.activeProfile(); as player) {
+  <div class="math-menu-container">
+    <header class="header">
+      <button class="back-btn" (click)="goBack()">⬅️ Volver</button>
+      <div class="title-section">
+        <h1>🚀 Misiones Matemáticas</h1>
+        <p margin="top 10px">Jugando como: <strong>{{ player.name }}</strong> ({{ player.age }} años)</p>
+      </div>
+    </header>
+
+    <main class="games-grid">
+      @for (game of games; track game.id) {
+        @let isUnlocked = profileState.isGameUnlocked(game.id);
+        @let currentLvl = profileState.getGameLevel(game.id);
+
+        <button
+          class="game-card {{ game.cssClass }}"
+          [class.disabled]="!isUnlocked"
+          (click)="selectGame(game)">
+
+          <div class="game-icon">
+            @if (isUnlocked) {
+              {{ game.icon }}
+            } @else {
+              🔒
+            }
+          </div>
+
+          <div class="game-info">
+            <h2>{{ game.title }}</h2>
+
+            @if (isUnlocked) {
+              <p>{{ game.description }}</p>
+            } @else {
+              <p>🔒 {{ game.unlockRequirement?.description }}</p>
+            }
+          </div>
+
+          @if (isUnlocked) {
+            <span class="play-badge">¡Jugar! (Niv. {{ currentLvl }}) ▶</span>
+          } @else {
+            <span class="lock-badge">🔒 Bloqueado</span>
+          }
+        </button>
+      }
+    </main>
+  </div>
+}

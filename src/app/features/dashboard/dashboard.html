@@ -1,0 +1,43 @@
+<div class="dashboard-container" *ngIf="activeProfile() as player">
+  <!-- BARRA SUPERIOR DE EXPLORADOR -->
+  <header class="top-bar">
+    <button class="back-btn" (click)="switchProfile()">
+      👤 Cambiar
+    </button>
+
+    <div class="player-info">
+      <span class="player-avatar">{{ player.avatar }}</span>
+      <div class="player-text">
+        <h2>Hola, {{ player.name }}!</h2>
+        <span class="badge">{{ player.age }} Años</span>
+      </div>
+    </div>
+
+    <button class="album-btn" (click)="openStickerAlbum()">
+      🖼️ Álbum ({{ player.stickers.length }})
+    </button>
+  </header>
+
+  <!-- TITULO INTERACTIVO -->
+  <div class="welcome-banner">
+    <h1>¿Qué te gustaría aprender hoy? ✨</h1>
+  </div>
+
+  <!-- TARJETAS DE MATERIAS PRINCIPALES -->
+  <main class="worlds-grid">
+    @for (subject of subjects; track subject.id) {
+      <button
+        class="world-card"
+        [style.background]="subject.bgGradient"
+        (click)="openSubjectMenu(subject.id)"
+      >
+        <div class="world-icon">{{ subject.icon }}</div>
+        <div class="world-details">
+          <h3>{{ subject.title }}</h3>
+          <p>{{ subject.subtitle }}</p>
+        </div>
+        <div class="play-arrow">▶</div>
+      </button>
+    }
+  </main>
+</div>

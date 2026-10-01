@@ -1,0 +1,66 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# 🔥 CRITICAL: Secrets and Environment Variables (NEVER COMMIT THESE)
+.env
+.env.*
+*.local
+*.pem
+credentials.json
+*-firebase-adminsdk-*.json
+
+# Compiled output
+dist/
+tmp/
+out-tsc/
+bazel-out/
+.firebase/
+.claude/
+.agents/
+.hermes/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.history/
+
+# Visual Studio Code (Corrected syntax for exceptions)
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+
+# Angular & Styles
+.angular/cache/
+.sass-cache/
+connect.lock
+coverage/
+/typings/
+
+# Logs and test snapshots
+*.log
+testem.log
+__screenshots__/
+
+# System files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Firebase Local State (Rules and indexes SHOULD be tracked, so they are removed from here)
+.firebaserc
+skills-lock.json

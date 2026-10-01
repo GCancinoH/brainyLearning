@@ -1,0 +1,114 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="onRestOverlayBack()"
+></game-rest-overlay>
+
+<div class="nature-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        <span *ngFor="let s of [1,2,3,4,5]; let i = index" [class.active]="i < consecutiveCorrect()">⭐</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA DEL EJERCICIO -->
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="getActivityFeedbackMessages()"
+      [customMessage]="idleMessage"
+    ></game-feedback>
+
+    <!-- INDICADOR DE ACTIVIDAD -->
+    <div class="activity-indicator">
+      <span class="activity-icon">{{ getActivityIcon() }}</span>
+      <span class="activity-label">{{ getActivityLabel() }}</span>
+    </div>
+
+    <!-- KANJI FIND (modalidades del engine kanji) -->
+    @if (activityType() === 'kanji-find') {
+      <div class="question-area kanji-find-area" (click)="replayAudio()">
+        <div class="question-main">{{ getKanjiQuestionDisplay().main }}</div>
+        <p class="question-label">{{ getKanjiQuestionDisplay().label }}</p>
+        @if (kanjiQuestionRepresentation() === 'audio') {
+          <p class="audio-hint">Toca para volver a escuchar</p>
+        }
+      </div>
+
+      <div class="options-grid kanji-grid">
+        @for (opt of kanjiOptions(); track opt.id; let idx = $index) {
+          <button
+            class="option-btn kanji-btn"
+            [class.disabled]="_disabledOptions().includes(idx)"
+            [class.correct]="feedbackState() === 'success' && idx === kanjiCorrectIndex()"
+            (click)="selectOption(idx)"
+          >
+            <div class="option-content">
+              <span class="option-main">{{ getKanjiOptionDisplay(opt) }}</span>
+            </div>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- KI → HAYASHI → MORI (composición visual) -->
+    @if (activityType() === 'ki-hayashi-mori') {
+      <div class="composition-area">
+        <div class="composition-question">{{ compositionQuestion() }}</div>
+        <div class="composition-visual" [attr.data-stage]="compositionStage()">
+          @if (compositionStage() === 1) { 🌳 }
+          @if (compositionStage() === 2) { 🌳🌳 }
+          @if (compositionStage() === 3) { 🌳🌳🌳 }
+        </div>
+      </div>
+
+      <div class="options-grid composition-grid">
+        @for (opt of compositionOptions(); track opt.kanji; let idx = $index) {
+          <button
+            class="option-btn composition-btn"
+            [class.disabled]="_disabledOptions().includes(idx)"
+            [class.correct]="feedbackState() === 'success' && idx === compositionCorrectIndex()"
+            (click)="selectOption(idx)"
+          >
+            <div class="option-content">
+              <span class="option-main">{{ getCompositionOptionDisplay(opt).main }}</span>
+              <span class="option-sub">{{ getCompositionOptionDisplay(opt).sub }}</span>
+            </div>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- KANJI DETECTIVES (buscar en escena) -->
+    @if (activityType() === 'kanji-detectives') {
+      <div class="detectives-area">
+        <div class="detectives-question">
+          <span class="target-kanji">{{ targetKanji() }}</span>
+          <span class="find-text">を見つけて！</span>
+        </div>
+        <div class="scene" [style.background]="getSceneBackground()">
+          @for (element of sceneElements(); track element.word.id; let idx = $index) {
+            <button
+              class="scene-element"
+              [class.disabled]="_disabledOptions().includes(idx)"
+              [class.correct]="feedbackState() === 'success' && element.word.kanji === targetKanji()"
+              [class.incorrect]="feedbackState() === 'try-again' && _disabledOptions().includes(idx) && element.word.kanji !== targetKanji()"
+              (click)="selectOption(idx)"
+            >
+              <span class="element-emoji">{{ element.emoji }}</span>
+              @if (profileConfig().requiresReading) {
+                <span class="element-kanji">{{ element.kanji }}</span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </main>
+</div>

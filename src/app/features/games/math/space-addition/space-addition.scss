@@ -1,0 +1,155 @@
+.space-game-container {
+  min-height: 100vh;
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+
+  .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .level-badge {
+    background: rgba(168, 85, 247, 0.2);
+    border: 1px solid #a855f7;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-weight: bold;
+
+    .stars {
+      display: flex;
+      gap: 0.2rem;
+      span {
+        opacity: 0.3;
+        font-size: 0.9rem;
+        &.active { opacity: 1; }
+      }
+    }
+  }
+}
+
+.game-board {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+/* ÁREA DE CONTAR COHETES */
+.visual-counting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+
+  .group {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.8rem 1.2rem;
+    border-radius: 20px;
+
+    .rocket {
+      font-size: 2.5rem;
+      user-select: none;
+      transition: transform 0.2s ease;
+      &:active { transform: scale(1.3); }
+    }
+  }
+
+  .plus-sign {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #a855f7;
+  }
+
+  &.bounce-animation {
+    animation: celebrate 0.6s ease infinite alternate;
+  }
+}
+
+/* ECUACIÓN GRANDE */
+.equation {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 3rem;
+  font-weight: 900;
+  margin-bottom: 2rem;
+
+  .num { color: #fff; }
+  .operator { color: #3b82f6; }
+  .question-mark {
+    color: #a855f7;
+    background: rgba(168, 85, 247, 0.2);
+    padding: 0.2rem 1rem;
+    border-radius: 16px;
+    border: 2px dashed #a855f7;
+  }
+}
+
+/* OPCIONES TÁCTILES GRANDES */
+.options-grid {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+  justify-content: center;
+
+  .option-btn {
+    flex: 1;
+    max-width: 120px;
+    height: 90px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border: none;
+    border-radius: 24px;
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    transition: transform 0.15s ease, opacity 0.3s ease;
+
+    &:active { transform: scale(0.92); }
+
+    &.disabled {
+      opacity: 0.2;
+      transform: scale(0.85);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    &.success {
+      background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.5);
+    }
+  }
+}
+
+@keyframes celebrate {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-12px); }
+}

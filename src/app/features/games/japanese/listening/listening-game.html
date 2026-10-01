@@ -1,0 +1,68 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="onRestOverlayBack()"
+/>
+
+<div class="listening-game-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        <span *ngFor="let s of [1,2,3,4,5]; let i = index" [class.active]="i < consecutiveCorrect()">⭐</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA DEL EJERCICIO -->
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="idleMessage"
+    ></game-feedback>
+
+    <!-- PREGUNTA: Área de audio grande -->
+    <div class="question-area" (click)="replayAudio()">
+      <div class="audio-button" [class.playing]="false">
+        <span class="audio-icon">🔊</span>
+        <span class="audio-label">Escuchar</span>
+      </div>
+      <p class="audio-hint">Toca para volver a escuchar</p>
+    </div>
+
+    <!-- OPCIONES DE RESPUESTA -->
+    <div class="options-grid">
+      @for (opt of options(); track opt.id; let idx = $index) {
+        <button
+          class="option-btn"
+          [class.hiragana-mode]="profileConfig().requiresReading && _showHiragana()"
+          [class.preschool-mode]="isPreschoolProfile()"
+          [class.disabled]="_disabledOptions().includes(opt.id)"
+          [class.correct]="feedbackState() === 'success' && idx === correctIndex()"
+          (click)="selectOption(opt.id)"
+          [attr.aria-label]="getOptionAriaLabel(opt)"
+        >
+          <div class="option-content">
+            @if (isPreschoolProfile()) {
+              <!-- Solo imagen para preescolar -->
+              <span class="option-image">{{ getImageEmoji(opt) }}</span>
+            } @else {
+              <!-- Modo hiragana/kanji: imagen arriba, texto abajo -->
+              <div class="option-layout">
+                <span class="option-image">{{ getImageEmoji(opt) }}</span>
+                <span class="option-main">{{ getOptionDisplay(opt).main }}</span>
+              </div>
+            }
+            <!--@if (getOptionDisplay(opt).sub && !isPreschoolProfile()) {
+              <span class="option-sub">{{ getOptionDisplay(opt).sub }}</span>
+            }-->
+          </div>
+        </button>
+      }
+    </div>
+  </main>
+</div>

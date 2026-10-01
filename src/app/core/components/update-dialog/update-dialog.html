@@ -1,0 +1,18 @@
+@if(pwaUpdater.updateAvailable()) {
+<div class="update-modal-overlay">
+  <div class="update-modal-card">
+    <div class="icon-container">
+      🚀✨
+    </div>
+    <h2>¡Nueva versión disponible!</h2>
+    <p>
+      Hay nuevas sorpresas y juegos listos para despegar.
+      Presiona el botón para actualizar.
+    </p>
+
+    <button class="update-btn" (click)="reloadApp()">
+      Actualizar ahora 🔄
+    </button>
+  </div>
+</div>
+}

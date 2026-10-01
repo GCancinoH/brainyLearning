@@ -1,0 +1,135 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="onRestOverlayBack()"
+></game-rest-overlay>
+
+<div class="calendar-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        <span *ngFor="let s of [1,2,3,4,5]; let i = index" [class.active]="i < consecutiveCorrect()">⭐</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA DEL EJERCICIO -->
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="getActivityFeedbackMessages()"
+      [customMessage]="idleMessage"
+    ></game-feedback>
+
+    <!-- INDICADOR DE ACTIVIDAD -->
+    <div class="activity-indicator">
+      <span class="activity-icon">{{ getActivityIcon() }}</span>
+      <span class="activity-label">{{ getActivityLabel() }}</span>
+    </div>
+
+    <!-- KANJI DEL DÍA -->
+    @if (activityType() === 'kanji-of-day') {
+      <div class="kanji-of-day-area">
+        <div class="day-header">
+          <span class="day-label">Kanji del día</span>
+          <span class="day-name">{{ targetDay()?.meanings[0] }}</span>
+        </div>
+
+        <div class="kanji-main">{{ targetDay()?.kanji }}</div>
+        <div class="kanji-reading">{{ targetDay()?.hiragana }}</div>
+
+        <div class="decomposition" *ngIf="decomposition().length > 0">
+          <span class="decomp-label">Descomposición:</span>
+          <div class="decomp-parts">
+            @for (part of getDecompositionDisplay(); track part.kanji) {
+              <div class="decomp-part">
+                <span class="decomp-kanji">{{ part.kanji }}</span>
+                <span class="decomp-reading">{{ part.reading }}</span>
+              </div>
+              @if (!$last) { <span class="decomp-plus">+</span> }
+            }
+          </div>
+        </div>
+
+        <button class="continue-btn" (click)="onKanjiOfDayContinue()">
+          Continuar
+        </button>
+      </div>
+    }
+
+    <!-- ORDENAR SEMANA -->
+    @if (activityType() === 'week-order') {
+      <div class="week-order-area">
+        <div class="week-order-instruction">Arrastra o toca para ordenar la semana (Lunes → Domingo)</div>
+
+        <div class="week-slots">
+          @for (slot of weekDays(); track slot.id; let i = $index) {
+            <div class="week-slot" [class.filled]="weekOrderAnswer().length > i">
+              @if (weekOrderAnswer().length > i) {
+                <div class="slot-content">
+                  <span class="slot-kanji">{{ getDayDisplay(getDayById(weekOrderAnswer()[i])).main }}</span>
+                  <span class="slot-reading">{{ getDayDisplay(getDayById(weekOrderAnswer()[i])).sub }}</span>
+                  <span class="slot-number">{{ i + 1 }}</span>
+                </div>
+              } @else {
+                <span class="slot-empty">{{ i + 1 }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="week-options">
+          @for (day of shuffledDays(); track day.id) {
+            <button
+              class="week-option-btn"
+              [class.disabled]="weekOrderAnswer().includes(day.id)"
+              [class.correct]="feedbackState() === 'success'"
+              (click)="onWeekOrderSelect(day.id)"
+            >
+              <span class="opt-kanji">{{ day.kanji }}</span>
+              <span class="opt-reading">{{ day.hiragana }}</span>
+            </button>
+          }
+        </div>
+
+        <div class="week-actions">
+          <button class="reset-btn" (click)="onWeekOrderReset()">Reiniciar</button>
+          <button class="submit-btn" [disabled]="weekOrderAnswer().length !== 7" (click)="onWeekOrderSubmit()">
+            Comprobar
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- AUDIO SELECT DAY / WHAT DAY TODAY -->
+    @if (activityType() === 'audio-select-day' || activityType() === 'what-day-today') {
+      <div class="audio-select-area" (click)="replayAudio()">
+        <div class="audio-button">
+          <span class="audio-icon">🔊</span>
+          <span class="audio-label">{{ questionText() }}</span>
+        </div>
+        <p class="audio-hint">Toca para volver a escuchar</p>
+      </div>
+
+      <div class="options-grid calendar-grid">
+        @for (opt of audioOptions(); track opt.id; let idx = $index) {
+          <button
+            class="option-btn calendar-btn"
+            [class.disabled]="_disabledOptions().includes(idx)"
+            [class.correct]="feedbackState() === 'success' && idx === audioCorrectIndex()"
+            (click)="selectOption(idx)"
+          >
+            <div class="option-content">
+              <span class="option-main">{{ getDayDisplay(opt).main }}</span>
+              <span class="option-sub">{{ getDayDisplay(opt).sub }}</span>
+            </div>
+          </button>
+        }
+      </div>
+    }
+  </main>
+</div>

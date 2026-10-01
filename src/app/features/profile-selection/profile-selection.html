@@ -1,0 +1,109 @@
+<div class="profiles-container">
+  <div class="stars-bg"></div>
+
+  <!-- CABECERA -->
+  <header class="header">
+    <div class="brainy-logo">🧠</div>
+    <h1 class="title">Brainy<span class="highlight">Learning</span></h1>
+    <p class="subtitle">¿Quién va a explorar hoy?</p>
+  </header>
+
+  <!-- MODO 1: SELECCIÓN DE PERFIL -->
+  @if (mode() === 'select') {
+    <div class="profiles-grid">
+      @for (profile of profiles(); track profile.id) {
+        <button class="profile-card" (click)="selectProfile(profile)">
+          <div class="avatar">{{ profile.avatar }}</div>
+          <h2 class="name">{{ profile.name }}</h2>
+          <span class="age-badge">{{ profile.age }} años</span>
+        </button>
+      }
+
+      <!-- BOTÓN AGREGAR NUEVO PERFIL -->
+      <button class="add-card" (click)="toggleCreateMode()">
+        <div class="add-icon">+</div>
+        <p>Nuevo Explorador</p>
+      </button>
+    </div>
+  }
+
+  <!-- MODO 2: CREACIÓN DE PERFIL CON FORM SIGNALS -->
+  @if (mode() === 'create') {
+    <div class="create-form-card">
+      <h2>¡Crea tu Exploradora! 🌟</h2>
+
+      <!-- Nombre -->
+      <div class="form-group">
+        <label>¿Cómo te llamas?</label>
+        <input
+          type="text"
+          placeholder="Escribe tu nombre..."
+          [value]="newName()"
+          (input)="newName.set($any($event.target).value)"
+          class="bubbly-input"
+        />
+      </div>
+
+      <!-- Edad -->
+      <div class="form-group">
+        <label>¿Cuántos años tienes?</label>
+        <div class="age-selector">
+          <button
+            class="age-btn"
+            [class.active]="newAge() === 4"
+            (click)="newAge.set(4)"
+          >
+            4 Años 🎈
+          </button>
+          <button
+            class="age-btn"
+            [class.active]="newAge() === 6"
+            (click)="newAge.set(6)"
+          >
+            6 Años 🚀
+          </button>
+        </div>
+      </div>
+
+      <!-- Selector de Avatar -->
+      <div class="form-group">
+        <label>Elige tu Avatar:</label>
+        <div class="avatar-picker">
+          @for (avatar of avatars; track avatar) {
+            <button
+              class="avatar-option"
+              [class.selected]="newAvatar() === avatar"
+              (click)="newAvatar.set(avatar)"
+            >
+              {{ avatar }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Tema Favorito -->
+      <div class="form-group">
+        <label>¿Qué te gusta explorar más?</label>
+        <div class="theme-picker">
+          @for (theme of themes; track theme.id) {
+            <button
+              class="theme-option"
+              [class.selected]="newTheme() === theme.id"
+              (click)="newTheme.set(theme.id)"
+            >
+              <span>{{ theme.icon }}</span> {{ theme.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="form-actions">
+        <button class="btn-secondary" (click)="toggleCreateMode()">Cancelar</button>
+        <button class="btn-primary" [disabled]="!newName().trim()" (click)="saveProfile()">
+          ¡Comenzar Aventura! 🎉
+        </button>
+      </div>
+    </div>
+  }
+</div>

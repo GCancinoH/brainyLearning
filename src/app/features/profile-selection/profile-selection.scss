@@ -1,0 +1,229 @@
+.profiles-container {
+  min-height: 100vh;
+  padding: 3rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #1b1b3a 0%, #0b0b1a 100%);
+}
+
+.stars-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40px 70px, #a855f7, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 160px 120px, #10b981, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.3;
+}
+
+.header {
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .brainy-logo {
+    font-size: 4rem;
+    line-height: 1;
+    margin-bottom: 0.8rem; // Separa el cerebrito del texto
+    display: inline-block;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .title {
+    font-size: 3rem;
+    font-weight: 900;
+    margin: 0;
+    line-height: 1.1; // Evita que se monte verticalmente con otros textos
+    letter-spacing: -0.5px;
+
+    .highlight {
+      color: #a855f7;
+      background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  .subtitle {
+    color: #94a3b8;
+    font-size: 1.25rem;
+    margin-top: 0.8rem; // Separa el subtítulo del título
+    margin-bottom: 0;
+    font-weight: 500;
+  }
+}
+
+/* GRID DE PERFILES */
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+  max-width: 800px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.profile-card, .add-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  .avatar {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .name {
+    color: #fff;
+    font-size: 1.4rem;
+    margin: 0.3rem 0;
+  }
+
+  .age-badge {
+    background: #3b82f6;
+    color: #fff;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+  }
+}
+
+.add-card {
+  border-style: dashed;
+  justify-content: center;
+  color: #a855f7;
+
+  .add-icon {
+    font-size: 3rem;
+    font-weight: bold;
+  }
+}
+
+/* FORMULARIO DE CREACIÓN */
+.create-form-card {
+  position: relative;
+  z-index: 2;
+  background: rgba(30, 30, 60, 0.8);
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-radius: 28px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  backdrop-filter: blur(15px);
+
+  h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.2rem;
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+  }
+}
+
+.bubbly-input {
+  width: 100%;
+  padding: 0.8rem 1.2rem;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 1.1rem;
+  outline: none;
+
+  &:focus {
+    border-color: #a855f7;
+  }
+}
+
+.age-selector, .avatar-picker, .theme-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.age-btn, .avatar-option, .theme-option {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 16px;
+  cursor: pointer;
+
+  &.active, &.selected {
+    background: #a855f7;
+    border-color: #c084fc;
+    font-weight: bold;
+  }
+}
+
+.avatar-option {
+  font-size: 1.8rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.8rem;
+
+  button {
+    flex: 1;
+    padding: 0.9rem;
+    border-radius: 18px;
+    border: none;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+    color: white;
+    &:disabled { opacity: 0.5; }
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}

@@ -1,0 +1,68 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="onRestOverlayBack()"
+></game-rest-overlay>
+
+<div class="space-game-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        <span *ngFor="let s of [1,2,3,4,5]; let i = index" [class.active]="i < consecutiveCorrect()">⭐</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA DEL EJERCICIO -->
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN (componente compartido) -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="idleMessage"
+    ></game-feedback>
+
+    <!-- VISUALIZACIÓN DE COHETES (Para contar) -->
+    <div class="visual-counting" [class.bounce-animation]="feedbackState() === 'success'">
+      <div class="group group-a">
+        @for (item of itemsA(); track $index) {
+          <span class="rocket">🚀</span>
+        }
+      </div>
+
+      <span class="plus-sign">+</span>
+
+      <div class="group group-b">
+        @for (item of itemsB(); track $index) {
+          <span class="rocket">🛸</span>
+        }
+      </div>
+    </div>
+
+    <!-- ECUACIÓN NUMÉRICA -->
+    <div class="equation">
+      <span class="num">{{ numA() }}</span>
+      <span class="operator">+</span>
+      <span class="num">{{ numB() }}</span>
+      <span class="operator">=</span>
+      <span class="num question-mark">?</span>
+    </div>
+
+    <!-- OPCIONES DE RESPUESTA -->
+    <div class="options-grid">
+      @for (opt of options(); track opt) {
+        <button
+          class="option-btn"
+          [class.disabled]="disabledOptions().includes(opt)"
+          [class.success]="feedbackState() === 'success' && opt === correctResult()"
+          (click)="selectOption(opt)"
+        >
+          {{ opt }}
+        </button>
+      }
+    </div>
+  </main>
+</div>

@@ -1,0 +1,15 @@
+<!-- SplashScreen inicial -->
+@if (showSplash()) {
+  <splash-screen (loaded)="onSplashFinished()" />
+}
+
+<!-- Vista Principal una vez finalizada la carga -->
+<main class="main-layout" [class.visible]="!showSplash()">
+  <!-- El Router renderizará las pantallas (Profiles, Games, Dashboard) aquí adentro -->
+  <router-outlet />
+</main>
+
+<!-- Dialog Updater -->
+@if (updateAvailable()) {
+  <sw-update-dialog />
+}
