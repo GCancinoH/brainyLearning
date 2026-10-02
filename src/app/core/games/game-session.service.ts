@@ -1,15 +1,14 @@
 /**
  * Servicio de sesión de juego - Infraestructura común
  * Maneja: timer, nivel, racha, contadores, finalización, limpieza
- * Fase 1: Motor común mínimo
  */
 
-import { Injectable, signal, computed, effect, OnDestroy } from '@angular/core';
+import { Service, signal, computed, effect, OnDestroy } from '@angular/core';
 import { inject } from '@angular/core';
 import { GameSessionState, GameSessionConfig, SessionEvent, SessionEventType, ProfileGameConfig, getProfileGameConfig } from './game-types';
 import { ProfileStateService } from '../services/profile-state';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class GameSessionService implements OnDestroy {
   private readonly profileState = inject(ProfileStateService);
 
@@ -21,6 +20,8 @@ export class GameSessionService implements OnDestroy {
   private _sessionTimer: ReturnType<typeof setTimeout> | null = null;
   private _tickInterval: ReturnType<typeof setInterval> | null = null;
   private _eventListeners: Set<(event: SessionEvent) => void> = new Set();
+  private _pausedAt = signal<number | null>(null);
+  readonly isPaused = computed(() => this._pausedAt() !== null);
 
   // ============================================
   // SELECTORES PÚBLICOS (readonly signals)
@@ -37,7 +38,8 @@ export class GameSessionService implements OnDestroy {
     const s = this._state();
     if (!s) return 0;
     if (s.isTimeUp || s.isCompleted) return s.sessionDurationMs;
-    return Date.now() - s.sessionStartedAt;
+    const reference = this._pausedAt() ?? Date.now();
+    return reference - s.sessionStartedAt;
   });
   readonly sessionRemainingMs = computed(() => {
     const s = this._state();
@@ -131,12 +133,13 @@ export class GameSessionService implements OnDestroy {
     if (!currentState) return null;
 
     this._cleanupTimers();
-
+    const endedAt = this._pausedAt() ?? Date.now();
+    this._pausedAt.set(null);
     const finalState: GameSessionState = {
       ...currentState,
       isCompleted: reason === 'complete' || reason === 'time-up',
       isTimeUp: reason === 'time-up',
-      sessionDurationMs: Date.now() - currentState.sessionStartedAt
+      sessionDurationMs: endedAt - currentState.sessionStartedAt
     };
 
     this._state.set(finalState);
@@ -151,6 +154,28 @@ export class GameSessionService implements OnDestroy {
     setTimeout(() => this._state.set(null), 0);
 
     return finalState;
+  }
+
+  pause(): void {
+    const s = this._state();
+    if (!s || s.isTimeUp || s.isCompleted || this._pausedAt() !== null) return;
+    this._cleanupTimers();
+    this._pausedAt.set(Date.now());
+  }
+
+  resume(): void {
+    const s = this._state();
+    const pausedAt = this._pausedAt();
+    if (!s || pausedAt === null) return;
+
+    const pausedFor = Date.now() - pausedAt;
+    const elapsedAtPause = pausedAt - s.sessionStartedAt;
+    const remaining = Math.max(0, s.sessionDurationMs - elapsedAtPause);
+
+    this._pausedAt.set(null);
+    // se corre el inicio para que el tiempo en pausa no cuente
+    this._state.update(cur => cur ? { ...cur, sessionStartedAt: cur.sessionStartedAt + pausedFor } : null);
+    this._startTimers(remaining);
   }
 
   /**
@@ -173,7 +198,7 @@ export class GameSessionService implements OnDestroy {
    */
   recordCorrect(): { leveledUp: boolean; newLevel: number } {
     const currentState = this._state();
-    if (!currentState || currentState.isTimeUp || currentState.isCompleted) {
+    if (!currentState || currentState.isTimeUp || currentState.isCompleted || this._pausedAt() !== null) {
       return { leveledUp: false, newLevel: currentState?.level ?? 1 } as const;
     }
 
@@ -337,5 +362,6 @@ export class GameSessionService implements OnDestroy {
     this._eventListeners.clear();
     this._state.set(null);
     this._config = null;
+    this._pausedAt.set(null);
   }
 }

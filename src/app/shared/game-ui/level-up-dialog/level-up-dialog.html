@@ -1,0 +1,14 @@
+@if(isVisible()) {
+<div class="overlay" role="dialog" aria-modal="true">
+  <div class="card">
+    <div class="lottie">
+      <ng-dotlottie src="/lottie/congratulations.lottie" autoplay loop
+        (dotLottieCreated)="onDotLottieCreated($event)"
+      />
+    </div>
+    <h2>¡Subiste al nivel {{ level() }}! 🎉</h2>
+    <p>{{ message() }}</p>
+    <button class="advance-btn" (click)="advance.emit()">Avanzar ▶</button>
+  </div>
+</div>
+}

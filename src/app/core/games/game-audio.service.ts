@@ -195,9 +195,11 @@ export class GameAudioService {
    */
   stopAll(): void {
     this._audioCache.forEach(audio => {
-      // No pausar - dejar que terminen naturalmente
+      audio.pause();
+      audio.currentTime = 0;
     });
     this._currentAudio = null;
+    this._pendingAudio.set(null);
   }
 
   /**

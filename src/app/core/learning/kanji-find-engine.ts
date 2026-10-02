@@ -152,10 +152,8 @@ export class KanjiFindEngine {
       Math.max(profileConfig.minOptions, candidateWords.length)
     );
     const distractors = this.contentService.getDistractors(
-      targetWord,
-      numOptions - 1,
-      profileConfig.distractorStrategy
-    ).filter(w => w.kanji); // Solo distractores con kanji
+      targetWord, numOptions - 1, profileConfig.distractorStrategy, age
+    ).filter(w => w.kanji);
 
     // Mezclar opciones
     const allOptions = [targetWord, ...distractors].sort(() => Math.random() - 0.5);

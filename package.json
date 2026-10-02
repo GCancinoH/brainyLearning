@@ -20,9 +20,10 @@
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
     "@angular/service-worker": "^22.1.0",
+    "@lottiefiles/dotlottie-web": "^0.80.0",
     "canvas-confetti": "^1.9.4",
     "firebase": "^12.19.0",
-    "firebase-tools": "^15.31.0",
+    "firebase-tools": "^15.32.1",
     "howler": "^2.2.4",
     "lottie-web": "^5.13.0",
     "ngx-lottie": "^22.0.0",
@@ -33,6 +34,7 @@
     "@angular/build": "^22.1.8",
     "@angular/cli": "^22.1.8",
     "@angular/compiler-cli": "^22.1.0",
+    "@angular/language-server": "^22.2.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/howler": "^2.2.13",
     "jsdom": "^28.0.0",
@@ -47,6 +49,7 @@
     "esbuild@0.28.2": true,
     "lmdb@3.5.6": true,
     "msgpackr-extract@3.0.4": true,
-    "protobufjs@7.6.6": true
+    "re2@1.27.0": true,
+    "protobufjs@6.11.6": true
   }
 }

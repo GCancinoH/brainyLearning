@@ -1,0 +1,120 @@
+import type { JapaneseWord, WordRepresentation } from './learning-content';
+
+function jw(
+  id: string, hiragana: string, es: string[], emoji: string,
+  category: string, difficulty: number, kanji?: string
+): JapaneseWord {
+  const representations: WordRepresentation[] = [
+    { type: 'image', value: emoji, availableForAges: [4, 6] },
+    { type: 'hiragana', value: hiragana, availableForAges: [6] },
+    { type: 'audio', value: id, availableForAges: [4, 6] },
+  ];
+  if (kanji) {
+    representations.splice(2, 0, { type: 'kanji', value: kanji, availableForAges: [6] });
+  }
+  return {
+    id, hiragana, kanji, meanings: es, category,
+    image: `images/japanese/${id}.webp`,
+    audio: `audio/japanese/${id}.wav`,
+    recommendedAgeMin: 4,
+    difficulty,
+    skills: ['japanese.listening', 'japanese.vocabulary'],
+    representations,
+  };
+}
+
+export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
+  // Animales (dificultad 2)
+  jw('uma', 'うま', ['caballo'], '🐴', 'animals', 2, '馬'),
+  jw('ushi', 'うし', ['vaca'], '🐮', 'animals', 2, '牛'),
+  jw('buta', 'ぶた', ['cerdo'], '🐷', 'animals', 2, '豚'),
+  jw('saru', 'さる', ['mono'], '🐵', 'animals', 2, '猿'),
+  jw('zou', 'ぞう', ['elefante'], '🐘', 'animals', 2, '象'),
+  jw('hitsuji', 'ひつじ', ['oveja'], '🐑', 'animals', 2, '羊'),
+  jw('niwatori', 'にわとり', ['gallina'], '🐔', 'animals', 2, '鶏'),
+  jw('kame', 'かめ', ['tortuga'], '🐢', 'animals', 2, '亀'),
+  jw('kaeru', 'かえる', ['rana'], '🐸', 'animals', 2, '蛙'),
+  jw('kuma', 'くま', ['oso'], '🐻', 'animals', 2, '熊'),
+  jw('raion', 'ライオン', ['león'], '🦁', 'animals', 2),
+  jw('panda', 'パンダ', ['panda'], '🐼', 'animals', 2),
+  jw('pengin', 'ペンギン', ['pingüino'], '🐧', 'animals', 2),
+  jw('kujira', 'くじら', ['ballena'], '🐳', 'animals', 2, '鯨'),
+  jw('chouchou', 'ちょうちょう', ['mariposa'], '🦋', 'animals', 2),
+  jw('nezumi', 'ねずみ', ['ratón'], '🐭', 'animals', 2, '鼠'),
+  jw('hiyoko', 'ひよこ', ['pollito'], '🐥', 'animals', 2),
+
+  // Comida (dificultad 3)
+  jw('mikan', 'みかん', ['mandarina'], '🍊', 'food', 3),
+  jw('budou', 'ぶどう', ['uva'], '🍇', 'food', 3),
+  jw('ichigo', 'いちご', ['fresa'], '🍓', 'food', 3),
+  jw('suika', 'すいか', ['sandía'], '🍉', 'food', 3),
+  jw('momo', 'もも', ['durazno'], '🍑', 'food', 3),
+  jw('remon', 'レモン', ['limón'], '🍋', 'food', 3),
+  jw('ninjin', 'にんじん', ['zanahoria'], '🥕', 'food', 3),
+  jw('tomato', 'トマト', ['tomate'], '🍅', 'food', 3),
+  jw('tamago', 'たまご', ['huevo'], '🥚', 'food', 3),
+  jw('pan', 'パン', ['pan'], '🍞', 'food', 3),
+  jw('gohan', 'ごはん', ['arroz', 'comida'], '🍚', 'food', 3),
+  jw('onigiri', 'おにぎり', ['bola de arroz'], '🍙', 'food', 3),
+  jw('gyuunyuu', 'ぎゅうにゅう', ['leche'], '🥛', 'food', 3, '牛乳'),
+  jw('chiizu', 'チーズ', ['queso'], '🧀', 'food', 3),
+  jw('aisu', 'アイス', ['helado'], '🍦', 'food', 3),
+  jw('keeki', 'ケーキ', ['pastel'], '🎂', 'food', 3),
+
+  // Cuerpo (dificultad 4)
+  jw('me', 'め', ['ojo'], '👁️', 'body', 4, '目'),
+  jw('mimi', 'みみ', ['oreja'], '👂', 'body', 4, '耳'),
+  jw('kuchi', 'くち', ['boca'], '👄', 'body', 4, '口'),
+  jw('te', 'て', ['mano'], '✋', 'body', 4, '手'),
+  jw('ashi', 'あし', ['pie', 'pierna'], '🦶', 'body', 4, '足'),
+  jw('kao', 'かお', ['cara'], '😀', 'body', 4, '顔'),
+  jw('ha', 'は', ['diente'], '🦷', 'body', 4, '歯'),
+  jw('shita', 'した', ['lengua'], '👅', 'body', 4, '舌'),
+
+  // Transportes (dificultad 4)
+  jw('densha', 'でんしゃ', ['tren'], '🚆', 'transport', 4, '電車'),
+  jw('basu', 'バス', ['autobús'], '🚌', 'transport', 4),
+  jw('hikouki', 'ひこうき', ['avión'], '✈️', 'transport', 4, '飛行機'),
+  jw('fune', 'ふね', ['barco'], '🚢', 'transport', 4, '船'),
+  jw('jitensha', 'じてんしゃ', ['bicicleta'], '🚲', 'transport', 4, '自転車'),
+  jw('roketto', 'ロケット', ['cohete'], '🚀', 'transport', 4),
+  jw('patokaa', 'パトカー', ['patrulla'], '🚓', 'transport', 4),
+  jw('kyuukyuusha', 'きゅうきゅうしゃ', ['ambulancia'], '🚑', 'transport', 4, '救急車'),
+
+  // Colores (dificultad 5)
+  jw('aka', 'あか', ['rojo'], '🔴', 'colors', 5, '赤'),
+  jw('ao', 'あお', ['azul'], '🔵', 'colors', 5, '青'),
+  jw('kiiro', 'きいろ', ['amarillo'], '🟡', 'colors', 5, '黄色'),
+  jw('midori', 'みどり', ['verde'], '🟢', 'colors', 5, '緑'),
+  jw('shiro', 'しろ', ['blanco'], '⚪', 'colors', 5, '白'),
+  jw('kuro', 'くろ', ['negro'], '⚫', 'colors', 5, '黒'),
+  jw('murasaki', 'むらさき', ['morado'], '🟣', 'colors', 5, '紫'),
+  jw('orenji', 'オレンジ', ['naranja'], '🟠', 'colors', 5),
+  jw('chairo', 'ちゃいろ', ['café', 'marrón'], '🟤', 'colors', 5, '茶色'),
+
+  // Objetos cotidianos (dificultad 6)
+  jw('isu', 'いす', ['silla'], '🪑', 'daily', 6, '椅子'),
+  jw('beddo', 'ベッド', ['cama'], '🛏️', 'daily', 6),
+  jw('denwa', 'でんわ', ['teléfono'], '📞', 'daily', 6, '電話'),
+  jw('tokei', 'とけい', ['reloj'], '⏰', 'daily', 6, '時計'),
+  jw('kasa', 'かさ', ['paraguas'], '☂️', 'daily', 6, '傘'),
+  jw('kutsu', 'くつ', ['zapato'], '👟', 'daily', 6, '靴'),
+  jw('boushi', 'ぼうし', ['gorra'], '🧢', 'daily', 6, '帽子'),
+  jw('kaban', 'かばん', ['mochila', 'bolso'], '🎒', 'daily', 6, '鞄'),
+  jw('enpitsu', 'えんぴつ', ['lápiz'], '✏️', 'daily', 6, '鉛筆'),
+  jw('hasami', 'はさみ', ['tijeras'], '✂️', 'daily', 6),
+  jw('megane', 'めがね', ['lentes'], '👓', 'daily', 6, '眼鏡'),
+  jw('booru', 'ボール', ['pelota'], '⚽', 'daily', 6),
+
+  // Familia (dificultad 7)
+  jw('okaasan', 'おかあさん', ['mamá'], '👩', 'family', 7),
+  jw('otousan', 'おとうさん', ['papá'], '👨', 'family', 7),
+  jw('obaachan', 'おばあちゃん', ['abuela'], '👵', 'family', 7),
+  jw('ojiichan', 'おじいちゃん', ['abuelo'], '👴', 'family', 7),
+  jw('akachan', 'あかちゃん', ['bebé'], '👶', 'family', 7),
+
+  // Cielo (dificultad 7)
+  jw('hoshi', 'ほし', ['estrella'], '⭐', 'nature', 7, '星'),
+  jw('niji', 'にじ', ['arcoíris'], '🌈', 'nature', 7, '虹'),
+  jw('taiyou', 'たいよう', ['sol'], '☀️', 'nature', 7, '太陽'),
+];

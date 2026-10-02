@@ -11,11 +11,12 @@ import { LearningContentService } from '@core/learning/learning-content.service'
 import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { ListeningGameEngine, ListeningQuestion } from '@core/learning/listening-engine';
 import { JapaneseWord, RepresentationType } from '@core/learning/learning-content';
+import { LevelUpDialog } from '@shared/game-ui/level-up-dialog/level-up-dialog';
 
 @Component({
   selector: 'listening-game',
   standalone: true,
-  imports: [CommonModule, GameFeedbackComponent, GameRestOverlayComponent],
+  imports: [CommonModule, GameFeedbackComponent, GameRestOverlayComponent, LevelUpDialog],
   templateUrl: './listening-game.html',
   styleUrl: './listening-game.scss'
 })
@@ -28,12 +29,15 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   private readonly contentService = inject(LearningContentService);
   private readonly skillProgress = inject(SkillProgressService);
   private readonly engine = inject(ListeningGameEngine);
+  private unsubscribeEvents?: () => void;
 
   readonly activeProfile = this.profileState.activeProfile;
   readonly GAME_ID = 'japanese-listening';
   readonly REQUIRED_CORRECT = 5;
   readonly MAX_LEVEL = 10;
   readonly TARGET_SKILLS = ['japanese.listening', 'japanese.vocabulary'];
+  readonly levelUpVisible = signal(false);
+  readonly levelUpTarget = signal(1);
 
   // Estado del engine
   private _currentQuestion = signal<ListeningQuestion | null>(null);
@@ -107,6 +111,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   readonly idleMessage = 'Escucha la palabra y toca la imagen correcta';
 
   ngOnInit(): void {
+    this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
     // Registrar assets de audio
     this.audio.registerAssets([
       { type: 'praise', paths: ['audio/praise-1.wav', 'audio/praise-2.wav', 'audio/praise-3.wav'], volume: 0.85 },
@@ -144,31 +149,30 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.unsubscribeEvents?.();
     this.audio.dispose();
     this.session.endSession('user-exit');
   }
 
   private handleSessionEvent(event: { type: string; payload?: Record<string, unknown> }): void {
-    switch (event.type) {
-      case 'level-up':
-        this.audio.playLevelUp();
-        // Esperar a que termine el audio level-up (Promise) con fallback 3000ms
-        const levelUpAudio = new Audio('audio/level-up.wav');
-        const waitForEnded = levelUpAudio.play().then(() => new Promise<void>(resolve => {
-          levelUpAudio.onended = () => resolve();
-        })).catch(() => new Promise<void>(resolve => setTimeout(resolve, 3000))); // fallback
+    if (event.type !== 'level-up') return;
 
-        waitForEnded.then(() => {
-          if (!this.session.isTimeUp() && !this.session.isCompleted()) {
-            this.generateQuestion();
-          }
-        });
-        break;
-      case 'game-complete':
-        this.audio.playLevelUp();
-        break;
-      case 'time-up':
-        break;
+    this.audio.stopAll();
+    this.audio.playLevelUp();
+
+    if (event.payload?.['isMaxLevel']) return;   // el juego completo lo maneja el feedback
+
+    this.session.pause();
+    this.levelUpTarget.set(event.payload?.['newLevel'] as number);
+    this.levelUpVisible.set(true);
+  }
+
+  onAdvance(): void {
+    this.audio.stopAll();
+    this.levelUpVisible.set(false);
+    this.session.resume();
+    if (!this.session.isTimeUp() && !this.session.isCompleted()) {
+      this.generateQuestion();
     }
   }
 
@@ -223,9 +227,6 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       });
 
       if (result.leveledUp) {
-        // Si sube de nivel, SOLO la palabra correcta (sin praise para no empalmar con level-up)
-        this.playWordAudio(question.word);
-
         this.progress.saveProgress(this.GAME_ID, {
           level: result.newLevel,
           completed: result.newLevel >= this.MAX_LEVEL
@@ -315,6 +316,8 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     }*/
 
   playQuestionAudio(): void {
+    if (this.levelUpVisible()) return;
+
     const question = this._currentQuestion();
     if (!question) return;
 

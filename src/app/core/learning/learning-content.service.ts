@@ -1,24 +1,15 @@
 /**
  * Servicio de contenido educativo - Consulta declarativa por categoría, dificultad, edad, skill
- * Fase 2: Primer juego japonés
  */
 
-import { Injectable, inject, signal, computed } from '@angular/core';
-import {
-  JapaneseWord,
-  LearningContent,
-  ProfileDifficultyConfig,
-  SkillDefinition,
-  RepresentationType,
-  getProfileDifficultyConfig,
-  getWordsForProfile,
-  getWordsBySkill,
-  INITIAL_JAPANESE_WORDS,
-  JAPANESE_SKILLS
+import { Service, inject, signal, computed } from '@angular/core';
+import { JapaneseWord, LearningContent, ProfileDifficultyConfig, SkillDefinition,
+  RepresentationType, getProfileDifficultyConfig, getWordsForProfile, getWordsBySkill,
+  INITIAL_JAPANESE_WORDS, JAPANESE_SKILLS
 } from './learning-content';
 import { ProfileStateService } from '../services/profile-state';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class LearningContentService {
   private readonly profileState = inject(ProfileStateService);
 
@@ -80,9 +71,13 @@ export class LearningContentService {
     age: number = 4,
     maxDiff: number = 10
   ): JapaneseWord[] {
-    const pool = this._words().filter(w => 
-      w.id !== correctWord.id && 
-      w.recommendedAgeMin <= age && 
+    const unique = new Map<string, JapaneseWord>();
+    for (const w of this._words()) if (!unique.has(w.id)) unique.set(w.id, w);
+
+    const pool = [...unique.values()].filter(w =>
+      w.id !== correctWord.id &&
+      w.hiragana !== correctWord.hiragana &&   // sin homófonos
+      w.recommendedAgeMin <= age &&
       w.difficulty <= maxDiff
     );
 

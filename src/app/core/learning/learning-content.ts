@@ -2,6 +2,7 @@
  * Modelos de contenido educativo y skills
  * Juegos japoneses - ¿Qué escuchaste?, Encuentra el Kanji, Naturaleza, Calendario
  */
+import { EXTRA_JAPANESE_WORDS } from './japanese-vocabulary';
 
 // ============================================
 // CONTENIDO BASE
@@ -426,7 +427,8 @@ export const INITIAL_JAPANESE_WORDS: JapaneseWord[] = [
     audio: 'audio/japanese/mizu.wav',
     recommendedAgeMin: 4,
     difficulty: 1,
-    skills: ['japanese.listening', 'japanese.vocabulary', 'japanese.kanji.nature'],
+    skills: ['japanese.listening', 'japanese.vocabulary', 'japanese.kanji.recognition',
+      'japanese.kanji.reading', 'japanese.kanji.meaning', 'japanese.kanji.nature'],
     representations: [
       { type: 'image', value: '💧', availableForAges: [4, 6] },
       { type: 'hiragana', value: 'みず', availableForAges: [6] },
@@ -458,7 +460,7 @@ export const INITIAL_JAPANESE_WORDS: JapaneseWord[] = [
     hiragana: 'くるま',
     kanji: '車',
     meanings: ['coche', 'carro'],
-    category: 'daily',
+    category: 'transport',
     image: 'images/japanese/kuruma.webp',
     audio: 'audio/japanese/kuruma.wav',
     recommendedAgeMin: 4,
@@ -579,24 +581,6 @@ export const INITIAL_JAPANESE_WORDS: JapaneseWord[] = [
       { type: 'hiragana', value: 'ひ', availableForAges: [6] },
       { type: 'kanji', value: '火', availableForAges: [6] },
       { type: 'audio', value: 'hi', availableForAges: [4, 6] }
-    ]
-  },
-  {
-    id: 'mizu',
-    hiragana: 'みず',
-    kanji: '水',
-    meanings: ['agua'],
-    category: 'nature',
-    image: 'images/japanese/mizu.webp',
-    audio: 'audio/japanese/mizu.wav',
-    recommendedAgeMin: 6,
-    difficulty: 2,
-    skills: ['japanese.kanji.recognition', 'japanese.kanji.reading', 'japanese.kanji.meaning', 'japanese.kanji.nature'],
-    representations: [
-      { type: 'image', value: '💧', availableForAges: [4, 6] },
-      { type: 'hiragana', value: 'みず', availableForAges: [6] },
-      { type: 'kanji', value: '水', availableForAges: [6] },
-      { type: 'audio', value: 'mizu', availableForAges: [4, 6] }
     ]
   },
   {
@@ -857,7 +841,8 @@ export const INITIAL_JAPANESE_WORDS: JapaneseWord[] = [
       { type: 'kanji', value: '日曜日', availableForAges: [6] },
       { type: 'audio', value: 'nichiyoubi', availableForAges: [4, 6] }
     ]
-  }
+  },
+  ...EXTRA_JAPANESE_WORDS
 ];
 
 // Helper para filtrar por edad y categoría

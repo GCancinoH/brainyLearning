@@ -81,7 +81,7 @@ export class ListeningGameEngine {
     }
 
     // Filtrar por dificultad según nivel actual
-    const maxDiff = Math.min(currentLevel + 1, 10);  // Nivel actual + 1 como techo
+    const maxDiff = Math.min(currentLevel, 10);
     candidateWords = candidateWords.filter(w => w.difficulty <= maxDiff && w.recommendedAgeMin <= age);
 
     if (candidateWords.length === 0) return null;
@@ -115,20 +115,8 @@ export class ListeningGameEngine {
       profileConfig.maxOptions,
       Math.max(profileConfig.minOptions, candidateWords.length)
     );
-    const distractors = this.contentService.getDistractors(
-      targetWord,
-      numOptions - 1,
-      profileConfig.distractorStrategy,
-      age,
-      maxDiff
-    );
-
-    // Mezclar opciones con Fisher-Yates shuffle
-    const allOptions = [targetWord, ...distractors];
-    for (let i = allOptions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
-    }
+    const distractors = this._pickDistractors(targetWord, candidateWords, numOptions - 1, currentLevel);
+    const allOptions = this._shuffle([targetWord, ...distractors]);
     const correctIndex = allOptions.findIndex(w => w.id === targetWord.id);
 
     return {
@@ -245,5 +233,36 @@ export class ListeningGameEngine {
       if (allowedAvailable.some(r => r.type === p)) return p;
     }
     return 'image';
+  }
+
+  private _pickDistractors(target: JapaneseWord, pool: JapaneseWord[], count: number, level: number): JapaneseWord[] {
+    // sin la misma palabra y sin homófonos (ひ 日 / ひ 火)
+    const valid = pool.filter(w => w.id !== target.id && w.hiragana !== target.hiragana);
+    const sameCategory = this._shuffle(valid.filter(w => w.category === target.category));
+    const otherCategory = this._shuffle(valid.filter(w => w.category !== target.category));
+
+    const nearRatio = level <= 2 ? 0 : level <= 5 ? 0.5 : 1;
+    const nearCount = Math.min(sameCategory.length, Math.round(count * nearRatio));
+
+    const picked = [
+      ...sameCategory.slice(0, nearCount),
+      ...otherCategory.slice(0, count - nearCount),
+    ];
+
+    // si faltaron, rellenar con lo que sobre
+    if (picked.length < count) {
+      const rest = this._shuffle([...sameCategory, ...otherCategory].filter(w => !picked.includes(w)));
+      picked.push(...rest.slice(0, count - picked.length));
+    }
+    return picked;
+  }
+
+  private _shuffle<T>(items: T[]): T[] {
+    const a = [...items];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 }
