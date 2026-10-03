@@ -17,8 +17,13 @@ import { SWUpdater } from '@core/services/sw-updater';
 export class App {
   private readonly swUpdater = inject(SWUpdater)
   readonly showSplash = signal<boolean>(true);
+  readonly buildToken = 'BUILD_VERSION_1_0_A';
 
   readonly updateAvailable = this.swUpdater.updateAvailable;
+
+  constructor() {
+    console.log('Fuerza ejecucion:', this.buildToken);
+  }
 
   onSplashFinished(): void {
     this.showSplash.set(false);

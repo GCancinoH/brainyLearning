@@ -9,7 +9,7 @@ import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { LearningContentService } from '@core/learning/learning-content.service';
 import { SkillProgressService } from '@core/learning/skill-progress.service';
-import { ListeningGameEngine, ListeningQuestion } from '@core/learning/listening-engine';
+import { ListeningGameEngine, ListeningQuestion, ListeningAnswer } from '@core/learning/listening-engine';
 import { JapaneseWord, RepresentationType } from '@core/learning/learning-content';
 import { LevelUpDialog } from '@shared/game-ui/level-up-dialog/level-up-dialog';
 
@@ -33,7 +33,8 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
 
   readonly activeProfile = this.profileState.activeProfile;
   readonly GAME_ID = 'japanese-listening';
-  readonly REQUIRED_CORRECT = 5;
+  readonly requiredCorrect = computed(() => (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 5);
+  readonly starSlots = computed(() => Array.from({ length: this.requiredCorrect() }, (_, i) => i));
   readonly MAX_LEVEL = 10;
   readonly TARGET_SKILLS = ['japanese.listening', 'japanese.vocabulary'];
   readonly levelUpVisible = signal(false);
@@ -45,6 +46,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   private _localFeedback = signal<'idle' | 'success' | 'try-again'>('idle');
   private _disabledOptions = signal<string[]>([]);
   private _showHiragana = signal<boolean>(false);
+  private _attemptRecorded = false;
 
   // Selectores del session service
   readonly currentLevel = this.session.currentLevel;
@@ -128,7 +130,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     this.session.startSession({
       gameId: this.GAME_ID,
       sessionDurationMs: 5 * 60 * 1000,
-      requiredCorrectForLevelUp: this.REQUIRED_CORRECT,
+      requiredCorrectForLevelUp: this.requiredCorrect(),
       maxLevel: this.MAX_LEVEL,
       initialLevel: savedLevel
     }, this.activeProfile()?.age);
@@ -181,6 +183,8 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   }
 
   generateQuestion(): void {
+    this._attemptRecorded = false;
+
     const question = this.engine.generateQuestion({
       gameId: this.GAME_ID,
       targetSkills: this.TARGET_SKILLS,
@@ -224,11 +228,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     if (isCorrect) {
       this._localFeedback.set('success');
       const result = this.session.recordCorrect();
-
-      this.engine.recordAttempt(question, answer, {
-        gameId: this.GAME_ID,
-        targetSkills: this.TARGET_SKILLS
-      });
+      this._recordFirstAttempt(question, answer);
 
       if (result.leveledUp) {
         this.progress.saveProgress(this.GAME_ID, {
@@ -249,6 +249,8 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       this.session.recordIncorrect();
       this._disabledOptions.update(list => [...list, selectedWordId]);
       this.audio.playFailure();
+
+      this._recordFirstAttempt(question, answer);
 
       setTimeout(() => this.playWordAudio(question.word), 800);
     }
@@ -305,5 +307,12 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
 
   goBack(): void {
     this.router.navigate(['/games/japanese']);
+  }
+
+  /* Private methods */
+  private _recordFirstAttempt(question: ListeningQuestion, answer: ListeningAnswer): void {
+    if (this._attemptRecorded) return;
+    this._attemptRecorded = true;
+    this.engine.recordAttempt(question, answer, { gameId: this.GAME_ID, targetSkills: this.TARGET_SKILLS });
   }
 }

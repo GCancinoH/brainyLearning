@@ -11,7 +11,9 @@
     <div class="level-badge">
       <span>Nivel {{ currentLevel() }}</span>
       <div class="stars">
-        <span *ngFor="let s of [1,2,3,4,5]; let i = index" [class.active]="i < consecutiveCorrect()">⭐</span>
+        @for (s of starSlots(); track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
       </div>
     </div>
   </header>
