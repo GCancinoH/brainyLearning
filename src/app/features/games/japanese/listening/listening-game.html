@@ -57,9 +57,6 @@
                 <span class="option-main">{{ getOptionDisplay(opt).main }}</span>
               </div>
             }
-            <!--@if (getOptionDisplay(opt).sub && !isPreschoolProfile()) {
-              <span class="option-sub">{{ getOptionDisplay(opt).sub }}</span>
-            }-->
           </div>
         </button>
       }
@@ -67,4 +64,4 @@
   </main>
 </div>
 <!-- Level Up Dialog -->
-<level-up-dialog [visible]="levelUpVisible()" (advance)="onAdvance()" />
+<level-up-dialog [isVisible]="levelUpVisible()" [level]="levelUpTarget()" (advance)="onAdvance()" />

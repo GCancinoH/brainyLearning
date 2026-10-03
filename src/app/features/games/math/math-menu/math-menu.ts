@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ProfileStateService } from '@core/services/profile-state'
@@ -14,7 +14,10 @@ import { Margin } from '@core/directives/margin';
 export class MathMenu {
   private readonly router = inject(Router);
   readonly profileState = inject(ProfileStateService);
-  readonly games = MATH_GAMES;
+  readonly games = computed(() => {
+    const age = this.profileState.activePlayerAge();
+    return MATH_GAMES.filter(g => (g.minAge ?? 4) <= age);
+  });
   // Perfil activo para saber quién juega
   readonly activeProfile = this.profileState.activeProfile;
 

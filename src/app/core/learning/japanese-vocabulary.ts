@@ -23,8 +23,7 @@ function jw(
   };
 }
 
-export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
-  // Animales (dificultad 2)
+const JAPANESE_ANIMALS: JapaneseWord[] = [
   jw('uma', 'うま', ['caballo'], '🐴', 'animals', 2, '馬'),
   jw('ushi', 'うし', ['vaca'], '🐮', 'animals', 2, '牛'),
   jw('buta', 'ぶた', ['cerdo'], '🐷', 'animals', 2, '豚'),
@@ -42,8 +41,13 @@ export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   jw('chouchou', 'ちょうちょう', ['mariposa'], '🦋', 'animals', 2),
   jw('nezumi', 'ねずみ', ['ratón'], '🐭', 'animals', 2, '鼠'),
   jw('hiyoko', 'ひよこ', ['pollito'], '🐥', 'animals', 2),
+  jw('neko', 'ねこ', ['gato'], '🐱', 'animals', 2, '猫'),
+  jw('inu', 'いぬ', ['perro'], '🐶', 'animals', 2, '犬'),
+  jw('ari', 'あり', ['hormiga'], '🐜', 'animals', 2, '蟻'),
+  jw('tori', 'とり', ['pájaro'], '🐦', 'animals', 2, '鳥')
+];
 
-  // Comida (dificultad 3)
+const JAPANESE_FOOD: JapaneseWord[] = [
   jw('mikan', 'みかん', ['mandarina'], '🍊', 'food', 3),
   jw('budou', 'ぶどう', ['uva'], '🍇', 'food', 3),
   jw('ichigo', 'いちご', ['fresa'], '🍓', 'food', 3),
@@ -60,8 +64,9 @@ export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   jw('chiizu', 'チーズ', ['queso'], '🧀', 'food', 3),
   jw('aisu', 'アイス', ['helado'], '🍦', 'food', 3),
   jw('keeki', 'ケーキ', ['pastel'], '🎂', 'food', 3),
+];
 
-  // Cuerpo (dificultad 4)
+const JAPANESE_BODY: JapaneseWord[] = [
   jw('me', 'め', ['ojo'], '👁️', 'body', 4, '目'),
   jw('mimi', 'みみ', ['oreja'], '👂', 'body', 4, '耳'),
   jw('kuchi', 'くち', ['boca'], '👄', 'body', 4, '口'),
@@ -70,8 +75,9 @@ export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   jw('kao', 'かお', ['cara'], '😀', 'body', 4, '顔'),
   jw('ha', 'は', ['diente'], '🦷', 'body', 4, '歯'),
   jw('shita', 'した', ['lengua'], '👅', 'body', 4, '舌'),
+];
 
-  // Transportes (dificultad 4)
+const JAPANESE_TRANSPORT: JapaneseWord[] = [
   jw('densha', 'でんしゃ', ['tren'], '🚆', 'transport', 4, '電車'),
   jw('basu', 'バス', ['autobús'], '🚌', 'transport', 4),
   jw('hikouki', 'ひこうき', ['avión'], '✈️', 'transport', 4, '飛行機'),
@@ -80,8 +86,9 @@ export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   jw('roketto', 'ロケット', ['cohete'], '🚀', 'transport', 4),
   jw('patokaa', 'パトカー', ['patrulla'], '🚓', 'transport', 4),
   jw('kyuukyuusha', 'きゅうきゅうしゃ', ['ambulancia'], '🚑', 'transport', 4, '救急車'),
+];
 
-  // Colores (dificultad 5)
+const JAPANESE_COLORS: JapaneseWord[] = [
   jw('aka', 'あか', ['rojo'], '🔴', 'colors', 5, '赤'),
   jw('ao', 'あお', ['azul'], '🔵', 'colors', 5, '青'),
   jw('kiiro', 'きいろ', ['amarillo'], '🟡', 'colors', 5, '黄色'),
@@ -91,8 +98,9 @@ export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   jw('murasaki', 'むらさき', ['morado'], '🟣', 'colors', 5, '紫'),
   jw('orenji', 'オレンジ', ['naranja'], '🟠', 'colors', 5),
   jw('chairo', 'ちゃいろ', ['café', 'marrón'], '🟤', 'colors', 5, '茶色'),
+];
 
-  // Objetos cotidianos (dificultad 6)
+const JAPANESE_DAILY: JapaneseWord[] = [
   jw('isu', 'いす', ['silla'], '🪑', 'daily', 6, '椅子'),
   jw('beddo', 'ベッド', ['cama'], '🛏️', 'daily', 6),
   jw('denwa', 'でんわ', ['teléfono'], '📞', 'daily', 6, '電話'),
@@ -105,16 +113,29 @@ export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   jw('hasami', 'はさみ', ['tijeras'], '✂️', 'daily', 6),
   jw('megane', 'めがね', ['lentes'], '👓', 'daily', 6, '眼鏡'),
   jw('booru', 'ボール', ['pelota'], '⚽', 'daily', 6),
+];
 
-  // Familia (dificultad 7)
+const JAPANESE_FAMILY: JapaneseWord[] = [
   jw('okaasan', 'おかあさん', ['mamá'], '👩', 'family', 7),
   jw('otousan', 'おとうさん', ['papá'], '👨', 'family', 7),
   jw('obaachan', 'おばあちゃん', ['abuela'], '👵', 'family', 7),
   jw('ojiichan', 'おじいちゃん', ['abuelo'], '👴', 'family', 7),
   jw('akachan', 'あかちゃん', ['bebé'], '👶', 'family', 7),
+];
 
-  // Cielo (dificultad 7)
+const JAPANESE_NATURE: JapaneseWord[] = [
   jw('hoshi', 'ほし', ['estrella'], '⭐', 'nature', 7, '星'),
   jw('niji', 'にじ', ['arcoíris'], '🌈', 'nature', 7, '虹'),
   jw('taiyou', 'たいよう', ['sol'], '☀️', 'nature', 7, '太陽'),
+];
+
+export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
+  ...JAPANESE_ANIMALS,
+  // ...JAPANESE_FOOD,
+  // ...JAPANESE_BODY,
+  // ...JAPANESE_FAMILY,
+  // ...JAPANESE_NATURE,
+  // ...JAPANESE_COLORS,
+  // ...JAPANESE_TRANSPORT,
+  // ...JAPANESE_DAILY
 ];

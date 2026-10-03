@@ -117,7 +117,8 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       { type: 'praise', paths: ['audio/praise-1.wav', 'audio/praise-2.wav', 'audio/praise-3.wav'], volume: 0.85 },
       { type: 'failure', paths: ['audio/failure.wav'], volume: 0.7 },
       { type: 'level-up', paths: ['audio/level-up.wav'], volume: 0.9 },
-      { type: 'question', paths: [], volume: 0.9 } // Se usa audio de la palabra
+      { type: 'question', paths: [], volume: 0.9 },
+      { type: 'instruction', paths: ['audio/instruction-listening.wav'], volume: 0.9 }
     ]);
 
     // Cargar nivel guardado
@@ -133,7 +134,10 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     }, this.activeProfile()?.age);
 
     // Generar primera pregunta
-    setTimeout(() => this.generateQuestion(), 2200)
+    setTimeout(async () => {
+      await this.audio.playAndWait('instruction');   // si no hay archivo, continúa de inmediato
+      this.generateQuestion();
+    }, 2200);
 
 
     // Suscribirse a eventos de sesión
@@ -249,71 +253,6 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       setTimeout(() => this.playWordAudio(question.word), 800);
     }
   }
-
-  /*selectOption(selectedWordId: string): void {
-    const sessionState = this.session.state();
-    if (sessionState?.isTimeUp || sessionState?.isCompleted) return;
-    if (this._disabledOptions().includes(selectedWordId)) return;
-
-    // Reintentar audio pendiente tras interacción del usuario
-    this.audio.retryPendingAudio();
-
-    const question = this._currentQuestion();
-    if (!question) return;
-
-    const responseTimeMs = Date.now() - this._answerStartTime;
-    const answer = {
-      selectedWordId,
-      correct: selectedWordId === question.word.id,
-      responseTimeMs
-    };
-
-    const isCorrect = this.engine.validateAnswer(question, answer);
-
-    if (isCorrect) {
-      this._localFeedback.set('success');
-      const result = this.session.recordCorrect();
-
-      // Registrar en skills
-      this.engine.recordAttempt(question, answer, {
-        gameId: this.GAME_ID,
-        targetSkills: this.TARGET_SKILLS
-      });
-
-      if (result.leveledUp) {
-        // Si sube de nivel, reproducimos la palabra y dejamos que handleSessionEvent maneje el level-up
-        this.playWordAudio(question.word);
-
-        this.progress.saveProgress(this.GAME_ID, {
-          level: result.newLevel,
-          completed: result.newLevel >= this.MAX_LEVEL
-        });
-      } else {
-        // 1. Reproducir primero la palabra correcta
-        this.playWordAudio(question.word);
-
-        // 2. Esperar 800ms para reproducir el elogio (praise) sin empalmarse
-        setTimeout(() => {
-          this.audio.playPraise();
-        }, 800);
-
-        // 3. Generar la nueva pregunta tras concluir los efectos
-        setTimeout(() => {
-          if (!this.session.isTimeUp() && !this.session.isCompleted()) {
-            this.generateQuestion();
-          }
-        }, 2400);
-      }
-    } else {
-      this._localFeedback.set('try-again');
-      this.session.recordIncorrect();
-      this._disabledOptions.update(list => [...list, selectedWordId]);
-      this.audio.playFailure();
-
-      // Reproducir audio de la palabra correcta para reforzar
-      setTimeout(() => this.playWordAudio(question.word), 1000);
-    }
-    }*/
 
   playQuestionAudio(): void {
     if (this.levelUpVisible()) return;

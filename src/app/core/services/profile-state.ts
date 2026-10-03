@@ -1,7 +1,7 @@
 import { Service, inject, signal, computed, effect } from '@angular/core';
 import { PlayerProfile, GameProgress } from '../models/player-profile';
 import { FirestoreService } from '@core/firebase/firebase.service';
-import { MATH_GAMES } from '@core/models/math-game';
+import { ALL_GAMES } from '@core/models/game-catalog';
 
 
 const LOCAL_STORAGE_PROFILES_KEY = 'brainyLearning_profiles';
@@ -104,7 +104,8 @@ export class ProfileStateService {
 
     if (savedLevel) return savedLevel;
 
-    return profile.age === 4 ? 1 : 3;
+    const gameInfo = ALL_GAMES.find(g => g.id === gameId);
+    return gameInfo?.startLevel?.[profile.age] ?? 1;
   }
 
   isGameCompleted(gameId: string): boolean {
@@ -140,12 +141,11 @@ export class ProfileStateService {
   }
 
   // En profile-state.ts
-
   isGameUnlocked(gameId: string): boolean {
     const profile = this.activeProfile();
     if (!profile) return false;
 
-    const gameInfo = MATH_GAMES.find(g => g.id === gameId);
+    const gameInfo = ALL_GAMES.find(g => g.id === gameId);
     if (!gameInfo || !gameInfo.unlockRequirement) {
       return true; // Si no tiene requisitos, está desbloqueado
     }

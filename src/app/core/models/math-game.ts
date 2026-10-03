@@ -10,6 +10,8 @@ export interface MathGameInfo {
     requiredLevel: number;
     description: string;
   } | null;
+  minAge?: 4 | 6;
+  startLevel?: { 4: number; 6: number };
 }
 
 export const MATH_GAMES: MathGameInfo[] = [
@@ -20,7 +22,9 @@ export const MATH_GAMES: MathGameInfo[] = [
     icon: '🛸',
     route: '/games/math/space-addition',
     cssClass: 'addition',
-    unlockRequirement: null
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 3 },
   },
   {
     id: 'space-subtraction',
@@ -33,7 +37,8 @@ export const MATH_GAMES: MathGameInfo[] = [
       requiredGameId: 'space-addition',
       requiredLevel: 6,
       description: 'Llega al Nivel 6 en Suma Espacial'
-    }
+    },
+    startLevel: { 4: 1, 6: 3 },
   },
   {
     id: 'space-multiplication',
@@ -46,6 +51,7 @@ export const MATH_GAMES: MathGameInfo[] = [
       requiredGameId: 'space-subtraction',
       requiredLevel: 6,
       description: 'Llega al Nivel 6 en Resta Espacial'
-    }
+    },
+    minAge: 6,
   }
 ];

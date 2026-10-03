@@ -10,6 +10,8 @@ export interface JapaneseGameInfo {
     requiredLevel: number;
     description: string;
   } | null;
+  minAge?: 4 | 6;
+  startLevel?: { 4: number; 6: number };
 }
 
 export const JAPANESE_GAMES: JapaneseGameInfo[] = [
@@ -20,7 +22,9 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
     icon: '👂',
     route: '/games/japanese/listening',
     cssClass: 'listening',
-    unlockRequirement: null
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
   },
   {
     id: 'japanese-kanji-find',
@@ -33,7 +37,8 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
       requiredGameId: 'japanese-listening',
       requiredLevel: 3,
       description: 'Llega al Nivel 3 en ¿Qué escuchaste?'
-    }
+    },
+    minAge: 6,
   },
   {
     id: 'japanese-nature',
@@ -46,7 +51,9 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
       requiredGameId: 'japanese-kanji-find',
       requiredLevel: 3,
       description: 'Llega al Nivel 3 en Encuentra el Kanji'
-    }
+    },
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
   },
   {
     id: 'japanese-calendar',
@@ -59,7 +66,8 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
       requiredGameId: 'japanese-kanji-find',
       requiredLevel: 2,
       description: 'Llega al Nivel 2 en Encuentra el Kanji'
-    }
+    },
+    minAge: 6,
   },
   {
     id: 'japanese-clock',
@@ -72,7 +80,8 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
       requiredGameId: 'japanese-calendar',
       requiredLevel: 2,
       description: 'Llega al Nivel 2 en Calendario Japonés'
-    }
+    },
+    minAge: 6,
   },
   {
     id: 'japanese-word-builder',
@@ -85,6 +94,7 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
       requiredGameId: 'japanese-clock',
       requiredLevel: 3,
       description: 'Llega al Nivel 3 en Reloj Japonés'
-    }
+    },
+    minAge: 6,
   }
 ];

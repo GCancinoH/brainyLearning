@@ -66,17 +66,13 @@ export class GameAudioService {
     });
   }
 
-  /**
-   * Habilita/deshabilita audio globalmente
-   */
+  /** Habilita/deshabilita audio globalmente */
   setEnabled(enabled: boolean): void {
     this._enabled.set(enabled);
     if (!enabled) this.stopAll();
   }
 
-  /**
-   * Volumen maestro (0-1)
-   */
+  /** Volumen maestro (0-1) */
   setMasterVolume(volume: number): void {
     const clamped = Math.max(0, Math.min(1, volume));
     this._masterVolume.set(clamped);
@@ -89,9 +85,7 @@ export class GameAudioService {
   // REPRODUCCIÓN
   // ============================================
 
-  /**
-   * Reproduce un audio por tipo (selecciona variante aleatoria / round-robin para praise)
-   */
+  /** Reproduce un audio por tipo (selecciona variante aleatoria / round-robin para praise) */
   play(type: AudioType): Promise<void> {
     if (!this._enabled()) return Promise.resolve();
 
@@ -119,6 +113,19 @@ export class GameAudioService {
   playFile(path: string, volume?: number): Promise<void> {
     if (!this._enabled()) return Promise.resolve();
     return this._playFile(path, volume ?? 0.85);
+  }
+
+  async playAndWait(type: AudioType): Promise<void> {
+    const asset = this._assets().find(a => a.type === type);
+    const path = asset?.paths[0];
+    if (!this._enabled() || !path) return;
+    await this._playFile(path, asset?.volume ?? 0.85);
+    const audio = this._audioCache.get(path);
+    if (!audio || audio.ended || audio.paused) return;
+    await new Promise<void>(resolve => {
+      audio.addEventListener('ended', () => resolve(), { once: true });
+      audio.addEventListener('pause', () => resolve(), { once: true });
+    });
   }
 
   /**
