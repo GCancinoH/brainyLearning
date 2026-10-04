@@ -13,6 +13,7 @@
 />
 }
 
+@if (phase() !== 'intro') {
 <div class="listening-game-container">
   <!-- ENCABEZADO -->
   <header class="game-header">
@@ -75,5 +76,6 @@
     </div>
   </main>
 </div>
+}
 <!-- Level Up Dialog -->
 <level-up-dialog [isVisible]="levelUpVisible()" [level]="levelUpTarget()" (advance)="onAdvance()" />

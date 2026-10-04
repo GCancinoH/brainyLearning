@@ -50,7 +50,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   readonly levelUpTarget = signal(1);
   readonly INTRO_BATCH = 4;
   readonly PLAY_BETWEEN_INTROS = 6;
-  readonly phase = signal<Phase>('play');
+  readonly phase = signal<Phase>('intro');
   readonly introWords = signal<JapaneseWord[]>([]);
   private _guidedQueue: JapaneseWord[] = [];
   private _gradedSinceIntro = this.PLAY_BETWEEN_INTROS;   // permite presentar de inmediato
@@ -134,8 +134,8 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
     // Registrar assets de audio
     this.audio.registerAssets([
-      { type: 'praise', paths: ['audio/praise-1.wav', 'audio/praise-2.wav', 'audio/praise-3.wav'], volume: 0.85 },
-      { type: 'failure', paths: ['audio/failure.wav'], volume: 0.7 },
+      { type: 'praise', paths: ['audio/japanese/praise-1.wav', 'audio/japanese/praise-2.wav', 'audio/japanese/praise-3.wav', 'audio/japanese/praise-4.wav'], volume: 0.85 },
+      { type: 'failure', paths: ['audio/japanese/failure.wav'], volume: 0.7 },
       { type: 'level-up', paths: ['audio/level-up.wav'], volume: 0.9 },
       { type: 'question', paths: [], volume: 0.9 },
       { type: 'instruction', paths: ['audio/instruction-listening.wav'], volume: 0.9 }
@@ -155,13 +155,13 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     }, this.activeProfile()?.age);
 
     // Generar primera pregunta
-    setTimeout(async () => {
-      await this.audio.playAndWait('instruction');   // si no hay archivo, continúa de inmediato
-
-    }, 2200);
-
-    // Suscribirse a eventos de sesión
-    this.session.onEvent(event => this.handleSessionEvent(event));
+    if (this.phase() !== 'intro') {
+      setTimeout(async () => {
+        await this.audio.playAndWait('instruction');
+      }, 500);
+    } else {
+      this.nextStep();
+    }
   }
 
   ngOnDestroy(): void {
@@ -339,7 +339,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       if (unseen.length > 0 && this._gradedSinceIntro >= this.PLAY_BETWEEN_INTROS) {
         this.introWords.set(this.srs.pickIntroBatch(unseen, this.INTRO_BATCH));
         this.phase.set('intro');
-        return;                                  // el carrusel llama a onIntroDone()
+        return;
       }
       this.phase.set('play');
     }
