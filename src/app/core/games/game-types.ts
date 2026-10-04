@@ -95,6 +95,7 @@ export interface GameSessionConfig {
   requiredCorrectForLevelUp: number; // Default: 5
   maxLevel: number;                  // Default: 20
   initialLevel?: number;             // Se carga de persistencia
+  canLevelUp?: () => boolean;
 }
 
 // ============================================

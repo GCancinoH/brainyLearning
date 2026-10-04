@@ -12,9 +12,7 @@ import { ProfileStateService } from '../services/profile-state';
 export class GameSessionService implements OnDestroy {
   private readonly profileState = inject(ProfileStateService);
 
-  // ============================================
-  // ESTADO INTERNO (Signals)
-  // ============================================
+  // Estado Interno
   private _state = signal<GameSessionState | null>(null);
   private _config: GameSessionConfig | null = null;
   private _sessionTimer: ReturnType<typeof setTimeout> | null = null;
@@ -23,9 +21,7 @@ export class GameSessionService implements OnDestroy {
   private _pausedAt = signal<number | null>(null);
   readonly isPaused = computed(() => this._pausedAt() !== null);
 
-  // ============================================
-  // SELECTORES PÚBLICOS (readonly signals)
-  // ============================================
+  // Selectores Públicos
   readonly state = this._state.asReadonly();
   readonly currentLevel = computed(() => this._state()?.level ?? 1);
   readonly consecutiveCorrect = computed(() => this._state()?.consecutiveCorrect ?? 0);
@@ -221,7 +217,9 @@ export class GameSessionService implements OnDestroy {
     });
 
     // Verificar subida de nivel
-    if (newConsecutive >= currentState.requiredCorrectForLevelUp && currentState.level < currentState.maxLevel) {
+    const gateOpen = this._config?.canLevelUp?.() ?? true;
+    if (newConsecutive >= currentState.requiredCorrectForLevelUp
+        && currentState.level < currentState.maxLevel && gateOpen) {
       return this._levelUp();
     }
 

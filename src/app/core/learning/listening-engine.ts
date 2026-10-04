@@ -4,15 +4,14 @@
 **/
 import { inject, Service, signal } from '@angular/core';
 import {
-  JapaneseWord,
-  RepresentationType,
-  ProfileDifficultyConfig,
-  AttemptRecord,
+  JapaneseWord, RepresentationType, ProfileDifficultyConfig, AttemptRecord,
   LearningMistake
 } from './learning-content';
 import { LearningContentService } from './learning-content.service';
 import { SkillProgressService } from './skill-progress.service';
 import { ProfileStateService } from '../services/profile-state';
+import { FirstAttemptGuard } from './first-attempt-guard';
+import { SpacedRepetition, JAPANESE_VOCAB_DECK } from './spaced-repetition';
 
 /* Engine Types */
 export interface ListeningQuestion {
@@ -34,6 +33,7 @@ export interface ListeningEngineConfig {
   targetSkills: string[];
   category?: string;
   maxDifficulty?: number;  // ← AÑADIR: nivel/dificultad máxima según nivel actual
+  focusWordIds?: string[];
 }
 
 @Service()
@@ -42,6 +42,8 @@ export class ListeningGameEngine {
   private readonly contentService = inject(LearningContentService);
   private readonly skillProgress = inject(SkillProgressService);
   private readonly profileState = inject(ProfileStateService);
+  private readonly srs = inject(SpacedRepetition);
+  private readonly firstAttempt = new FirstAttemptGuard();
 
   // Buffer de recencia usando Signal interna para trazabilidad
   private readonly _recentWordIds = signal<string[]>([]);
@@ -63,68 +65,41 @@ export class ListeningGameEngine {
   generateQuestion(config: ListeningEngineConfig): ListeningQuestion | null {
     const profile = this.profileState.activeProfile();
     if (!profile) return null;
-
     const age = profile.age;
     const profileConfig = this.contentService.activeProfileConfig();
-    const currentLevel = config.maxDifficulty ?? 1;  // Usar nivel pasado
+    const level = config.maxDifficulty ?? 1;
 
-    // Obtener palabras disponibles — USAR TODAS LAS SKILLS OBJETIVO
-    let candidateWords: JapaneseWord[] = [];
-    for (const skillId of config.targetSkills) {
-      candidateWords = [...candidateWords, ...this.contentService.getWordsForSkill(skillId)];
+    // solo palabras ya presentadas: nunca se pregunta ni se usa de distractor algo desconocido
+    const pool = this.getUnlockedWords(config)
+      .filter(w => this.srs.isIntroduced(JAPANESE_VOCAB_DECK, w.id));
+    const targets = config.focusWordIds?.length
+      ? pool.filter(w => config.focusWordIds!.includes(w.id))
+      : pool;
+    if (targets.length === 0) return null;
+
+    const buffer = this._recentWordIds();
+    let choices = targets.filter(w => !buffer.includes(w.id));
+    if (choices.length === 0) {
+      const last = buffer[buffer.length - 1];
+      choices = targets.filter(w => w.id !== last);
+      if (choices.length === 0) choices = targets;
     }
-    // Unir sin duplicados
-    candidateWords = Array.from(new Map(candidateWords.map(w => [w.id, w])).values());
-
-    if (config.category) {
-      candidateWords = candidateWords.filter(w => w.category === config.category);
-    }
-
-    // Filtrar por dificultad según nivel actual
-    const maxDiff = Math.min(currentLevel, 10);
-    candidateWords = candidateWords.filter(w => w.difficulty <= maxDiff && w.recommendedAgeMin <= age);
-
-    if (candidateWords.length === 0) return null;
-
-    // --- FILTRO DE RECENCIA ANTI-REPETICIÓN ---
-    const currentBuffer = this._recentWordIds();
-    let filteredCandidates = candidateWords.filter(w => !currentBuffer.includes(w.id));
-
-    // Fallback si el pool es menor que el buffer
-    if (filteredCandidates.length === 0) {
-      const lastWordId = currentBuffer[currentBuffer.length - 1];
-      filteredCandidates = candidateWords.filter(w => w.id !== lastWordId);
-
-      if (filteredCandidates.length === 0) {
-        filteredCandidates = candidateWords;
-      }
-    }
-
-    // Seleccionar palabra objetivo de forma aleatoria sobre los candidatos filtrados
-    const targetWord = filteredCandidates[Math.floor(Math.random() * filteredCandidates.length)];
-
-    // Registrar en el historial de recencia
+    const targetWord = choices[Math.floor(Math.random() * choices.length)];
     this._trackRecentWord(targetWord.id);
 
-    // Determinar representaciones
     const questionRep = this._selectQuestionRepresentation(profileConfig, targetWord, age);
     const answerRep = this._selectAnswerRepresentation(profileConfig, targetWord, age);
 
-    // Generar opciones distractoras
-    const numOptions = Math.min(
-      profileConfig.maxOptions,
-      Math.max(profileConfig.minOptions, candidateWords.length)
-    );
-    const distractors = this._pickDistractors(targetWord, candidateWords, numOptions - 1, currentLevel);
-    const allOptions = this._shuffle([targetWord, ...distractors]);
-    const correctIndex = allOptions.findIndex(w => w.id === targetWord.id);
+    const numOptions = Math.min(profileConfig.maxOptions, Math.max(profileConfig.minOptions, pool.length));
+    const distractors = this._pickDistractors(targetWord, pool, numOptions - 1, level);
+    const options = this._shuffle([targetWord, ...distractors]);
 
     return {
       word: targetWord,
       questionRepresentation: questionRep,
       answerRepresentation: answerRep,
-      options: allOptions,
-      correctIndex
+      options,
+      correctIndex: options.findIndex(w => w.id === targetWord.id)
     };
   }
 
@@ -142,9 +117,10 @@ export class ListeningGameEngine {
     question: ListeningQuestion,
     answer: ListeningAnswer,
     config: ListeningEngineConfig
-  ): { attempt: AttemptRecord; mistake?: LearningMistake } {
+  ): { attempt: AttemptRecord; mistake?: LearningMistake } | null {
     const profile = this.profileState.activeProfile();
     if (!profile) throw new Error('No active profile');
+    if (!this.firstAttempt.isFirst(question)) return null;
 
     const attempt: AttemptRecord = {
       skillId: config.targetSkills[0],
@@ -157,6 +133,7 @@ export class ListeningGameEngine {
       profileAge: profile.age,
       profileId: profile.id
     };
+
 
     this.skillProgress.recordAttempt(attempt);
 
@@ -186,6 +163,25 @@ export class ListeningGameEngine {
     if (recentAccuracy > 0.85 && currentDifficulty < 10) return currentDifficulty + 1;
     if (recentAccuracy < 0.6 && currentDifficulty > 1) return currentDifficulty - 1;
     return currentDifficulty;
+  }
+
+  getUnlockedWords(config: ListeningEngineConfig): JapaneseWord[] {
+    const profile = this.profileState.activeProfile();
+    if (!profile) return [];
+    const maxDiff = Math.min(config.maxDifficulty ?? 1, 10);
+
+    let words: JapaneseWord[] = [];
+    for (const skillId of config.targetSkills) {
+      words = [...words, ...this.contentService.getWordsForSkill(skillId)];
+    }
+    words = Array.from(new Map(words.map(w => [w.id, w])).values());
+    if (config.category) words = words.filter(w => w.category === config.category);
+    return words.filter(w => w.difficulty <= maxDiff && w.recommendedAgeMin <= profile.age);
+  }
+
+  getUnintroducedWords(config: ListeningEngineConfig): JapaneseWord[] {
+    return this.getUnlockedWords(config)
+      .filter(w => !this.srs.isIntroduced(JAPANESE_VOCAB_DECK, w.id));
   }
 
   /* Privados */

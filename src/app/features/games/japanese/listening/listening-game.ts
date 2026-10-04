@@ -12,11 +12,19 @@ import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { ListeningGameEngine, ListeningQuestion, ListeningAnswer } from '@core/learning/listening-engine';
 import { JapaneseWord, RepresentationType } from '@core/learning/learning-content';
 import { LevelUpDialog } from '@shared/game-ui/level-up-dialog/level-up-dialog';
+import { SpacedRepetition, JAPANESE_VOCAB_DECK } from '@core/learning/spaced-repetition';
+import { ListeningEngineConfig } from '@core/learning/listening-engine';
+import { WordIntroCarousel } from '@shared/game-ui/word-intro-carousel/word-intro-carousel';
+
+type Phase = 'intro' | 'guided' | 'play';
 
 @Component({
   selector: 'listening-game',
   standalone: true,
-  imports: [CommonModule, GameFeedbackComponent, GameRestOverlayComponent, LevelUpDialog],
+  imports: [
+    CommonModule, GameFeedbackComponent, GameRestOverlayComponent, LevelUpDialog,
+    WordIntroCarousel
+  ],
   templateUrl: './listening-game.html',
   styleUrl: './listening-game.scss'
 })
@@ -29,6 +37,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   private readonly contentService = inject(LearningContentService);
   private readonly skillProgress = inject(SkillProgressService);
   private readonly engine = inject(ListeningGameEngine);
+  private readonly srs = inject(SpacedRepetition);
   private unsubscribeEvents?: () => void;
 
   readonly activeProfile = this.profileState.activeProfile;
@@ -39,6 +48,14 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   readonly TARGET_SKILLS = ['japanese.listening', 'japanese.vocabulary'];
   readonly levelUpVisible = signal(false);
   readonly levelUpTarget = signal(1);
+  readonly INTRO_BATCH = 4;
+  readonly PLAY_BETWEEN_INTROS = 6;
+  readonly phase = signal<Phase>('play');
+  readonly introWords = signal<JapaneseWord[]>([]);
+  private _guidedQueue: JapaneseWord[] = [];
+  private _gradedSinceIntro = this.PLAY_BETWEEN_INTROS;   // permite presentar de inmediato
+  private _showHint = signal(false);
+  readonly showHint = this._showHint.asReadonly();
 
   // Estado del engine
   private _currentQuestion = signal<ListeningQuestion | null>(null);
@@ -113,6 +130,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   readonly idleMessage = 'Escucha la palabra y toca la imagen correcta';
 
   ngOnInit(): void {
+    this.srs.seedFromAttempts(JAPANESE_VOCAB_DECK, this.skillProgress.attempts().filter(a => a.skillId === 'japanese.listening'));
     this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
     // Registrar assets de audio
     this.audio.registerAssets([
@@ -132,26 +150,18 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       sessionDurationMs: 5 * 60 * 1000,
       requiredCorrectForLevelUp: this.requiredCorrect(),
       maxLevel: this.MAX_LEVEL,
-      initialLevel: savedLevel
+      initialLevel: savedLevel,
+      canLevelUp: () => this.engine.getUnintroducedWords(this.engineConfig()).length === 0
     }, this.activeProfile()?.age);
 
     // Generar primera pregunta
     setTimeout(async () => {
       await this.audio.playAndWait('instruction');   // si no hay archivo, continúa de inmediato
-      this.generateQuestion();
-    }, 2200);
 
+    }, 2200);
 
     // Suscribirse a eventos de sesión
     this.session.onEvent(event => this.handleSessionEvent(event));
-
-    // Reproducir audio de la pregunta inicial
-    /*effect(() => {
-      const q = this._currentQuestion();
-      if (q) {
-        setTimeout(() => this.playQuestionAudio(), 500);
-      }
-    });*/
   }
 
   ngOnDestroy(): void {
@@ -178,86 +188,72 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     this.levelUpVisible.set(false);
     this.session.resume();
     if (!this.session.isTimeUp() && !this.session.isCompleted()) {
-      this.generateQuestion();
+      this._gradedSinceIntro = this.PLAY_BETWEEN_INTROS;
+      this.nextStep();
     }
   }
 
   generateQuestion(): void {
-    this._attemptRecorded = false;
+    const focus = this.phase() === 'guided' ? [this._guidedQueue[0].id] : undefined;
+    const question = this.engine.generateQuestion(this.engineConfig(focus));
+    if (!question) return;
 
-    const question = this.engine.generateQuestion({
-      gameId: this.GAME_ID,
-      targetSkills: this.TARGET_SKILLS,
-      maxDifficulty: this.currentLevel()  // ← PASAR NIVEL ACTUAL
-    });
-
-    if (question) {
-      this._currentQuestion.set(question);
-      this._localFeedback.set('idle');
-      this._disabledOptions.set([]);
-      this._answerStartTime = Date.now();
-
-      this._showHiragana.set(this.profileConfig().requiresReading);
-
-      // Reproducir automáticamente el audio de la nueva pregunta
-      setTimeout(() => {
-        this.playQuestionAudio();
-      }, 500);
-    }
+    this._currentQuestion.set(question);
+    this._localFeedback.set('idle');
+    this._disabledOptions.set([]);
+    this._showHint.set(false);
+    this._answerStartTime = Date.now();
+    this._showHiragana.set(this.profileConfig().requiresReading);
+    setTimeout(() => this.playQuestionAudio(), 500);
   }
 
   selectOption(selectedWordId: string): void {
     const sessionState = this.session.state();
     if (sessionState?.isTimeUp || sessionState?.isCompleted) return;
     if (this._disabledOptions().includes(selectedWordId)) return;
-
     this.audio.retryPendingAudio();
 
     const question = this._currentQuestion();
     if (!question) return;
 
-    const responseTimeMs = Date.now() - this._answerStartTime;
     const answer = {
       selectedWordId,
       correct: selectedWordId === question.word.id,
-      responseTimeMs
+      responseTimeMs: Date.now() - this._answerStartTime
     };
 
-    const isCorrect = this.engine.validateAnswer(question, answer);
+    if (this.phase() === 'guided') {
+      this._answerGuided(question, answer.correct);
+      return;
+    }
 
-    if (isCorrect) {
+    // el engine solo registra el primer intento de cada pregunta
+    this.engine.recordAttempt(question, answer, this.engineConfig());
+
+    if (answer.correct) {
       this._localFeedback.set('success');
+      this._gradedSinceIntro++;
       const result = this.session.recordCorrect();
-      this._recordFirstAttempt(question, answer);
-
       if (result.leveledUp) {
         this.progress.saveProgress(this.GAME_ID, {
           level: result.newLevel,
           completed: result.newLevel >= this.MAX_LEVEL
         });
       } else {
-        // Acierto normal: solo praise (generateQuestion reproducirá el audio de la nueva pregunta)
         this.audio.playPraise();
-        setTimeout(() => {
-          if (!this.session.isTimeUp() && !this.session.isCompleted()) {
-            this.generateQuestion();
-          }
-        }, 1200);
+        setTimeout(() => this.nextStep(), 1200);
       }
     } else {
       this._localFeedback.set('try-again');
       this.session.recordIncorrect();
       this._disabledOptions.update(list => [...list, selectedWordId]);
       this.audio.playFailure();
-
-      this._recordFirstAttempt(question, answer);
-
       setTimeout(() => this.playWordAudio(question.word), 800);
     }
   }
 
   playQuestionAudio(): void {
-    if (this.levelUpVisible()) return;
+    if (this.levelUpVisible() || this.phase() === 'intro') return;
 
     const question = this._currentQuestion();
     if (!question) return;
@@ -309,10 +305,57 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     this.router.navigate(['/games/japanese']);
   }
 
+  onIntroDone(): void {
+    const batch = this.introWords();
+    this.srs.markIntroduced(JAPANESE_VOCAB_DECK, batch.map(w => w.id));
+    this._guidedQueue = [...batch].sort(() => Math.random() - 0.5);
+    this._gradedSinceIntro = 0;
+    this.introWords.set([]);
+    this.phase.set('guided');
+    this.generateQuestion();
+  }
+
   /* Private methods */
   private _recordFirstAttempt(question: ListeningQuestion, answer: ListeningAnswer): void {
     if (this._attemptRecorded) return;
     this._attemptRecorded = true;
     this.engine.recordAttempt(question, answer, { gameId: this.GAME_ID, targetSkills: this.TARGET_SKILLS });
+  }
+
+  private engineConfig(focus?: string[]): ListeningEngineConfig {
+    return {
+      gameId: this.GAME_ID,
+      targetSkills: this.TARGET_SKILLS,
+      maxDifficulty: this.currentLevel(),
+      focusWordIds: focus
+    };
+  }
+
+  private nextStep(): void {
+    if (this.session.isTimeUp() || this.session.isCompleted()) return;
+
+    if (this._guidedQueue.length === 0) {
+      const unseen = this.engine.getUnintroducedWords(this.engineConfig());
+      if (unseen.length > 0 && this._gradedSinceIntro >= this.PLAY_BETWEEN_INTROS) {
+        this.introWords.set(this.srs.pickIntroBatch(unseen, this.INTRO_BATCH));
+        this.phase.set('intro');
+        return;                                  // el carrusel llama a onIntroDone()
+      }
+      this.phase.set('play');
+    }
+    this.generateQuestion();
+  }
+
+  private _answerGuided(question: ListeningQuestion, correct: boolean): void {
+    if (!correct) {
+      this._localFeedback.set('try-again');
+      this._showHint.set(true);                  // la correcta pulsa; no se deshabilita nada
+      setTimeout(() => this.playWordAudio(question.word), 500);
+      return;
+    }
+    this._localFeedback.set('success');
+    this.audio.playPraise();
+    this._guidedQueue.shift();
+    setTimeout(() => this.nextStep(), 1200);
   }
 }

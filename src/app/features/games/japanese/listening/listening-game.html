@@ -4,6 +4,15 @@
   (onBack)="onRestOverlayBack()"
 />
 
+<!-- Intro -->
+@if (phase() === 'intro') {
+<word-intro-carousel
+  [words]="introWords()"
+  [showReading]="profileConfig().requiresReading"
+  (done)="onIntroDone()"
+/>
+}
+
 <div class="listening-game-container">
   <!-- ENCABEZADO -->
   <header class="game-header">
@@ -45,6 +54,7 @@
           [class.preschool-mode]="isPreschoolProfile()"
           [class.disabled]="_disabledOptions().includes(opt.id)"
           [class.correct]="feedbackState() === 'success' && idx === correctIndex()"
+          [class.hint]="showHint() && idx === correctIndex()"
           (click)="selectOption(opt.id)"
           [attr.aria-label]="getOptionAriaLabel(opt)"
         >

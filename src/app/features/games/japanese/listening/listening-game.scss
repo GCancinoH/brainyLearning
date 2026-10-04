@@ -229,6 +229,15 @@
       font-weight: 500;
     }
   }
+
+  .option-btn.hint {
+    outline: 4px solid #fde047;
+    animation: hint-pulse 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes hint-pulse {
+    from { transform: scale(1); }
+    to   { transform: scale(1.06); }
+  }
 }
 
 @keyframes celebrate {
