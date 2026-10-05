@@ -59,6 +59,13 @@
     &:active { transform: scale(0.98); }
   }
 
+  &.multiplication {
+    background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
+    box-shadow: 0 10px 25px rgba(20, 184, 166, 0.3);
+
+    &:active { transform: scale(0.98); }
+  }
+
   &.disabled {
     background: rgba(255, 255, 255, 0.05);
     border: 1px dashed rgba(255, 255, 255, 0.2);

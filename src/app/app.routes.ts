@@ -22,6 +22,10 @@ export const routes: Routes = [
     loadComponent: () => import('@features/games/math/space-subtraction/space-subtraction').then(m => m.SpaceSubtraction)
   },
   {
+    path: 'games/math/space-multiplication',
+    loadComponent: () => import('@features/games/math/space-multiply/space-multiply').then(m => m.SpaceMultiply)
+  },
+  {
     path: 'games/japanese',
     loadComponent: () => import('@features/games/japanese/japanese-menu/japanese-menu').then(m => m.JapaneseMenu)
   },
