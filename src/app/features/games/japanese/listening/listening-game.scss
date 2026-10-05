@@ -46,6 +46,14 @@
         &.active { opacity: 1; color: #fde047; }
       }
     }
+
+    .review-badge {
+      font-size: 0.85rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 12px;
+      background: rgba(253, 224, 71, 0.18);
+      color: #fde047;
+    }
   }
 }
 

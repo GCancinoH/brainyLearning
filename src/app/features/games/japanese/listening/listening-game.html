@@ -25,6 +25,9 @@
           <span [class.active]="s < consecutiveCorrect()">⭐</span>
         }
       </div>
+      @if (phase() === 'review') {
+        <span class="review-badge">🔁 Repaso {{ reviewProgress() }}/{{ reviewTarget() }}</span>
+      }
     </div>
   </header>
 

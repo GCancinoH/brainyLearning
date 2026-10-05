@@ -15,7 +15,7 @@ import { LevelUpDialog } from '@shared/game-ui/level-up-dialog/level-up-dialog';
 import { SpacedRepetition, JAPANESE_VOCAB_DECK } from '@core/learning/spaced-repetition';
 import { WordIntroCarousel } from '@shared/game-ui/word-intro-carousel/word-intro-carousel';
 
-type Phase = 'intro' | 'guided' | 'play';
+type Phase = 'intro' | 'guided' | 'play' | 'review';
 
 @Component({
   selector: 'listening-game',
@@ -50,6 +50,10 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   readonly INTRO_BATCH = 4;
   readonly PLAY_BETWEEN_INTROS = 6;
   readonly phase = signal<Phase>('intro');
+  /** Aciertos del repaso en curso y meta (cortos: la ronda nunca se alarga por errores) */
+  readonly reviewProgress = signal(0);
+  readonly reviewTarget = computed(() => (this.activeProfile()?.age ?? 4) <= 4 ? 6 : 8);
+  private _reviewDoneLevel = 0;
   readonly introWords = signal<JapaneseWord[]>([]);
   private _guidedQueue: JapaneseWord[] = [];
   private _gradedSinceIntro = this.PLAY_BETWEEN_INTROS;   // permite presentar de inmediato
@@ -153,6 +157,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       maxLevel: this.MAX_LEVEL,
       initialLevel: savedLevel,
       canLevelUp: () => this.engine.getUnintroducedWords(this.engineConfig()).length === 0
+        && this._reviewSatisfied()
     }, this.activeProfile()?.age);
 
     // Arranca con la presentación de palabras (el audio de instrucción suena al terminarla)
@@ -233,6 +238,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     if (answer.correct) {
       this._localFeedback.set('success');
       this._gradedSinceIntro++;
+      this._countReview();   // antes de recordCorrect: la última del repaso ya encuentra la puerta abierta
       const result = this.session.recordCorrect();
       if (result.leveledUp) {
         this.progress.saveProgress(this.GAME_ID, {
@@ -316,8 +322,25 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       gameId: this.GAME_ID,
       targetSkills: this.TARGET_SKILLS,
       maxDifficulty: this.currentLevel(),
-      focusWordIds: focus
+      focusWordIds: focus,
+      reviewBlock: this.phase() === 'review' ? this.currentLevel() : undefined
     };
+  }
+
+  /** Sin nada que repasar (nivel 1, bloque sin palabras propias) o repaso ya hecho en este nivel */
+  private _reviewSatisfied(): boolean {
+    const level = this.currentLevel();
+    if (this._reviewDoneLevel >= level) return true;
+    return !this.engine.hasReviewMaterial({ ...this.engineConfig(), reviewBlock: level });
+  }
+
+  private _countReview(): void {
+    if (this.phase() !== 'review') return;
+    this.reviewProgress.update(n => n + 1);
+    if (this.reviewProgress() >= this.reviewTarget()) {
+      this._reviewDoneLevel = this.currentLevel();
+      this.phase.set('play');
+    }
   }
 
   private nextStep(): void {
@@ -330,7 +353,13 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
         this.phase.set('intro');
         return;
       }
-      this.phase.set('play');
+      if (unseen.length === 0 && !this._reviewSatisfied()) {
+        // bloque completo: repaso mezclado con bloques anteriores antes de subir de nivel
+        if (this.phase() !== 'review') this.reviewProgress.set(0);
+        this.phase.set('review');
+      } else {
+        this.phase.set('play');
+      }
     }
     this.generateQuestion();
   }

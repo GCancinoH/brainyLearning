@@ -34,6 +34,8 @@ export interface ListeningEngineConfig {
   category?: string;
   maxDifficulty?: number;  // ← AÑADIR: nivel/dificultad máxima según nivel actual
   focusWordIds?: string[];
+  /** Ronda de repaso: nivel (bloque) que se consolida; mezcla sus palabras con las de bloques anteriores */
+  reviewBlock?: number;
 }
 
 @Service()
@@ -72,9 +74,10 @@ export class ListeningGameEngine {
     // solo palabras ya presentadas: nunca se pregunta ni se usa de distractor algo desconocido
     const pool = this.getUnlockedWords(config)
       .filter(w => this.srs.isIntroduced(JAPANESE_VOCAB_DECK, w.id));
-    const targets = config.focusWordIds?.length
+    const focused = config.focusWordIds?.length
       ? pool.filter(w => config.focusWordIds!.includes(w.id))
       : pool;
+    const targets = this._reviewTargets(focused, config) ?? focused;
     if (targets.length === 0) return null;
 
     const buffer = this._recentWordIds();
@@ -91,7 +94,9 @@ export class ListeningGameEngine {
     const answerRep = this._selectAnswerRepresentation(profileConfig, targetWord, age);
 
     const numOptions = Math.min(profileConfig.maxOptions, Math.max(profileConfig.minOptions, pool.length));
-    const distractors = this._pickDistractors(targetWord, pool, numOptions - 1, level);
+    const distractors = config.reviewBlock
+      ? this._pickReviewDistractors(targetWord, pool, numOptions - 1, config.reviewBlock)
+      : this._pickDistractors(targetWord, pool, numOptions - 1, level);
     const options = this._shuffle([targetWord, ...distractors]);
 
     return {
@@ -184,7 +189,41 @@ export class ListeningGameEngine {
       .filter(w => !this.srs.isIntroduced(JAPANESE_VOCAB_DECK, w.id));
   }
 
+  /** ¿Hay algo que repasar? Palabras ya presentadas del bloque actual Y de bloques anteriores */
+  hasReviewMaterial(config: ListeningEngineConfig): boolean {
+    const block = config.reviewBlock;
+    if (!block) return false;
+    const introduced = this.getUnlockedWords(config)
+      .filter(w => this.srs.isIntroduced(JAPANESE_VOCAB_DECK, w.id));
+    return introduced.some(w => w.difficulty >= block) && introduced.some(w => w.difficulty < block);
+  }
+
   /* Privados */
+  /**
+   * Repaso: mitad de las preguntas del bloque recién aprendido y mitad de bloques anteriores.
+   * Entre los anteriores se favorecen las palabras con errores previos.
+   */
+  private _reviewTargets(pool: JapaneseWord[], config: ListeningEngineConfig): JapaneseWord[] | null {
+    const block = config.reviewBlock;
+    if (!block) return null;
+    const current = pool.filter(w => w.difficulty >= block);
+    const previous = pool.filter(w => w.difficulty < block);
+    if (current.length === 0 || previous.length === 0) return null;
+    if (Math.random() < 0.5) return current;
+    return this._weightedSample(previous, config.targetSkills[0]);
+  }
+
+  /** La mitad de las veces se limita a las palabras con errores previos; si no hay, usa todas */
+  private _weightedSample(words: JapaneseWord[], skillId: string): JapaneseWord[] {
+    const mistakes = new Map<string, number>();
+    for (const m of this.skillProgress.getMistakes(skillId)) {
+      mistakes.set(m.contentId, (mistakes.get(m.contentId) ?? 0) + 1);
+    }
+    const weak = words.filter(w => mistakes.has(w.id));
+    // prob. 0.5 para que el repaso no se vuelva solo "las difíciles"
+    return weak.length > 0 && Math.random() < 0.5 ? weak : words;
+  }
+
   private _trackRecentWord(wordId: string): void {
     this._recentWordIds.update(history => {
       const updated = [...history, wordId];
@@ -248,6 +287,22 @@ export class ListeningGameEngine {
     // si faltaron, rellenar con lo que sobre
     if (picked.length < count) {
       const rest = this._shuffle([...sameCategory, ...otherCategory].filter(w => !picked.includes(w)));
+      picked.push(...rest.slice(0, count - picked.length));
+    }
+    return picked;
+  }
+
+  /** Repaso: la mitad de los distractores viene del "otro" bloque, para que discrimine entre bloques */
+  private _pickReviewDistractors(target: JapaneseWord, pool: JapaneseWord[], count: number, block: number): JapaneseWord[] {
+    const valid = pool.filter(w => w.id !== target.id && w.hiragana !== target.hiragana);
+    const inCurrent = (w: JapaneseWord) => w.difficulty >= block;
+    const otherBlock = this._shuffle(valid.filter(w => inCurrent(w) !== inCurrent(target)));
+    const sameBlock = this._shuffle(valid.filter(w => inCurrent(w) === inCurrent(target)));
+
+    const fromOther = Math.min(otherBlock.length, Math.ceil(count / 2));
+    const picked = [...otherBlock.slice(0, fromOther), ...sameBlock.slice(0, count - fromOther)];
+    if (picked.length < count) {
+      const rest = this._shuffle(valid.filter(w => !picked.includes(w)));
       picked.push(...rest.slice(0, count - picked.length));
     }
     return picked;
