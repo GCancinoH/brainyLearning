@@ -1,0 +1,18 @@
+.overlay {
+  position: fixed; inset: 0; z-index: 150; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1.5rem; padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); }
+.card { width: 100%; max-width: 340px; aspect-ratio: 1; border: 3px solid #38bdf8; border-radius: 32px;
+  background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,.5); }
+.emoji { font-size: 7rem; line-height: 1; }
+.kana { font-size: 2.2rem; font-weight: 800; }
+.meaning { font-size: 1.1rem; color: #94a3b8; }
+.speaker { font-size: 1.6rem; opacity: .7; }
+.dots { display: flex; gap: .5rem; }
+.dots span { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.2); }
+.dots span.on { background: #38bdf8; }
+.next { width: 100%; max-width: 340px; border: none; border-radius: 18px; padding: 1rem;
+  font-size: 1.3rem; font-weight: 800; color: #fff; cursor: pointer;
+  background: linear-gradient(135deg, #22c55e, #15803d); }

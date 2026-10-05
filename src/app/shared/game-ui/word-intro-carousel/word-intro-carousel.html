@@ -1,0 +1,18 @@
+@if (current(); as word) {
+<div class="overlay">
+  <button class="card" (click)="replay()">
+    <span class="emoji">{{ emoji(word) }}</span>
+    @if (showReading()) {
+      <span class="kana" margin="top 20px">{{ word.hiragana }}</span>
+      <span class="meaning" margin="top 5px">{{ word.meanings[0] }}</span>
+    }
+    <span class="speaker" margin="top 5px">🔊</span>
+  </button>
+  <div class="dots">
+    @for (w of words(); track w.id; let i = $index) {
+      <span [class.on]="i === index()"></span>
+    }
+  </div>
+  <button class="next" (click)="next()">{{ isLast() ? '¡A jugar! 🎮' : 'Siguiente ▶' }}</button>
+</div>
+}
