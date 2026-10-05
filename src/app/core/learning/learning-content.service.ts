@@ -5,7 +5,7 @@
 import { Service, inject, signal, computed } from '@angular/core';
 import { JapaneseWord, LearningContent, ProfileDifficultyConfig, SkillDefinition,
   RepresentationType, getProfileDifficultyConfig, getWordsForProfile, getWordsBySkill,
-  INITIAL_JAPANESE_WORDS, JAPANESE_SKILLS
+  JAPANESE_WORDS, JAPANESE_SKILLS
 } from './learning-content';
 import { ProfileStateService } from '../services/profile-state';
 
@@ -16,7 +16,7 @@ export class LearningContentService {
   // ============================================
   // ESTADO - Dataset declarativo
   // ============================================
-  private _words = signal<JapaneseWord[]>(INITIAL_JAPANESE_WORDS);
+  private _words = signal<JapaneseWord[]>(JAPANESE_WORDS);
   private _skills = signal<SkillDefinition[]>(JAPANESE_SKILLS);
 
   readonly words = this._words.asReadonly();
@@ -37,21 +37,21 @@ export class LearningContentService {
   readonly availableWords = computed((): JapaneseWord[] => {
     const profile = this.profileState.activeProfile();
     const age = profile?.age ?? 4;
-    return getWordsForProfile(age);
+    return getWordsForProfile(this._words(), age);
   });
 
   /** Palabras por categoría para el perfil activo */
   getWordsByCategory(category: string): JapaneseWord[] {
     const profile = this.profileState.activeProfile();
     const age = profile?.age ?? 4;
-    return getWordsForProfile(age).filter(w => w.category === category);
+    return getWordsForProfile(this._words(), age).filter(w => w.category === category);
   }
 
   /** Palabras para una skill específica */
   getWordsForSkill(skillId: string): JapaneseWord[] {
     const profile = this.profileState.activeProfile();
     const age = profile?.age ?? 4;
-    return getWordsBySkill(skillId, age);
+    return getWordsBySkill(this._words(), skillId, age);
   }
 
   // ============================================
@@ -117,7 +117,7 @@ export class LearningContentService {
 
   /** Obtiene todas las categorías disponibles para una edad */
   getCategories(age: number): string[] {
-    const words = getWordsForProfile(age);
+    const words = getWordsForProfile(this._words(), age);
     return [...new Set(words.map(w => w.category))];
   }
 

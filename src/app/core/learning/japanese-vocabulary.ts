@@ -41,10 +41,7 @@ const JAPANESE_ANIMALS: JapaneseWord[] = [
   jw('chouchou', 'ちょうちょう', ['mariposa'], '🦋', 'animals', 2),
   jw('nezumi', 'ねずみ', ['ratón'], '🐭', 'animals', 2, '鼠'),
   jw('hiyoko', 'ひよこ', ['pollito'], '🐥', 'animals', 2),
-  jw('neko', 'ねこ', ['gato'], '🐱', 'animals', 2, '猫'),
-  jw('inu', 'いぬ', ['perro'], '🐶', 'animals', 2, '犬'),
   jw('ari', 'あり', ['hormiga'], '🐜', 'animals', 2, '蟻'),
-  jw('tori', 'とり', ['pájaro'], '🐦', 'animals', 2, '鳥')
 ];
 
 const JAPANESE_FOOD: JapaneseWord[] = [
@@ -62,8 +59,9 @@ const JAPANESE_FOOD: JapaneseWord[] = [
   jw('onigiri', 'おにぎり', ['bola de arroz'], '🍙', 'food', 3),
   jw('gyuunyuu', 'ぎゅうにゅう', ['leche'], '🥛', 'food', 3, '牛乳'),
   jw('chiizu', 'チーズ', ['queso'], '🧀', 'food', 3),
-  jw('aisu', 'アイス', ['helado'], '🍦', 'food', 3),
+  jw('aisu', 'アイスクリーム', ['helado'], '🍦', 'food', 3),
   jw('keeki', 'ケーキ', ['pastel'], '🎂', 'food', 3),
+  jw('banana', 'バナナ', ['plátano'], '🍌', 'food', 3)
 ];
 
 const JAPANESE_BODY: JapaneseWord[] = [
@@ -131,7 +129,7 @@ const JAPANESE_NATURE: JapaneseWord[] = [
 
 export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   ...JAPANESE_ANIMALS,
-  // ...JAPANESE_FOOD,
+  ...JAPANESE_FOOD,
   // ...JAPANESE_BODY,
   // ...JAPANESE_FAMILY,
   // ...JAPANESE_NATURE,

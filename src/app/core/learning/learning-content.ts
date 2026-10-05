@@ -288,9 +288,9 @@ export interface LearningMistake {
 }
 
 // ============================================
-// DATASET INICIAL - Palabras concretas para 4 años
+// DATASET - Vocabulario japonés (base + extra)
 // ============================================
-export const INITIAL_JAPANESE_WORDS: JapaneseWord[] = [
+export const JAPANESE_WORDS: JapaneseWord[] = [
   // Animales - categoría concreta, visual
   {
     id: 'neko',
@@ -845,17 +845,17 @@ export const INITIAL_JAPANESE_WORDS: JapaneseWord[] = [
   ...EXTRA_JAPANESE_WORDS
 ];
 
-// Helper para filtrar por edad y categoría
-export function getWordsForProfile(age: number, category?: string): JapaneseWord[] {
-  return INITIAL_JAPANESE_WORDS.filter(w => {
+// Helpers para filtrar una lista de palabras (la lista la aporta quien llama, p. ej. LearningContentService)
+export function getWordsForProfile(words: JapaneseWord[], age: number, category?: string): JapaneseWord[] {
+  return words.filter(w => {
     if (w.recommendedAgeMin > age) return false;
     if (category && w.category !== category) return false;
     return true;
   });
 }
 
-export function getWordsBySkill(skillId: string, age: number): JapaneseWord[] {
-  return INITIAL_JAPANESE_WORDS.filter(w =>
+export function getWordsBySkill(words: JapaneseWord[], skillId: string, age: number): JapaneseWord[] {
+  return words.filter(w =>
     w.skills.includes(skillId) && w.recommendedAgeMin <= age
   );
 }

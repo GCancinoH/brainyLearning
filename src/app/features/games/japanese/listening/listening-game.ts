@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ProfileStateService } from '@core/services/profile-state';
@@ -9,11 +9,10 @@ import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { LearningContentService } from '@core/learning/learning-content.service';
 import { SkillProgressService } from '@core/learning/skill-progress.service';
-import { ListeningGameEngine, ListeningQuestion, ListeningAnswer } from '@core/learning/listening-engine';
-import { JapaneseWord, RepresentationType } from '@core/learning/learning-content';
+import { ListeningGameEngine, ListeningQuestion, ListeningEngineConfig } from '@core/learning/listening-engine';
+import { JapaneseWord } from '@core/learning/learning-content';
 import { LevelUpDialog } from '@shared/game-ui/level-up-dialog/level-up-dialog';
 import { SpacedRepetition, JAPANESE_VOCAB_DECK } from '@core/learning/spaced-repetition';
-import { ListeningEngineConfig } from '@core/learning/listening-engine';
 import { WordIntroCarousel } from '@shared/game-ui/word-intro-carousel/word-intro-carousel';
 
 type Phase = 'intro' | 'guided' | 'play';
@@ -63,7 +62,9 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   private _localFeedback = signal<'idle' | 'success' | 'try-again'>('idle');
   private _disabledOptions = signal<string[]>([]);
   private _showHiragana = signal<boolean>(false);
-  private _attemptRecorded = false;
+  private _instructionPlayed = false;
+  private _destroyed = false;
+  private readonly _timers = new Set<ReturnType<typeof setTimeout>>();
 
   // Selectores del session service
   readonly currentLevel = this.session.currentLevel;
@@ -154,17 +155,14 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       canLevelUp: () => this.engine.getUnintroducedWords(this.engineConfig()).length === 0
     }, this.activeProfile()?.age);
 
-    // Generar primera pregunta
-    if (this.phase() !== 'intro') {
-      setTimeout(async () => {
-        await this.audio.playAndWait('instruction');
-      }, 500);
-    } else {
-      this.nextStep();
-    }
+    // Arranca con la presentación de palabras (el audio de instrucción suena al terminarla)
+    this.nextStep();
   }
 
   ngOnDestroy(): void {
+    this._destroyed = true;
+    this._timers.forEach(id => clearTimeout(id));
+    this._timers.clear();
     this.unsubscribeEvents?.();
     this.audio.dispose();
     this.session.endSession('user-exit');
@@ -193,7 +191,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     }
   }
 
-  generateQuestion(): void {
+  generateQuestion(autoPlay = true): void {
     const focus = this.phase() === 'guided' ? [this._guidedQueue[0].id] : undefined;
     const question = this.engine.generateQuestion(this.engineConfig(focus));
     if (!question) return;
@@ -204,13 +202,15 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     this._showHint.set(false);
     this._answerStartTime = Date.now();
     this._showHiragana.set(this.profileConfig().requiresReading);
-    setTimeout(() => this.playQuestionAudio(), 500);
+    if (autoPlay) this.later(() => this.playQuestionAudio(), 500);
   }
 
   selectOption(selectedWordId: string): void {
     const sessionState = this.session.state();
     if (sessionState?.isTimeUp || sessionState?.isCompleted) return;
     if (this._disabledOptions().includes(selectedWordId)) return;
+    // ya acertó: ignorar toques hasta que llegue la siguiente pregunta
+    if (this._localFeedback() === 'success') return;
     this.audio.retryPendingAudio();
 
     const question = this._currentQuestion();
@@ -241,14 +241,14 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
         });
       } else {
         this.audio.playPraise();
-        setTimeout(() => this.nextStep(), 1200);
+        this.later(() => this.nextStep(), 1200);
       }
     } else {
       this._localFeedback.set('try-again');
       this.session.recordIncorrect();
       this._disabledOptions.update(list => [...list, selectedWordId]);
       this.audio.playFailure();
-      setTimeout(() => this.playWordAudio(question.word), 800);
+      this.later(() => this.playWordAudio(question.word), 800);
     }
   }
 
@@ -274,7 +274,6 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
 
   getOptionDisplay(word: JapaneseWord): { main: string; sub?: string } {
     const config = this.profileConfig();
-    const age = this.activeProfile()?.age ?? 4;
 
     if (config.requiresReading && this._showHiragana() && word.hiragana) {
       return { main: word.hiragana, sub: this.getImageEmoji(word) };
@@ -293,10 +292,6 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     return imageRep?.value ?? '❓';
   }
 
-  getOptionImage(word: JapaneseWord): string {
-    return word.image;
-  }
-
   onRestOverlayBack(): void {
     this.router.navigate(['/games/japanese']);
   }
@@ -312,16 +307,10 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     this._gradedSinceIntro = 0;
     this.introWords.set([]);
     this.phase.set('guided');
-    this.generateQuestion();
+    void this._startGuided();
   }
 
   /* Private methods */
-  private _recordFirstAttempt(question: ListeningQuestion, answer: ListeningAnswer): void {
-    if (this._attemptRecorded) return;
-    this._attemptRecorded = true;
-    this.engine.recordAttempt(question, answer, { gameId: this.GAME_ID, targetSkills: this.TARGET_SKILLS });
-  }
-
   private engineConfig(focus?: string[]): ListeningEngineConfig {
     return {
       gameId: this.GAME_ID,
@@ -350,12 +339,31 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
     if (!correct) {
       this._localFeedback.set('try-again');
       this._showHint.set(true);                  // la correcta pulsa; no se deshabilita nada
-      setTimeout(() => this.playWordAudio(question.word), 500);
+      this.later(() => this.playWordAudio(question.word), 500);
       return;
     }
     this._localFeedback.set('success');
     this.audio.playPraise();
     this._guidedQueue.shift();
-    setTimeout(() => this.nextStep(), 1200);
+    this.later(() => this.nextStep(), 1200);
+  }
+
+  /** setTimeout que se cancela solo al destruir el componente */
+  private later(fn: () => void, ms: number): void {
+    const id = setTimeout(() => {
+      this._timers.delete(id);
+      fn();
+    }, ms);
+    this._timers.add(id);
+  }
+
+  /** Primera pregunta guiada tras la presentación: instrucción (solo la 1.ª vez) y luego la palabra */
+  private async _startGuided(): Promise<void> {
+    this.generateQuestion(false);
+    if (!this._instructionPlayed) {
+      this._instructionPlayed = true;
+      await this.audio.playAndWait('instruction');
+    }
+    if (!this._destroyed) this.playQuestionAudio();
   }
 }
