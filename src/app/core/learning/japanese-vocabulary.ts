@@ -69,14 +69,30 @@ const JAPANESE_FOOD: JapaneseWord[] = [
 ];
 
 const JAPANESE_BODY: JapaneseWord[] = [
+  // Cabeza y Cara
   jw('me', 'め', ['ojo'], '👁️', 'body', 4, '目'),
   jw('mimi', 'みみ', ['oreja'], '👂', 'body', 4, '耳'),
+  jw('hana', 'はな', ['nariz'], '👃', 'body', 4, '鼻'),
   jw('kuchi', 'くち', ['boca'], '👄', 'body', 4, '口'),
-  jw('te', 'て', ['mano'], '✋', 'body', 4, '手'),
-  jw('ashi', 'あし', ['pie', 'pierna'], '🦶', 'body', 4, '足'),
   jw('kao', 'かお', ['cara'], '😀', 'body', 4, '顔'),
   jw('ha', 'は', ['diente'], '🦷', 'body', 4, '歯'),
   jw('shita', 'した', ['lengua'], '👅', 'body', 4, '舌'),
+  jw('atama', 'あたま', ['cabeza'], '🗣️', 'body', 4, '頭'),
+  jw('kami', 'かみ', ['pelo', 'cabello'], '💇‍♀️', 'body', 4, '髪'),
+  // Extremidades y Articulaciones
+  jw('te', 'て', ['mano'], '✋', 'body', 4, '手'),
+  jw('ashi', 'あし', ['pie', 'pierna'], '🦶', 'body', 4, '足'),
+  jw('kata', 'かた', ['hombro'], '🤷', 'body', 4, '肩'),
+  jw('hiza', 'ひざ', ['rodilla'], '🦵', 'body', 4, '膝'),
+  jw('yubi', 'ゆび', ['dedo'], '👆', 'body', 4, '指'),
+  jw('tsume', 'つめ', ['uña'], '💅', 'body', 4, '爪'),
+  jw('onaka', 'おなか', ['barriga', 'panza'], '🤰', 'body', 4),
+  jw('heso', 'へそ', ['ombligo'], '🌀', 'body', 4),
+  // Anatomía interna / Ciencia (Perfecto para su nivel)
+  jw('shinzou', 'しんぞう', ['corazón'], '🫀', 'body', 4, '心臓'),
+  jw('nou', 'のう', ['cerebro'], '🧠', 'body', 4, '脳'),
+  jw('hai', 'はい', ['pulmón', 'pulmones'], '🫁', 'body', 4, '肺'),
+  jw('bone', 'ほね', ['hueso'], '🦴', 'body', 4, '骨'),
 ];
 
 const JAPANESE_TRANSPORT: JapaneseWord[] = [
@@ -88,6 +104,7 @@ const JAPANESE_TRANSPORT: JapaneseWord[] = [
   jw('roketto', 'ロケット', ['cohete'], '🚀', 'transport', 4),
   jw('patokaa', 'パトカー', ['patrulla'], '🚓', 'transport', 4),
   jw('kyuukyuusha', 'きゅうきゅうしゃ', ['ambulancia'], '🚑', 'transport', 4, '救急車'),
+  jw('kuruma', 'くるま', ['auto'], '🚲', 'transport', 4, '車'),
 ];
 
 const JAPANESE_COLORS: JapaneseWord[] = [
@@ -123,6 +140,8 @@ const JAPANESE_FAMILY: JapaneseWord[] = [
   jw('obaachan', 'おばあちゃん', ['abuela'], '👵', 'family', 7),
   jw('ojiichan', 'おじいちゃん', ['abuelo'], '👴', 'family', 7),
   jw('akachan', 'あかちゃん', ['bebé'], '👶', 'family', 7),
+  jw('imouto', 'いもうと', ['hermana menor'], '👧', 'family', 7, '妹'),
+  jw('oneesan', 'おねえさん', ['hermana mayor'], '👧', 'family', 7, 'お姉さん'),
 ];
 
 const JAPANESE_NATURE: JapaneseWord[] = [
@@ -134,10 +153,10 @@ const JAPANESE_NATURE: JapaneseWord[] = [
 export const EXTRA_JAPANESE_WORDS: JapaneseWord[] = [
   ...JAPANESE_ANIMALS,
   ...JAPANESE_FOOD,
-  // ...JAPANESE_BODY,
+  ...JAPANESE_BODY,
+  ...JAPANESE_TRANSPORT,
   // ...JAPANESE_FAMILY,
   // ...JAPANESE_NATURE,
   // ...JAPANESE_COLORS,
-  // ...JAPANESE_TRANSPORT,
   // ...JAPANESE_DAILY
 ];
