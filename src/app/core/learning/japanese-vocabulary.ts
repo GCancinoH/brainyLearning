@@ -15,7 +15,7 @@ function jw(
   return {
     id, hiragana, kanji, meanings: es, category,
     image: `images/japanese/${id}.webp`,
-    audio: `audio/japanese/${id}.wav`,
+    audio: `audio/japanese/${category}/${id}.wav`,
     recommendedAgeMin: 4,
     difficulty,
     skills: ['japanese.listening', 'japanese.vocabulary'],
@@ -42,6 +42,10 @@ const JAPANESE_ANIMALS: JapaneseWord[] = [
   jw('nezumi', 'ねずみ', ['ratón'], '🐭', 'animals', 2, '鼠'),
   jw('hiyoko', 'ひよこ', ['pollito'], '🐥', 'animals', 2),
   jw('ari', 'あり', ['hormiga'], '🐜', 'animals', 2, '蟻'),
+  jw('neko', 'ねこ', ['gato'], '🐱', 'animals', 2, '猫'),
+  jw('inu', 'いぬ', ['perro'], '🐶', 'animals', 2, '犬'),
+  jw('sakana', 'さかな', ['pez'], '🐟', 'animals', 2, '魚'),
+  jw('usagi', 'うさぎ', ['conejo'], '🐰', 'animals', 2),
 ];
 
 const JAPANESE_FOOD: JapaneseWord[] = [
