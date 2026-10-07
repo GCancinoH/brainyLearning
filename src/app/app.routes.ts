@@ -22,6 +22,10 @@ export const routes: Routes = [
     loadComponent: () => import('@features/games/math/space-load-ship/space-load-ship').then(m => m.SpaceLoadShip)
   },
   {
+    path: 'games/math/space-fuel-tank',
+    loadComponent: () => import('@features/games/math/space-fuel-tank/space-fuel-tank').then(m => m.SpaceFuelTank)
+  },
+  {
     path: 'games/math/space-subtraction',
     loadComponent: () => import('@features/games/math/space-subtraction/space-subtraction').then(m => m.SpaceSubtraction)
   },

@@ -42,6 +42,21 @@ export const MATH_GAMES: MathGameInfo[] = [
     startLevel: { 4: 1, 6: 1 },
   },
   {
+    id: 'space-fuel-tank',
+    title: 'El Tanque de Combustible',
+    description: 'Llena el tanque con bloques y descubre todas las formas de lograrlo',
+    icon: '⛽',
+    route: '/games/math/space-fuel-tank',
+    cssClass: 'fuel-tank',
+    unlockRequirement: {
+      requiredGameId: 'space-load-ship',
+      requiredLevel: 5,
+      description: 'Llega al Nivel 5 en Carga la Nave'
+    },
+    minAge: 4,
+    startLevel: { 4: 1, 6: 3 },
+  },
+  {
     id: 'space-subtraction',
     title: 'Resta en la Estación',
     description: 'Despega asteroides y cuenta los que quedan',

@@ -1,0 +1,128 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="goBack()"
+></game-rest-overlay>
+
+<div class="tank-game-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="idleMessage()"
+    ></game-feedback>
+
+    @if (hint()) {
+      <p class="hint">{{ hint() }}</p>
+    }
+
+    <!-- TANQUE -->
+    <div class="tank-title">
+      <span>⛽ Tanque</span>
+      <span class="goal">Meta: {{ goal() }}</span>
+    </div>
+
+    <section
+      #tank
+      class="tank"
+      [class.units]="showUnits()"
+      [class.full]="remaining() === 0"
+      [class.shake]="shaking()"
+      [style.--goal]="goal()"
+    >
+      @if (preFilled() > 0) {
+        <div class="seg locked" [style.width.%]="pct(preFilled())">
+          <span class="seg-num">{{ preFilled() }}</span>
+        </div>
+      }
+
+      @for (b of loadedBlocks(); track b.id) {
+        <div
+          class="seg"
+          [style.width.%]="pct(b.value)"
+          [style.background]="color(b.value)"
+          (click)="unload(b)"
+        >
+          <span class="seg-num">{{ b.value }}</span>
+          @if (showUnits()) {
+            <span class="pips">
+              @for (u of unitsOf(b.value); track u) { <i></i> }
+            </span>
+          }
+        </div>
+      }
+
+      @if (remaining() > 0) {
+        <div class="rest">
+          @if (mode() === 'missing') {
+            <span class="q">?</span>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- GALERÍA DE COMBINACIONES DESCUBIERTAS -->
+    <div class="ways">
+      <span class="ways-count">🔎 Formas: {{ discovered().length }}/{{ waysRequired() }}</span>
+      @for (d of discovered(); track d.key) {
+        <span class="way-chip">{{ d.label }}</span>
+      }
+    </div>
+
+    @if (!reflecting()) {
+      <!-- ALMACÉN: de aquí se arrastran los bloques -->
+      <section class="supply">
+        @for (b of supplyBlocks(); track b.id) {
+          <div
+            class="block"
+            cdkDrag
+            role="button"
+            [attr.aria-label]="'Bloque de combustible de ' + b.value"
+            [style.width.%]="pct(b.value)"
+            [style.background]="color(b.value)"
+            (cdkDragEnded)="onDragEnded($event, b.id)"
+            (click)="onTap(b.id)"
+          >
+            <span class="seg-num">{{ b.value }}</span>
+            @if (showUnits()) {
+              <span class="pips">
+                @for (u of unitsOf(b.value); track u) { <i></i> }
+              </span>
+            }
+          </div>
+        }
+      </section>
+
+      @if (loadedBlocks().length > 0 && !busy() && !solved()) {
+        <button class="empty-btn" (click)="emptyTank()">🗑️ Vaciar tanque</button>
+      }
+    } @else {
+      <!-- REFLEXIÓN (6 años): no hay respuesta "correcta" -->
+      <section class="reflect">
+        <p class="reflect-title">¿Cómo supiste qué bloques iban?</p>
+        <div class="reflect-options">
+          @for (r of reflections; track r.text) {
+            <button class="reflect-btn" (click)="chooseReflection()">
+              <span class="reflect-emoji">{{ r.emoji }}</span>
+              <span>{{ r.text }}</span>
+            </button>
+          }
+        </div>
+      </section>
+    }
+  </main>
+</div>
