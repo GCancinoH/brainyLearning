@@ -1,0 +1,316 @@
+.ship-game-container {
+  min-height: 100vh;
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .level-badge {
+    background: rgba(34, 211, 238, 0.18);
+    border: 1px solid #22d3ee;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-weight: bold;
+    color: #a5f3fc;
+
+    .stars {
+      display: flex;
+      gap: 0.2rem;
+      span {
+        opacity: 0.3;
+        font-size: 0.9rem;
+        &.active { opacity: 1; }
+      }
+    }
+  }
+}
+
+.game-board {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  padding: 1.5rem 1.2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+.hint {
+  margin: 0 0 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 16px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px dashed #f59e0b;
+  color: #fde68a;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ECUACIÓN */
+.equation {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 2.4rem;
+  font-weight: 900;
+  margin-bottom: 1.2rem;
+
+  .num { color: #fff; }
+  .operator { color: #22d3ee; }
+  .question-mark {
+    color: #a855f7;
+    background: rgba(168, 85, 247, 0.2);
+    padding: 0.1rem 0.9rem;
+    border-radius: 16px;
+    border: 2px dashed #a855f7;
+    transition: all 0.3s ease;
+
+    &.solved {
+      color: #4ade80;
+      background: rgba(34, 197, 94, 0.2);
+      border: 2px solid #22c55e;
+    }
+  }
+}
+
+/* ALMACÉN */
+.cargo-yard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 0.3rem;
+
+  .group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    min-width: 90px;
+    min-height: 78px;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.6rem 0.9rem;
+    border-radius: 20px;
+  }
+
+  .plus-sign {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #22d3ee;
+  }
+
+  .rocket {
+    font-size: 2.6rem;
+    line-height: 1;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    position: relative;
+    padding: 0.2rem;
+    transition: transform 0.15s ease;
+
+    &:hover { transform: scale(1.12); }
+    &.cdk-drag-dragging {
+      cursor: grabbing;
+      z-index: 1000;
+      transform-origin: center;
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5));
+    }
+  }
+}
+
+.drag-arrow {
+  font-size: 1.6rem;
+  margin: 0.2rem 0;
+  animation: bob 1.4s ease-in-out infinite;
+}
+
+/* BAHÍA */
+.cargo-bay {
+  width: 100%;
+  min-height: 150px;
+  padding: 0.8rem 1rem 1rem;
+  border-radius: 24px;
+  border: 3px dashed #22d3ee;
+  background: rgba(34, 211, 238, 0.08);
+  transition: background 0.3s ease, border-color 0.3s ease;
+  margin-bottom: 1.2rem;
+
+  &.solved {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.15);
+    animation: celebrate 0.6s ease infinite alternate;
+  }
+
+  .bay-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    color: #a5f3fc;
+    margin-bottom: 0.6rem;
+
+    .goal {
+      background: rgba(168, 85, 247, 0.25);
+      border: 1px solid #a855f7;
+      color: #e9d5ff;
+      border-radius: 14px;
+      padding: 0.1rem 0.8rem;
+    }
+  }
+
+  .bay-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .loaded {
+    position: relative;
+    font-size: 2.4rem;
+    line-height: 1;
+    padding: 0.3rem 0.4rem 0.9rem;
+    animation: pop 0.3s ease-out;
+    user-select: none;
+
+    &.removable { cursor: pointer; }
+    &.pulse { animation: pulse 0.6s ease; }
+
+    .num-badge {
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 1.4rem;
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0f172a;
+      background: #fde047;
+      border-radius: 10px;
+      padding: 0 0.3rem;
+    }
+  }
+
+  .slot {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    border: 2px dashed rgba(165, 243, 252, 0.45);
+  }
+}
+
+/* BOTONES */
+.launch-btn,
+.recount-btn {
+  border: none;
+  border-radius: 18px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+
+  &:active { transform: scale(0.95); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+.launch-btn {
+  padding: 1rem 2.5rem;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+}
+
+.recount-btn {
+  margin-top: 1rem;
+  padding: 0.6rem 1.4rem;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* OPCIONES */
+.options-grid {
+  display: flex;
+  gap: 1.2rem;
+  width: 100%;
+  justify-content: center;
+
+  .option-btn {
+    flex: 1;
+    max-width: 120px;
+    height: 90px;
+    background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%);
+    border: none;
+    border-radius: 24px;
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+    transition: transform 0.15s ease, opacity 0.3s ease;
+
+    &:active { transform: scale(0.92); }
+
+    &.disabled {
+      opacity: 0.2;
+      transform: scale(0.85);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    &.success {
+      background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.5);
+    }
+  }
+}
+
+/* ANIMACIONES */
+@keyframes pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+@keyframes celebrate {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-6px); }
+}

@@ -27,6 +27,21 @@ export const MATH_GAMES: MathGameInfo[] = [
     startLevel: { 4: 1, 6: 3 },
   },
   {
+    id: 'space-load-ship',
+    title: 'Carga la Nave',
+    description: 'Arrastra los cohetes a la bahía, cuéntalos y descubre cuántos hay',
+    icon: '📦',
+    route: '/games/math/space-load-ship',
+    cssClass: 'load-ship',
+    unlockRequirement: {
+      requiredGameId: 'space-addition',
+      requiredLevel: 10,
+      description: 'Llega al Nivel 10 en Suma Espacial'
+    },
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
+  {
     id: 'space-subtraction',
     title: 'Resta en la Estación',
     description: 'Despega asteroides y cuenta los que quedan',

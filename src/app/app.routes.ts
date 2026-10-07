@@ -18,6 +18,10 @@ export const routes: Routes = [
     loadComponent: () => import('@features/games/math/space-addition/space-addition').then(m => m.SpaceAddition)
   },
   {
+    path: 'games/math/space-load-ship',
+    loadComponent: () => import('@features/games/math/space-load-ship/space-load-ship').then(m => m.SpaceLoadShip)
+  },
+  {
     path: 'games/math/space-subtraction',
     loadComponent: () => import('@features/games/math/space-subtraction/space-subtraction').then(m => m.SpaceSubtraction)
   },

@@ -1,0 +1,140 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="goBack()"
+></game-rest-overlay>
+
+<div class="ship-game-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="idleMessage()"
+    ></game-feedback>
+
+    @if (hint()) {
+      <p class="hint">{{ hint() }}</p>
+    }
+
+    <!-- ECUACIÓN -->
+    <div class="equation">
+      @if (mode() === 'count') {
+        <span class="num">{{ numA() }}</span>
+        <span class="operator">+</span>
+        <span class="num">{{ numB() }}</span>
+        <span class="operator">=</span>
+        <span class="num question-mark" [class.solved]="solved()">{{ solved() ? total() : '?' }}</span>
+      } @else {
+        <span class="num">{{ numA() }}</span>
+        <span class="operator">+</span>
+        <span class="num question-mark" [class.solved]="solved()">{{ solved() ? numB() : '?' }}</span>
+        <span class="operator">=</span>
+        <span class="num">{{ total() }}</span>
+      }
+    </div>
+
+    <!-- ALMACÉN: de aquí se arrastran los cohetes -->
+    <section class="cargo-yard">
+      @if (mode() === 'count') {
+        <div class="group group-a">
+          @for (item of sourceA(); track item.id) {
+            <span
+              class="rocket"
+              cdkDrag
+              role="button"
+              aria-label="Cargar cohete en la nave"
+              (cdkDragEnded)="onDragEnded($event, item.id)"
+              (click)="onTap(item.id)"
+            >{{ item.emoji }}</span>
+          }
+        </div>
+        <span class="plus-sign">+</span>
+      }
+      <div class="group group-b">
+        @for (item of sourceB(); track item.id) {
+          <span
+            class="rocket"
+            cdkDrag
+            role="button"
+            aria-label="Cargar cohete en la nave"
+            (cdkDragEnded)="onDragEnded($event, item.id)"
+            (click)="onTap(item.id)"
+          >{{ item.emoji }}</span>
+        }
+      </div>
+    </section>
+
+    <div class="drag-arrow" aria-hidden="true">⬇️</div>
+
+    <!-- BAHÍA DE CARGA -->
+    <section #bay class="cargo-bay" [class.solved]="solved()">
+      <div class="bay-title">
+        <span>📦 Bahía de carga</span>
+        @if (mode() === 'missing') {
+          <span class="goal">Meta: {{ total() }}</span>
+        }
+      </div>
+
+      <div class="bay-slots">
+        @for (item of loadedItems(); track item.id; let i = $index) {
+          <span
+            class="loaded"
+            [class.pulse]="highlightIndex() === i"
+            [class.removable]="mode() === 'missing' && item.group === 'B'"
+            (click)="unloadItem(item)"
+          >
+            {{ item.emoji }}
+            @if (showNum(i)) {
+              <small class="num-badge">{{ i + 1 }}</small>
+            }
+          </span>
+        }
+        @if (showSlots()) {
+          @for (e of emptySlots(); track $index) {
+            <span class="slot"></span>
+          }
+        }
+      </div>
+    </section>
+
+    <!-- MODO FALTANTE: despegar -->
+    @if (mode() === 'missing') {
+      <button class="launch-btn" [disabled]="!canLaunch() || solved()" (click)="launch()">
+        ¡Despegar! 🚀
+      </button>
+    }
+
+    <!-- MODO CONTEO: elegir el total -->
+    @if (phase() === 'answer') {
+      <div class="options-grid">
+        @for (opt of options(); track opt) {
+          <button
+            class="option-btn"
+            [class.disabled]="disabledOptions().includes(opt)"
+            [class.success]="solved() && opt === total()"
+            (click)="selectOption(opt)"
+          >
+            {{ opt }}
+          </button>
+        }
+      </div>
+      <button class="recount-btn" [disabled]="recounting() || solved()" (click)="recount()">
+        👆 Contar otra vez
+      </button>
+    }
+  </main>
+</div>
