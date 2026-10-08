@@ -8,6 +8,16 @@ import { GameProgressService } from '@core/games/game-progress.service';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
+import { ProblemPicker, pairsOf, unordered, Range } from '@core/games/problem-picker';
+
+/** Rangos por nivel: [a] + [b] */
+const ADD_RANGES: ReadonlyArray<{ maxLevel: number; a: Range; b: Range }> = [
+  { maxLevel: 3, a: [1, 5], b: [1, 5] },
+  { maxLevel: 6, a: [4, 7], b: [2, 5] },
+  { maxLevel: 10, a: [6, 9], b: [4, 7] },
+  { maxLevel: 15, a: [9, 14], b: [4, 8] },
+  { maxLevel: Infinity, a: [12, 21], b: [6, 13] },
+];
 
 @Component({
   selector: 'space-addition',
@@ -21,6 +31,7 @@ export class SpaceAddition implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly session = inject(GameSessionService);
   private readonly audio = inject(GameAudioService);
+  private readonly picker = new ProblemPicker();
   private readonly progress = inject(GameProgressService);
 
   readonly activeProfile = this.profileState.activeProfile;
@@ -144,25 +155,12 @@ export class SpaceAddition implements OnInit, OnDestroy {
 
   generateProblem(): void {
     const lvl = this.currentLevel();
-    let a = 1;
-    let b = 1;
+    const range = ADD_RANGES.find(r => lvl <= r.maxLevel) ?? ADD_RANGES[ADD_RANGES.length - 1];
 
-    if (lvl <= 3) {
-      a = Math.floor(Math.random() * 4) + 1;
-      b = Math.floor(Math.random() * 4) + 1;
-    } else if (lvl <= 6) {
-      a = Math.floor(Math.random() * 4) + 4;
-      b = Math.floor(Math.random() * 4) + 2;
-    } else if (lvl <= 10) {
-      a = Math.floor(Math.random() * 4) + 6;
-      b = Math.floor(Math.random() * 4) + 4;
-    } else if (lvl <= 15) {
-      a = Math.floor(Math.random() * 6) + 9;
-      b = Math.floor(Math.random() * 5) + 4;
-    } else {
-      a = Math.floor(Math.random() * 10) + 12;
-      b = Math.floor(Math.random() * 8) + 6;
-    }
+    // Sin repetir familias recientes (3+1 y 1+3 cuentan como la misma)
+    const [a, b] = this.picker.next(
+      `add-${range.maxLevel}`, pairsOf(range.a, range.b), unordered
+    );
 
     this.numA.set(a);
     this.numB.set(b);

@@ -8,6 +8,16 @@ import { GameProgressService } from '@core/games/game-progress.service';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
+import { ProblemPicker, ordered, Range } from '@core/games/problem-picker';
+
+/** Rangos por nivel: minuendo (a); el sustraendo va de 1 a a-1 */
+const SUB_RANGES: ReadonlyArray<{ maxLevel: number; a: Range }> = [
+  { maxLevel: 3, a: [2, 6] },
+  { maxLevel: 6, a: [5, 8] },
+  { maxLevel: 10, a: [8, 12] },
+  { maxLevel: 15, a: [12, 17] },
+  { maxLevel: Infinity, a: [15, 24] },
+];
 
 @Component({
   selector: 'space-subtraction',
@@ -21,6 +31,7 @@ export class SpaceSubtraction implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly session = inject(GameSessionService);
   private readonly audio = inject(GameAudioService);
+  private readonly picker = new ProblemPicker();
   private readonly progress = inject(GameProgressService);
 
   readonly activeProfile = this.profileState.activeProfile;
@@ -144,31 +155,14 @@ export class SpaceSubtraction implements OnInit, OnDestroy {
 
   generateProblem(): void {
     const lvl = this.currentLevel();
-    let a = 1;
-    let b = 1;
+    const range = SUB_RANGES.find(r => lvl <= r.maxLevel) ?? SUB_RANGES[SUB_RANGES.length - 1];
 
-    // Para restas: a >= b siempre (resultado no negativo)
-    if (lvl <= 3) {
-      // Niveles 1-3: Restas simples hasta 5
-      a = Math.floor(Math.random() * 4) + 2; // 2 a 5
-      b = Math.floor(Math.random() * (a - 1)) + 1; // 1 a a-1
-    } else if (lvl <= 6) {
-      // Niveles 4-6: Restas hasta 8
-      a = Math.floor(Math.random() * 4) + 5; // 5 a 8
-      b = Math.floor(Math.random() * (a - 1)) + 1;
-    } else if (lvl <= 10) {
-      // Niveles 7-10: Restas hasta 12
-      a = Math.floor(Math.random() * 5) + 8; // 8 a 12
-      b = Math.floor(Math.random() * (a - 1)) + 1;
-    } else if (lvl <= 15) {
-      // Niveles 11-15: Restas hasta 18
-      a = Math.floor(Math.random() * 6) + 12; // 12 a 17
-      b = Math.floor(Math.random() * (a - 1)) + 1;
-    } else {
-      // Niveles 16-20: Restas hasta 25
-      a = Math.floor(Math.random() * 10) + 15; // 15 a 24
-      b = Math.floor(Math.random() * (a - 1)) + 1;
+    // Restas a - b con a >= b; sin repetir las últimas operaciones
+    const pool: Array<[number, number]> = [];
+    for (let x = range.a[0]; x <= range.a[1]; x++) {
+      for (let y = 1; y < x; y++) pool.push([x, y]);
     }
+    const [a, b] = this.picker.next(`sub-${range.maxLevel}`, pool, ordered);
 
     this.numA.set(a);
     this.numB.set(b);

@@ -160,6 +160,13 @@ export interface ProfileGameConfig {
   audioRequired: boolean;
 }
 
+/**
+ * Tope de seguridad por sesión de juego. El tiempo real de juego lo marca ahora el
+ * reloj por tema (ThemeTimeService: 10 min). Este tope solo evita que una sesión quede abierta
+ * indefinidamente; es mayor que el reloj para que nunca se adelante a él.
+ */
+export const GAME_SESSION_SAFETY_MS = 60 * 60 * 1000;
+
 // Configuración por defecto por edad
 export const PROFILE_GAME_CONFIGS: Record<4 | 6, ProfileGameConfig> = {
   4: {
@@ -167,7 +174,7 @@ export const PROFILE_GAME_CONFIGS: Record<4 | 6, ProfileGameConfig> = {
     maxOptions: 3,
     elementSize: 'large',
     requiresReading: false,
-    sessionDurationMs: 5 * 60 * 1000,
+    sessionDurationMs: GAME_SESSION_SAFETY_MS,
     suggestedInitialLevel: 1,
     audioRequired: true
   },
@@ -176,7 +183,7 @@ export const PROFILE_GAME_CONFIGS: Record<4 | 6, ProfileGameConfig> = {
     maxOptions: 4,
     elementSize: 'medium',
     requiresReading: true,
-    sessionDurationMs: 5 * 60 * 1000,
+    sessionDurationMs: GAME_SESSION_SAFETY_MS,
     suggestedInitialLevel: 3,
     audioRequired: false
   }

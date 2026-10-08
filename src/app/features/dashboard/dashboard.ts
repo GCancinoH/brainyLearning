@@ -1,7 +1,12 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
+import { map } from 'rxjs';
 import { ProfileStateService } from '@core/services/profile-state';
+import { ThemeTimeService } from '@core/services/theme-time.service';
+import { Theme } from '@core/services/theme-time';
+import { ALL_GAMES } from '@core/models/game-catalog';
 
 interface SubjectCard {
   id: 'math' | 'japanese' | 'spanish' | 'english' | 'chinese';
@@ -21,8 +26,65 @@ interface SubjectCard {
 export class DashboardComponent {
   private readonly profileState = inject(ProfileStateService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly themeTime = inject(ThemeTimeService);
 
   readonly activeProfile = this.profileState.activeProfile;
+
+  /** Temas que ya tienen juegos (y por lo tanto reloj). Chino, inglés y lectura aún no. */
+  private readonly PLAYABLE: Theme[] = ['math', 'japanese'];
+
+  /** ?rest=math -> se acabó el tiempo de ese tema */
+  private readonly restParam = toSignal(
+    this.route.queryParamMap.pipe(map(p => p.get('rest'))),
+    { initialValue: null }
+  );
+
+  readonly restTheme = computed<Theme | null>(() => {
+    const v = this.restParam();
+    return v === 'math' || v === 'japanese' ? v : null;
+  });
+
+  readonly restSubject = computed(() => this.subjects.find(s => s.id === this.restTheme()) ?? null);
+
+  /** Minutos que faltan para que el tema vuelva a abrirse */
+  readonly restMinutes = computed(() => {
+    const t = this.restTheme();
+    return t ? Math.max(1, Math.ceil(this.themeTime.restLeftMs(t) / 60000)) : 0;
+  });
+
+  /** Otros temas con juegos disponibles, cada uno con hasta 2 juegos que ella puede jugar ya */
+  readonly suggestions = computed(() => {
+    const rest = this.restTheme();
+    if (!rest) return [];
+    const age = this.activeProfile()?.age ?? 4;
+    return this.subjects
+      .filter(s => this.PLAYABLE.includes(s.id as Theme) && s.id !== rest && !this.themeTime.isResting(s.id as Theme))
+      .map(subject => ({
+        subject,
+        games: ALL_GAMES
+          .filter(g => g.route.startsWith(`/games/${subject.id}/`))
+          .filter(g => (g.minAge ?? 4) <= age && this.profileState.isGameUnlocked(g.id))
+          .slice(0, 2)
+      }));
+  });
+
+  isResting(subjectId: string): boolean {
+    return (subjectId === 'math' || subjectId === 'japanese') && this.themeTime.isResting(subjectId);
+  }
+
+  closeRestDialog(): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { rest: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  openGame(route: string): void {
+    this.router.navigateByUrl(route);
+  }
 
   readonly subjects: SubjectCard[] = [
     {

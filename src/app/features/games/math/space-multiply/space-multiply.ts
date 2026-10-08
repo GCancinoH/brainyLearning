@@ -9,6 +9,7 @@ import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
 import { generateMultiplyProblem } from './multiply-problem';
+import { ProblemPicker } from '@core/games/problem-picker';
 
 @Component({
   selector: 'space-multiply',
@@ -22,6 +23,7 @@ export class SpaceMultiply implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly session = inject(GameSessionService);
   private readonly audio = inject(GameAudioService);
+  private readonly picker = new ProblemPicker();
   private readonly progress = inject(GameProgressService);
 
   private unsubscribeEvents?: () => void;
@@ -153,7 +155,7 @@ export class SpaceMultiply implements OnInit, OnDestroy {
     const previous = this.numA() && this.options().length
       ? { groups: this.numA(), perGroup: this.numB() }
       : null;
-    const problem = generateMultiplyProblem(this.currentLevel(), previous);
+    const problem = generateMultiplyProblem(this.currentLevel(), previous, Math.random, this.picker);
 
     this.numA.set(problem.groups);
     this.numB.set(problem.perGroup);

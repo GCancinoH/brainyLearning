@@ -4,10 +4,15 @@
 }
 
 <!-- Vista Principal una vez finalizada la carga -->
-<main class="main-layout" [class.visible]="!showSplash()">
+<main class="main-layout" [class.visible]="!showSplash()" [class.with-clock]="clockVisible()">
   <!-- El Router renderizará las pantallas (Profiles, Games, Dashboard) aquí adentro -->
   <router-outlet />
 </main>
+
+<!-- Reloj de tiempo de juego (arriba a la derecha, solo dentro de un juego) -->
+@if (clockVisible()) {
+  <game-clock />
+}
 
 <!-- Dialog Updater -->
 @if (updateAvailable()) {

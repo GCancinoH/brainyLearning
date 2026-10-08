@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
+import { themeRestGuard } from '@core/services/theme-time.guard';
 
-export const routes: Routes = [
+const baseRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('@features/profile-selection/profile-selection').then(m => m.ProfileSelectionComponent)
@@ -62,3 +63,8 @@ export const routes: Routes = [
     redirectTo: ''
   }
 ];
+
+/** Los menús y juegos de cada tema se bloquean mientras el tema descansa */
+export const routes: Routes = baseRoutes.map(r =>
+  r.path?.startsWith('games/') ? { ...r, canActivate: [themeRestGuard] } : r
+);

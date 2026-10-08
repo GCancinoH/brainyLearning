@@ -6,6 +6,8 @@
  * (a grupos de b estrellas), con material concreto antes que abstracto.
  */
 
+import { ProblemPicker, pairsOf, unordered } from '../../../../core/games/problem-picker';
+
 export interface MultiplyProblem {
   /** Número de grupos */
   groups: number;
@@ -25,7 +27,7 @@ interface LevelRange {
 
 /** Progresión: empieza con grupos pequeños y crece de forma gradual (máx. 8 × 8) */
 const LEVEL_RANGES: readonly LevelRange[] = [
-  { maxLevel: 3, groups: [2, 3], perGroup: [1, 3] },
+  { maxLevel: 3, groups: [2, 5], perGroup: [2, 3] },
   { maxLevel: 6, groups: [2, 4], perGroup: [2, 4] },
   { maxLevel: 10, groups: [2, 5], perGroup: [2, 5] },
   { maxLevel: 15, groups: [3, 6], perGroup: [3, 6] },
@@ -78,17 +80,25 @@ function buildOptions(answer: number, groups: number, perGroup: number, rng: () 
 export function generateMultiplyProblem(
   level: number,
   previous: { groups: number; perGroup: number } | null = null,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  picker?: ProblemPicker
 ): MultiplyProblem {
   const range = getMultiplyRange(level);
   let groups = 2;
   let perGroup = 2;
 
-  // Evita repetir el mismo problema dos veces seguidas
-  for (let attempt = 0; attempt < 20; attempt++) {
-    groups = randomInt(range.groups[0], range.groups[1], rng);
-    perGroup = randomInt(range.perGroup[0], range.perGroup[1], rng);
-    if (!previous || previous.groups !== groups || previous.perGroup !== perGroup) break;
+  if (picker) {
+    // Sin repetir familias recientes (2×3 y 3×2 cuentan como la misma)
+    [groups, perGroup] = picker.next(
+      `mul-${range.maxLevel}`, pairsOf(range.groups, range.perGroup), unordered, rng
+    );
+  } else {
+    // Sin selector: al menos evita repetir el mismo problema dos veces seguidas
+    for (let attempt = 0; attempt < 20; attempt++) {
+      groups = randomInt(range.groups[0], range.groups[1], rng);
+      perGroup = randomInt(range.perGroup[0], range.perGroup[1], rng);
+      if (!previous || previous.groups !== groups || previous.perGroup !== perGroup) break;
+    }
   }
 
   const answer = groups * perGroup;

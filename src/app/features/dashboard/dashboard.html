@@ -35,9 +35,51 @@
         <div class="world-details">
           <h3>{{ subject.title }}</h3>
           <p>{{ subject.subtitle }}</p>
+          @if (isResting(subject.id)) {
+            <span class="resting-badge">😴 Descansando</span>
+          }
         </div>
         <div class="play-arrow">▶</div>
       </button>
     }
   </main>
+
+  <!-- AVISO: se acabó el tiempo del tema -->
+  @if (restSubject(); as rest) {
+    <div class="rest-backdrop" role="dialog" aria-modal="true" aria-labelledby="rest-title">
+      <div class="rest-dialog">
+        <div class="rest-emoji">⏰</div>
+        <h2 id="rest-title">¡Se acabó el tiempo de {{ rest.title }}!</h2>
+        <p class="saved">✅ Tu avance quedó guardado.</p>
+        <p>Por ahora toca descansar de este tema. ¡Vuelve en unos {{ restMinutes() }} min!</p>
+
+        @if (suggestions().length) {
+          <h3>¿Qué tal si pruebas algo diferente? ✨</h3>
+          <div class="suggestions">
+            @for (sg of suggestions(); track sg.subject.id) {
+              <div class="suggestion" [style.background]="sg.subject.bgGradient">
+                <div class="suggestion-head">
+                  <span>{{ sg.subject.icon }}</span>
+                  <strong>{{ sg.subject.title }}</strong>
+                </div>
+                <div class="suggestion-games">
+                  @for (g of sg.games; track g.id) {
+                    <button class="game-btn" (click)="openGame(g.route)">
+                      <span>{{ g.icon }}</span> {{ g.title }}
+                    </button>
+                  } @empty {
+                    <button class="game-btn" (click)="openSubjectMenu(sg.subject.id)">Ver juegos</button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="long-rest">🌙 ¡Es buen momento para jugar sin pantalla o descansar los ojos!</p>
+        }
+
+        <button class="close-btn" (click)="closeRestDialog()">Entendido</button>
+      </div>
+    </div>
+  }
 </div>

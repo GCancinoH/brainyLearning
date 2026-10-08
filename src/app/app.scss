@@ -16,6 +16,11 @@
       &.visible {
         opacity: 1;
       }
+
+      /* Deja sitio al reloj para que no tape el encabezado de los juegos */
+      &.with-clock {
+        padding-top: 44px;
+      }
     }
 
 /*.main-layout {

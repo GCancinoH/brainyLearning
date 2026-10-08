@@ -139,3 +139,99 @@
     margin-left: 0.5rem;
   }
 }
+
+
+/* Insignia de tema descansando */
+.resting-badge {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.15rem 0.7rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Aviso: se acabó el tiempo */
+.rest-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  background: rgba(8, 8, 26, 0.85);
+  backdrop-filter: blur(6px);
+  animation: restFade 0.3s ease;
+}
+
+.rest-dialog {
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1.8rem 1.5rem;
+  text-align: center;
+  border-radius: 28px;
+  background: #1e293b;
+  border: 3px solid #38bdf8;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  color: #fff;
+
+  .rest-emoji { font-size: 3.4rem; }
+  h2 { margin: 0.4rem 0 0.6rem; color: #38bdf8; font-size: 1.6rem; }
+  h3 { margin: 1.2rem 0 0.7rem; font-size: 1.15rem; color: #fde68a; }
+  p { margin: 0.3rem 0; font-size: 1.05rem; }
+  .saved { color: #86efac; font-weight: 700; }
+  .long-rest { margin-top: 1.2rem; color: #c7d2fe; }
+
+  .suggestions { display: flex; flex-direction: column; gap: 0.8rem; }
+
+  .suggestion {
+    border-radius: 20px;
+    padding: 0.9rem 1rem;
+    text-align: left;
+
+    .suggestion-head {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 1.1rem;
+      margin-bottom: 0.6rem;
+      span { font-size: 1.6rem; }
+    }
+
+    .suggestion-games { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+    .game-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 0.55rem 0.9rem;
+      background: rgba(255, 255, 255, 0.92);
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      &:active { transform: scale(0.96); }
+    }
+  }
+
+  .close-btn {
+    margin-top: 1.3rem;
+    padding: 0.8rem 2rem;
+    border: none;
+    border-radius: 18px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+}
+
+@keyframes restFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
