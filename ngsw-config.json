@@ -12,8 +12,7 @@
           "/index.html",
           "/manifest.webmanifest",
           "/*.css",
-          "/*.js",
-          "/lottie/**"
+          "/*.js"
         ]
       }
     },
@@ -23,6 +22,27 @@
       "updateMode": "prefetch",
       "resources": {
         "files": ["/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2|wav|mp3|ogg|lottie)"]
+      }
+    },
+    {
+      "name": "game-audio",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/audio/**/*.wav",
+          "/audio/*.wav"
+        ]
+      }
+    },
+    {
+      "name": "game-animations",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/lottie/*.lottie"
+        ]
       }
     }
   ]
