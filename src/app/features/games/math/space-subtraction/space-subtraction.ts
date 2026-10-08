@@ -89,9 +89,9 @@ export class SpaceSubtraction implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Registrar assets de audio específicos de este juego
     this.audio.registerAssets([
-      { type: 'praise', paths: ['assets/audio/praise-1.wav', 'assets/audio/praise-2.wav', 'assets/audio/praise-3.wav'], volume: 0.85 },
-      { type: 'failure', paths: ['assets/audio/failure.wav'], volume: 0.7 },
-      { type: 'level-up', paths: ['assets/audio/level-up.wav'], volume: 0.9 }
+      { type: 'praise', paths: ['audio/praise-1.wav', 'audio/praise-2.wav', 'audio/praise-3.wav'], volume: 0.85 },
+      { type: 'failure', paths: ['audio/failure.wav'], volume: 0.7 },
+      { type: 'level-up', paths: ['audio/level-up.wav'], volume: 0.9 }
     ]);
 
     // Cargar nivel guardado (usa GameProgressService que hace fallback a profileState)

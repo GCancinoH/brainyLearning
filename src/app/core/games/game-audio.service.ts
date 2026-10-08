@@ -23,6 +23,25 @@ export class GameAudioService {
   readonly assets = this._assets.asReadonly();
 
   // ============================================
+  // RUTAS
+  // ============================================
+
+  /**
+   * Normaliza una ruta de audio a absoluta desde la raíz del sitio.
+   * - 'audio/x.wav'        -> '/audio/x.wav'
+   * - 'assets/audio/x.wav' -> '/audio/x.wav' (esa carpeta no existe en el build;
+   *                           los archivos viven en public/audio)
+   * Es idempotente. Sin esto, una ruta relativa se resolvía contra la URL actual
+   * y devolvía el index.html en vez del audio.
+   */
+  private _resolve(path: string): string {
+    if (/^(https?:|data:|blob:)/.test(path)) return path;
+    let p = path.replace(/^\/+/, '');
+    p = p.replace(/^assets\/audio\//, 'audio/');
+    return '/' + p;
+  }
+
+  // ============================================
   // CONFIGURACIÓN
   // ============================================
 
@@ -33,7 +52,8 @@ export class GameAudioService {
   registerAssets(assets: AudioAsset[]): void {
     this._assets.update(current => {
       const merged = [...current];
-      assets.forEach(newAsset => {
+      assets.forEach(raw => {
+        const newAsset = { ...raw, paths: raw.paths.map(p => this._resolve(p)) };
         const idx = merged.findIndex(a => a.type === newAsset.type);
         if (idx >= 0) {
           merged[idx] = { ...merged[idx], ...newAsset };
@@ -43,7 +63,7 @@ export class GameAudioService {
       });
       return merged;
     });
-    this._precacheAssets(assets);
+    this._precacheAssets(assets.map(a => ({ ...a, paths: a.paths.map(p => this._resolve(p)) })));
   }
 
   /**
@@ -104,7 +124,7 @@ export class GameAudioService {
       // Seleccionar variante aleatoria
       path = asset.paths[Math.floor(Math.random() * asset.paths.length)];
     }
-    return this._playFile(path, asset.volume ?? 0.85);
+    return this._playFile(this._resolve(path), asset.volume ?? 0.85);
   }
 
   /**
@@ -112,12 +132,12 @@ export class GameAudioService {
    */
   playFile(path: string, volume?: number): Promise<void> {
     if (!this._enabled()) return Promise.resolve();
-    return this._playFile(path, volume ?? 0.85);
+    return this._playFile(this._resolve(path), volume ?? 0.85);
   }
 
   async playAndWait(type: AudioType): Promise<void> {
     const asset = this._assets().find(a => a.type === type);
-    const path = asset?.paths[0];
+    const path = asset?.paths[0] ? this._resolve(asset.paths[0]) : undefined;
     if (!this._enabled() || !path) return;
     await this._playFile(path, asset?.volume ?? 0.85);
     const audio = this._audioCache.get(path);
@@ -167,6 +187,7 @@ export class GameAudioService {
       }
 
       if (err.name !== 'AbortError') {
+        // NotSupportedError suele significar 404 / archivo que no es audio
         console.warn(`[GameAudio] Error reproduciendo ${path}:`, err.message);
       }
       // No relanzar - el juego debe continuar sin audio

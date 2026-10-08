@@ -133,6 +133,12 @@ export class SpaceLoadShip implements OnInit, OnDestroy {
   // ============================================
 
   ngOnInit(): void {
+    // El servicio es compartido: fija aquí los sonidos de este juego
+    this.audio.registerAssets([
+      { type: 'praise', paths: ['audio/praise-1.wav', 'audio/praise-2.wav', 'audio/praise-3.wav'], volume: 0.85 },
+      { type: 'failure', paths: ['audio/failure.wav'], volume: 0.7 },
+      { type: 'level-up', paths: ['audio/level-up.wav'], volume: 0.9 }
+    ]);
     const savedLevel = this.progress.getLevel(this.GAME_ID);
 
     this.session.startSession({
