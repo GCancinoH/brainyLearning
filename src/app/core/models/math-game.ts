@@ -57,6 +57,21 @@ export const MATH_GAMES: MathGameInfo[] = [
     startLevel: { 4: 1, 6: 3 },
   },
   {
+    id: 'space-rescue-mission',
+    title: 'Misión de Rescate',
+    description: 'Juego en pareja: una planea, la otra carga, y juntas cuentan las estrellas',
+    icon: '🛟',
+    route: '/games/math/space-rescue-mission',
+    cssClass: 'rescue-mission',
+    unlockRequirement: {
+      requiredGameId: 'space-fuel-tank',
+      requiredLevel: 3,
+      description: 'Llega al Nivel 3 en El Tanque de Combustible'
+    },
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
+  {
     id: 'space-subtraction',
     title: 'Resta en la Estación',
     description: 'Despega asteroides y cuenta los que quedan',

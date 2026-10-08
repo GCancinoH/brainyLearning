@@ -1,0 +1,119 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="goBack()"
+></game-rest-overlay>
+
+<div class="rescue-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <!-- MAPA: la nave avanza una parada por rescate -->
+    <div class="map" aria-hidden="true">
+      <div class="map-line"></div>
+      @for (s of stops; track $index) {
+        <span class="stop" [class.reached]="$index <= consecutiveCorrect()">{{ s }}</span>
+      }
+      <span class="ship" [style.left.%]="shipPosition()">🚀</span>
+    </div>
+
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="idleMessage()"
+    ></game-feedback>
+
+    <!-- EL ALIEN Y SU PETICIÓN -->
+    <section class="alien-card">
+      <span class="alien" [class.happy]="solved()">{{ alien() }}</span>
+      <div class="bubble">
+        @if (returning()) {
+          <span class="returned">¡Regresé! 👋</span>
+        }
+        <p>{{ request() }}</p>
+      </div>
+    </section>
+
+    @if (hint()) {
+      <p class="hint">{{ hint() }}</p>
+    }
+
+    <!-- NAVEGANTE: decide el plan -->
+    <section class="role nav" [class.active]="phase() === 'plan'">
+      <h3>🧭 Navegante @if (crew().navigator) { <small>· {{ crew().navigator }}</small> }</h3>
+      @if (phase() === 'plan') {
+        <p class="role-ask">¿Cuántas cajas hacen falta?</p>
+        <div class="plan-options">
+          @for (opt of problem().planOptions; track opt) {
+            <button
+              class="plan-btn"
+              [disabled]="triedPlans().includes(opt)"
+              (click)="choosePlan(opt)"
+            >
+              {{ opt }} <span class="plan-unit">{{ opt === 1 ? 'caja' : 'cajas' }}</span>
+            </button>
+          }
+        </div>
+      } @else {
+        <p class="plan-chosen">Plan: <strong>{{ plan() }} {{ plan() === 1 ? 'caja' : 'cajas' }}</strong></p>
+      }
+    </section>
+
+    <!-- INGENIERA: carga las cajas -->
+    <section class="role eng" [class.active]="phase() === 'build'">
+      <h3>🔧 Ingeniera @if (crew().engineer) { <small>· {{ crew().engineer }}</small> }</h3>
+
+      <div class="supply" [class.dim]="phase() !== 'build'">
+        @for (c of supplyCrates(); track c.id) {
+          <div
+            class="crate"
+            cdkDrag
+            [cdkDragDisabled]="phase() !== 'build'"
+            role="button"
+            [attr.aria-label]="'Caja con ' + problem().boxSize + ' estrellas'"
+            (cdkDragEnded)="onDragEnded($event, c.id)"
+            (click)="onTap(c.id)"
+          >
+            @for (s of starIcons(); track $index) { <span>⭐</span> }
+          </div>
+        }
+      </div>
+
+      <div class="drag-arrow" aria-hidden="true">⬇️</div>
+
+      <!-- BAHÍA -->
+      <div #bay class="bay" [class.solved]="solved()">
+        <div class="bay-title">
+          <span>📦 Bahía</span>
+          @if (running() !== null) {
+            <span class="count">⭐ {{ running() }} / {{ problem().need }}</span>
+          }
+        </div>
+        <div class="bay-slots">
+          @if (problem().have > 0 && phase() !== 'plan') {
+            <div class="have">{{ problem().have }} ⭐<small>ya tiene</small></div>
+          }
+          @for (c of loadedCrates(); track c.id; let i = $index) {
+            <div
+              class="crate loaded"
+              [class.pulse]="highlight() === i"
+              (click)="unloadCrate(c)"
+            >
+              @for (s of starIcons(); track $index) { <span>⭐</span> }
+            </div>
+          }
+          @for (e of emptySlots(); track $index) {
+            <div class="crate slot"></div>
+          }
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

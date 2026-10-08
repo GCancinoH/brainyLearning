@@ -80,6 +80,13 @@
     &:active { transform: scale(0.98); }
   }
 
+  &.rescue-mission {
+    background: linear-gradient(135deg, #ec4899 0%, #9d174d 100%);
+    box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
+
+    &:active { transform: scale(0.98); }
+  }
+
   &.disabled {
     background: rgba(255, 255, 255, 0.05);
     border: 1px dashed rgba(255, 255, 255, 0.2);
