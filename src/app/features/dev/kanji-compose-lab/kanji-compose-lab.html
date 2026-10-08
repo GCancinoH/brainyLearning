@@ -1,0 +1,114 @@
+<div class="lab" [attr.data-world]="script()">
+  <!-- ============ PANEL DE CONTROL ============ -->
+  <aside class="lab-panel">
+    <header class="lab-head">
+      <button class="lab-back" (click)="goBack()">← Salir</button>
+      <h1>🧩 Laboratorio Kanji</h1>
+      <span class="lab-tag">solo en desarrollo</span>
+    </header>
+
+    <!-- MUNDO -->
+    <section class="lab-section">
+      <h2>Mundo</h2>
+      <div class="lab-buttons">
+        <button class="lab-btn" [class.on]="script() === 'japanese'" (click)="setScript('japanese')">
+          🌸 Sakura (Aki)
+        </button>
+        <button class="lab-btn" [class.on]="script() === 'chinese'" (click)="setScript('chinese')">
+          🐉 Dragón (Long)
+        </button>
+      </div>
+      <p class="lab-note">
+        Los kanji son los mismos; cambia la lectura (kana / pinyin), el audio y la estética.
+      </p>
+    </section>
+
+    <!-- EDAD -->
+    <section class="lab-section">
+      <h2>Edad</h2>
+      <div class="lab-buttons">
+        <button class="lab-btn" [class.on]="age() === 4" (click)="setAge(4)">4 años</button>
+        <button class="lab-btn" [class.on]="age() === 6" (click)="setAge(6)">6 años</button>
+      </div>
+    </section>
+
+    <!-- NIVEL -->
+    <section class="lab-section">
+      <h2>Nivel</h2>
+      <div class="lab-buttons">
+        @for (l of levels; track l) {
+          <button class="lab-btn lab-btn--sm" [class.on]="level() === l" (click)="setLevel(l)">
+            {{ l }}
+          </button>
+        }
+      </div>
+      <div class="lab-buttons">
+        <button class="lab-btn lab-btn--sm" (click)="prevLevel()">◀ Anterior</button>
+        <button class="lab-btn lab-btn--sm" (click)="nextLevel()">Siguiente ▶</button>
+        <button class="lab-btn lab-btn--sm" (click)="remount()">↻ Reiniciar</button>
+      </div>
+    </section>
+
+    <!-- CATÁLOGO -->
+    <section class="lab-section">
+      <h2>
+        Auditoría de niveles
+        <span class="lab-verdict" [class.bad]="!allSolvable()">
+          {{ allSolvable() ? '✅ todos resolubles' : '❌ hay imposibles' }}
+        </span>
+      </h2>
+      <div class="lab-audit">
+        @for (row of audit(); track row.age + '-' + row.level) {
+          <div class="lab-row" [class.broken]="!row.solvable">
+            <span class="lab-row-age">{{ row.age }}a</span>
+            <span class="lab-row-level">N{{ row.level }}</span>
+            <span class="lab-row-kanji">{{ row.kanji }}</span>
+            <span class="lab-row-detail">{{ row.pieces }}</span>
+            <span class="lab-row-tags">
+              @if (row.ghost) {
+                <i title="muestra guía fantasma">👻</i>
+              }
+              @if (row.distractor) {
+                <i title="con distractores">🎭</i>
+              }
+            </span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- CATÁLOGO COMPLETO -->
+    <section class="lab-section">
+      <h2>Catálogo de kanji</h2>
+      <div class="lab-catalog">
+        @for (c of catalog; track c.id) {
+          <details class="lab-card" [class.min6]="c.minAge === 6">
+            <summary>
+              <span class="k">{{ c.kanji }}</span>
+              <span class="r">{{ c.reading }}</span>
+              <span class="m">{{ c.emoji }} {{ c.meaning }}</span>
+            </summary>
+            <p>{{ c.story }}</p>
+            <p class="lab-piece-line">
+              @for (s of c.slots; track $index) {
+                <b>{{ s.kanji }}</b>@if ($index < c.slots.length - 1) {<i>+</i>}
+              }
+              @if (c.siblings?.length) {
+                <em> · hermanos: {{ c.siblings!.map(s => s.kanji).join(', ') }}</em>
+              }
+            </p>
+          </details>
+        }
+      </div>
+    </section>
+  </aside>
+
+  <!-- ============ ESCENARIO ============ -->
+  <section class="lab-stage">
+    @for (k of [stageKey()]; track k) {
+      <div class="lab-game">
+        <kanji-compose [script]="script()" />
+      </div>
+    }
+  </section>
+</div>

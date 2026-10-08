@@ -1,0 +1,177 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay [isVisible]="isTimeUp()" (onBack)="goBack()" />
+
+<div class="shop-container" [class.shaking]="shaking()">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <!-- ÁREA DEL EJERCICIO -->
+  <main class="game-board">
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="prompt()"
+    />
+
+    @if (mode() === 'count') {
+      <!-- ============ 4 AÑOS: contar manzanas ============ -->
+      <p class="caption">{{ items().length }} manzanas en la mesa</p>
+
+      <div class="apples" [class.apples--dim]="!canAnswer()">
+        @for (apple of items(); track apple) {
+          <button
+            class="apple"
+            [class.apple--counted]="tapped().has(apple)"
+            [style.animation-delay.ms]="apple * 70"
+            animate.enter="apple-pop"
+            (click)="onAppleTap(apple)"
+            [attr.aria-label]="'Manzana ' + (apple + 1)"
+          >
+            🍎
+            @if (tapped().has(apple)) {
+              <span class="pip">{{ tappedOrder(apple) }}</span>
+            }
+          </button>
+        }
+      </div>
+
+      @if (showHint() && tapped().size < items().length) {
+        <p class="hint hint--strong">
+          Toca las manzanas una por una y cuéntalas 👆🍎 ({{ tapped().size }}/{{ items().length }})
+        </p>
+      }
+
+      <div class="options-grid">
+        @for (opt of options(); track opt) {
+          <button
+            class="option-btn"
+            [class.disabled]="disabledOptions().includes(opt)"
+            [class.success]="solved() && opt === items().length"
+            [class.locked]="!canAnswer()"
+            (click)="selectOption(opt)"
+          >
+            {{ opt }}
+          </button>
+        }
+      </div>
+    } @else {
+      <!-- ============ 6 AÑOS: pagar con monedas ============ -->
+      <div class="counter">
+        <div class="counter-item">
+          <span class="counter-label">Juguete</span>
+          <span class="counter-value">${{ price() }}</span>
+        </div>
+        @if (prePaid() > 0) {
+          <div class="counter-item counter-item--paid">
+            <span class="counter-label">Ya cobrado</span>
+            <span class="counter-value">${{ prePaid() }}</span>
+          </div>
+        }
+        <div class="counter-item counter-item--remaining">
+          <span class="counter-label">Falta pagar</span>
+          <span class="counter-value">${{ remaining() }}</span>
+        </div>
+      </div>
+
+      <!-- ALCANCÍA + MONEDAS -->
+      <div class="piggy-area">
+        <div class="piggy" [class.piggy--gobbling]="gobbling()">🐷</div>
+
+        <div class="purse" [class.purse--full]="remaining() === 0">
+          @for (coin of purse(); track coin.id) {
+            <span
+              class="coin"
+              [class.coin--1]="coin.value === 1"
+              [class.coin--2]="coin.value === 2"
+              [class.coin--5]="coin.value === 5"
+              [class.coin--10]="coin.value === 10"
+              [style.animation-delay.ms]="coin.delayMs"
+              animate.enter="coin-drop"
+              (animate.enter)="onCoinLanded()"
+              >{{ coinEmoji(coin.value) }}</span
+            >
+          } @empty {
+            <span class="purse-empty">Suelta monedas aquí</span>
+          }
+        </div>
+      </div>
+
+      <!-- FORMAS DESCUBIERTAS -->
+      @if (found().length > 0) {
+        <div class="gallery">
+          <span class="gallery-label">Descubiertas {{ found().length }}/{{ waysRequired() }}</span>
+          <div class="gallery-items">
+            @for (d of found(); track d.key) {
+              <span class="gallery-item">{{ d.label }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- CAJÓN -->
+      <div class="drawer">
+        @for (denom of denominations(); track denom) {
+          <button
+            class="coin-btn"
+            [class.coin--1]="denom === 1"
+            [class.coin--2]="denom === 2"
+            [class.coin--5]="denom === 5"
+            [class.coin--10]="denom === 10"
+            (click)="dropCoin(denom)"
+          >
+            <span class="coin-btn-emoji">{{ coinEmoji(denom) }}</span>
+            <span class="coin-btn-value">${{ denom }}</span>
+          </button>
+        }
+      </div>
+
+      <div class="actions">
+        <button
+          class="action-btn action-btn--ghost"
+          (click)="returnLast()"
+          [disabled]="purse().length === 0"
+        >
+          ↩️ Devolver
+        </button>
+        <span class="actions-note">
+          @if (remaining() === 0) {
+            ¡Justo! 🎉
+          } @else if (remaining() > 0) {
+            Faltan ${{ remaining() }}
+          }
+        </span>
+      </div>
+    }
+
+    @if (hint()) {
+      <p class="hint">{{ hint() }}</p>
+    }
+  </main>
+</div>
+
+<!-- REFLEXIÓN (6 años) -->
+@if (reflecting()) {
+  <div class="overlay">
+    <div class="overlay-card">
+      <h2>¿Cómo supiste qué monedas iban? 🤔</h2>
+      <div class="reflection-options">
+        @for (r of reflections; track r.text) {
+          <button class="reflection-btn" (click)="chooseReflection()">
+            <span class="reflection-emoji">{{ r.emoji }}</span>
+            <span>{{ r.text }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

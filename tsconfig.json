@@ -12,7 +12,15 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    // Los alias viven aquí (y no en tsconfig.app.json) para que los hereden también las
+    // pruebas: tsconfig.spec.json no extiende tsconfig.app.json, y sin esto cualquier spec
+    // que importe un fuente con `@core/*` falla con TS2307.
+    "paths": {
+      "@core/*": ["./src/app/core/*"],
+      "@features/*": ["./src/app/features/*"],
+      "@shared/*": ["./src/app/shared/*"],
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

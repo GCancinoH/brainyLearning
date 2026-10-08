@@ -1,0 +1,258 @@
+// ============================================
+// Laboratorio de Kanji - andamiaje de pruebas
+// Reutiliza la estética del laboratorio de la Tiendita, con acento por mundo
+// ============================================
+
+.lab {
+  --lab-accent: #f9a8d4;
+  display: flex;
+  min-height: 100vh;
+  color: #e2e8f0;
+  font-family: system-ui, sans-serif;
+
+  &[data-world='chinese'] {
+    --lab-accent: #fbbf24;
+  }
+}
+
+.lab-panel {
+  width: 360px;
+  flex: 0 0 360px;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  padding: 1rem;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.lab-head {
+  margin-bottom: 1.2rem;
+
+  h1 {
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0.2rem;
+  }
+}
+
+.lab-back {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 0.35rem 0.8rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.lab-tag {
+  font-size: 0.7rem;
+  color: #f59e0b;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+}
+
+.lab-section {
+  margin-bottom: 1.4rem;
+
+  h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin: 0 0 0.5rem;
+  }
+}
+
+.lab-note {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin: 0.3rem 0 0;
+  line-height: 1.4;
+}
+
+.lab-verdict {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #4ade80;
+
+  &.bad {
+    color: #f87171;
+  }
+}
+
+.lab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.lab-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  &--sm {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  &.on {
+    background: var(--lab-accent);
+    border-color: var(--lab-accent);
+    color: #1c1917;
+  }
+}
+
+// ---------- AUDITORÍA ----------
+.lab-audit {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+}
+
+.lab-row {
+  display: grid;
+  grid-template-columns: 32px 26px 26px 1fr auto;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.28rem 0.45rem;
+  font-size: 0.7rem;
+  border-bottom: 1px solid #1e293b;
+
+  &.broken {
+    background: rgba(248, 113, 113, 0.15);
+  }
+}
+
+.lab-row-age {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.lab-row-level {
+  color: var(--lab-accent);
+  font-weight: 700;
+}
+
+.lab-row-kanji {
+  font-size: 1rem;
+  color: #fff;
+  text-align: center;
+}
+
+.lab-row-detail {
+  color: #cbd5e1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lab-row-tags {
+  font-size: 0.65rem;
+  font-style: normal;
+}
+
+// ---------- CATÁLOGO ----------
+.lab-catalog {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.lab-card {
+  background: #111c33;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 0.4rem 0.55rem;
+  margin-bottom: 0.35rem;
+
+  &.min6 {
+    border-left: 3px solid #38bdf8;
+  }
+
+  summary {
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+
+    .k {
+      font-size: 1.15rem;
+      color: #fff;
+    }
+
+    .r {
+      color: var(--lab-accent);
+      font-weight: 700;
+      font-size: 0.72rem;
+    }
+
+    .m {
+      color: #94a3b8;
+      font-size: 0.68rem;
+    }
+  }
+
+  p {
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+    margin: 0.4rem 0 0;
+  }
+}
+
+.lab-piece-line {
+  b {
+    color: #fff;
+    font-size: 0.9rem;
+  }
+
+  i {
+    color: #64748b;
+    font-style: normal;
+    margin: 0 0.15rem;
+  }
+
+  em {
+    color: var(--lab-accent);
+    font-size: 0.68rem;
+  }
+}
+
+// ---------- ESCENARIO ----------
+.lab-stage {
+  flex: 1;
+  background: radial-gradient(circle at center, #1b1b3a 0%, #0b0b1a 100%);
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.lab-game {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .lab {
+    flex-direction: column;
+  }
+
+  .lab-panel {
+    width: 100%;
+    flex: none;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid #1e293b;
+  }
+}

@@ -98,5 +98,16 @@ export const MATH_GAMES: MathGameInfo[] = [
       description: 'Llega al Nivel 6 en Resta Espacial'
     },
     minAge: 6,
-  }
+  },
+  {
+    id: 'logic-blocks',
+    title: 'Clasificador de Bloques',
+    description: 'Clasifica figuras por color, forma y tamaño, y descubre qué hay en el medio del diagrama',
+    icon: '🔷',
+    route: '/games/math/logic-blocks',
+    cssClass: 'logic-blocks',
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
 ];

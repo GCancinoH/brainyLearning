@@ -146,8 +146,13 @@ export class GameSessionService implements OnDestroy {
       payload: { reason, finalLevel: finalState.level }
     });
 
-    // Limpiar estado tras emitir evento (para que componentes reaccionen)
-    setTimeout(() => this._state.set(null), 0);
+    // Limpiar estado tras emitir evento (para que componentes reaccionen).
+    // Solo si sigue siendo la MISMA sesión que terminó: si otro componente ya llamó a
+    // startSession() antes de que corra este macrotask, borrarle el estado dejaría su
+    // sesión muerta (recordCorrect() y recordIncorrect() saldrían sin hacer nada).
+    setTimeout(() => {
+      if (this._state() === finalState) this._state.set(null);
+    }, 0);
 
     return finalState;
   }

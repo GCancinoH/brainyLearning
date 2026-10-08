@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { themeRestGuard } from '@core/services/theme-time.guard';
+import { devOnlyGuard } from '@core/services/dev-only.guard';
 
 const baseRoutes: Routes = [
   {
@@ -39,6 +40,10 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/math/space-multiply/space-multiply').then(m => m.SpaceMultiply)
   },
   {
+    path: 'games/math/logic-blocks',
+    loadComponent: () => import('@features/games/math/logic-blocks/logic-blocks').then(m => m.LogicBlocks)
+  },
+  {
     path: 'games/japanese',
     loadComponent: () => import('@features/games/japanese/japanese-menu/japanese-menu').then(m => m.JapaneseMenu)
   },
@@ -57,6 +62,19 @@ const baseRoutes: Routes = [
   {
     path: 'games/japanese/calendar',
     loadComponent: () => import('@features/games/japanese/calendar/calendar-game').then(m => m.CalendarGameComponent)
+  },
+  {
+    // Laboratorio de la Tiendita. Va fuera de `games/` para que el reloj por tema no lo
+    // bloquee, y `devOnlyGuard` lo hace desaparecer en builds de producción.
+    path: 'lab/coin-shop',
+    canActivate: [devOnlyGuard],
+    loadComponent: () => import('@features/dev/coin-shop-lab/coin-shop-lab').then(m => m.CoinShopLab)
+  },
+  {
+    // Laboratorio de Kanji (Sakura 🌸 / Dragón 🐉)
+    path: 'lab/kanji-compose',
+    canActivate: [devOnlyGuard],
+    loadComponent: () => import('@features/dev/kanji-compose-lab/kanji-compose-lab').then(m => m.KanjiComposeLab)
   },
   {
     path: '**',

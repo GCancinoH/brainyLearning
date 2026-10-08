@@ -1,0 +1,200 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay [isVisible]="isTimeUp()" (onBack)="goBack()" />
+
+<div class="compose-container" [attr.data-world]="script()">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <!-- GUÍA: Aki en Sakura, Long en Dragón -->
+  <div class="guide-bar">
+    <span class="guide-emoji">{{ guide().emoji }}</span>
+    <span class="guide-text">
+      Soy <strong>{{ guide().name }}</strong>, de {{ guide().planet }}
+    </span>
+  </div>
+
+  <main class="game-board">
+    <!-- El feedback solo muestra líneas socráticas (dudas). El relato lo pone el bloque
+         de historia, para no repetir el mismo texto dos veces en pantalla. -->
+    <game-feedback [state]="feedbackState()" [customMessage]="line()" />
+
+    <!-- ======================================================= -->
+    <!-- PASO 1 · HISTORIA: el kanji completo y por qué se forma -->
+    <!-- ======================================================= -->
+    @if (step() === 'story' && target(); as t) {
+      <div class="story">
+        <div class="reveal">
+          <span class="reveal-kanji">{{ t.kanji }}</span>
+          <span class="reveal-reading">
+            {{ showPinyin() ? t.pinyin : t.reading }}
+          </span>
+          <span class="reveal-meaning">{{ t.meaning }} {{ t.emoji }}</span>
+        </div>
+
+        <p class="story-text">{{ t.story }}</p>
+
+        <!-- Las piezas que lo forman, reveladas -->
+        <div class="story-pieces">
+          <span class="story-equals">{{ t.kanji }} =</span>
+          @for (slot of t.slots; track $index) {
+            <span class="story-piece">
+              <span class="piece-kanji">{{ slot.kanji }}</span>
+              <span class="piece-emoji">{{ emojiOf(slot.kanji) }}</span>
+            </span>
+            @if ($index < t.slots.length - 1) {
+              <span class="story-plus">+</span>
+            }
+          }
+        </div>
+      </div>
+
+      <button class="main-btn" (click)="startComposing()">
+        Ahora hazlo tú 🤲
+      </button>
+    }
+
+    <!-- ======================================================= -->
+    <!-- PASO 2 · COMPOSER: arrastrar las piezas a sus huecos -->
+    <!-- ======================================================= -->
+    @if (step() === 'compose' && problem(); as p) {
+      <div class="work-area">
+        <!-- MARCO: huecos + guía fantasma -->
+        <div class="frame" [class.frame--guided]="showGhost()">
+          @if (showGhost()) {
+            <span class="ghost" aria-hidden="true">{{ p.target.kanji }}</span>
+          }
+
+          @for (slot of p.slots; track $index) {
+            <button
+              #slot
+              class="slot"
+              [class.slot--filled]="placed()[$index]"
+              [style.left.%]="slot.x * 100"
+              [style.top.%]="slot.y * 100"
+              [attr.aria-label]="'Hueco ' + ($index + 1)"
+              (click)="pickBack($index)"
+            >
+              @if (placed()[$index]; as piece) {
+                <span class="slot-kanji">{{ piece.kanji }}</span>
+                <span class="slot-emoji">{{ piece.emoji }}</span>
+              } @else {
+                <span class="slot-mark">?</span>
+              }
+            </button>
+          }
+        </div>
+
+        <!-- BANDEJA: piezas sueltas, barajadas -->
+        <div class="tray">
+          @for (piece of tray(); track piece.trayId) {
+            <div
+              class="tray-piece"
+              cdkDrag
+              [cdkDragData]="piece"
+              (cdkDragEnded)="onDragEnded($event, piece)"
+              (click)="onTap(piece)"
+            >
+              <span class="tray-kanji">{{ piece.kanji }}</span>
+              <span class="tray-emoji">{{ piece.emoji }}</span>
+              <span class="tray-label">
+                {{ pieceReading(piece.kanji, piece.reading, piece.pinyin) }}
+              </span>
+            </div>
+          } @empty {
+            <p class="tray-empty">Todas las piezas están en el marco 🤔</p>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ======================================================= -->
+    <!-- PASO 3 · DIBUJAR: el marco queda vacío -->
+    <!-- ======================================================= -->
+    @if (step() === 'draw' && target(); as t) {
+      <div class="draw-area">
+        <p class="draw-hint">
+          Ahora hazlo tú: dibuja <strong>{{ t.kanji }}</strong>
+          @if (showGhostInDraw()) {
+            <button class="ghost-toggle" (click)="showGhostInDraw.set(false)">
+              🙈 sin pista
+            </button>
+          }
+        </p>
+
+        <div class="canvas-wrap">
+          @if (showGhostInDraw()) {
+            <span class="canvas-ghost" aria-hidden="true">{{ t.kanji }}</span>
+          }
+          <canvas
+            #canvas
+            class="draw-canvas"
+            (pointerdown)="onPointerDown($event)"
+            (pointermove)="onPointerMove($event)"
+            (pointerup)="onPointerUp()"
+            (pointercancel)="onPointerUp()"
+          ></canvas>
+        </div>
+
+        <div class="draw-actions">
+          <button class="mini-btn" (click)="undoStroke()">↩️ Trazo</button>
+          <button class="mini-btn" (click)="clearCanvas()">🧽 Borrar</button>
+          <button class="main-btn" (click)="finishDrawing()">
+            ¡Listo! ✏️
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (hint()) {
+      <p class="hint">{{ hint() }}</p>
+    }
+  </main>
+</div>
+
+<!-- HERMANOS: "con las mismas piezas salen otros kanji" -->
+@if (showSiblings() && target(); as t) {
+  <div class="overlay" (click)="dismissSiblings()">
+    <div class="overlay-card" (click)="$event.stopPropagation()">
+      <h2>{{ line() }}</h2>
+      <div class="siblings">
+        @for (sib of t.siblings ?? []; track sib.kanji) {
+          <div class="sibling">
+            <span class="sibling-kanji">{{ sib.kanji }}</span>
+            <span class="sibling-reading">
+              {{ showPinyin() ? '' : sib.reading }}
+            </span>
+            <span class="sibling-meaning">{{ sib.meaning }}</span>
+          </div>
+        }
+      </div>
+      <button class="main-btn" (click)="dismissSiblings()">Ver el dibujo →</button>
+    </div>
+  </div>
+}
+
+<!-- REFLEXIÓN (6 años) -->
+@if (reflecting()) {
+  <div class="overlay">
+    <div class="overlay-card">
+      <h2>¿Cómo supiste qué pieza iba en cada hueco? 🤔</h2>
+      <div class="reflection-options">
+        @for (r of reflections; track r.text) {
+          <button class="reflection-btn" (click)="chooseReflection()">
+            <span class="reflection-emoji">{{ r.emoji }}</span>
+            <span>{{ r.text }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

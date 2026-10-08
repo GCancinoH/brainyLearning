@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildFuelProblem, distinctSolutions } from './fuel-tank-problem';
+import { buildFuelProblem } from './fuel-tank-problem';
+import { distinctSolutions } from '../../../../core/games/combinations';
 
 // RNG determinista para que las pruebas no sean aleatorias
 function mulberry32(seed: number) {

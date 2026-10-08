@@ -87,6 +87,13 @@
     &:active { transform: scale(0.98); }
   }
 
+  &.logic-blocks {
+    background: linear-gradient(135deg, #eab308 0%, #a16207 100%);
+    box-shadow: 0 10px 25px rgba(234, 179, 8, 0.3);
+
+    &:active { transform: scale(0.98); }
+  }
+
   &.disabled {
     background: rgba(255, 255, 255, 0.05);
     border: 1px dashed rgba(255, 255, 255, 0.2);

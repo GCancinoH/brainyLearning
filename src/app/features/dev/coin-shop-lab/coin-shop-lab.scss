@@ -1,0 +1,168 @@
+// ============================================
+// Laboratorio de la Tiendita - andamiaje de pruebas
+// Estética deliberadamente sosa: no debe competir con el juego
+// ============================================
+
+.lab {
+  display: flex;
+  min-height: 100vh;
+  color: #e2e8f0;
+  font-family: system-ui, sans-serif;
+}
+
+.lab-panel {
+  width: 340px;
+  flex: 0 0 340px;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  padding: 1rem;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.lab-head {
+  margin-bottom: 1.2rem;
+
+  h1 {
+    font-size: 1.1rem;
+    margin: 0.5rem 0 0.2rem;
+  }
+}
+
+.lab-back {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 0.35rem 0.8rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.lab-tag {
+  font-size: 0.7rem;
+  color: #f59e0b;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+}
+
+.lab-section {
+  margin-bottom: 1.4rem;
+
+  h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin: 0 0 0.5rem;
+  }
+}
+
+.lab-verdict {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #4ade80;
+
+  &.bad {
+    color: #f87171;
+  }
+}
+
+.lab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.lab-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  &--sm {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  &.on {
+    background: #fbbf24;
+    border-color: #fbbf24;
+    color: #422006;
+  }
+}
+
+.lab-audit {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+}
+
+.lab-row {
+  display: grid;
+  grid-template-columns: 34px 30px 1fr auto;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  border-bottom: 1px solid #1e293b;
+
+  &.broken {
+    background: rgba(248, 113, 113, 0.15);
+  }
+}
+
+.lab-row-age {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.lab-row-level {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.lab-row-detail {
+  color: #cbd5e1;
+}
+
+.lab-row-ways {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.lab-stage {
+  flex: 1;
+  background: radial-gradient(circle at center, #1b1b3a 0%, #0b0b1a 100%);
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.lab-game {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .lab {
+    flex-direction: column;
+  }
+
+  .lab-panel {
+    width: 100%;
+    flex: none;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid #1e293b;
+  }
+}

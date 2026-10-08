@@ -17,28 +17,12 @@ export interface FuelProblem {
   ways: number;
 }
 
+import { distinctSolutions } from '../../../../core/games/combinations';
+
 export type Rng = () => number;
 
 const GOALS_AGE4 = [5, 5, 5, 6, 6, 6, 7, 7, 8, 8];
 const GOALS_AGE6 = [8, 10, 10, 12, 12, 14, 15, 16, 18, 20];
-
-/** Combinaciones distintas (por valores, ordenadas) que suman exactamente `target` */
-export function distinctSolutions(values: number[], target: number): string[] {
-  const seen = new Set<string>();
-  const n = values.length;
-  for (let mask = 1; mask < (1 << n); mask++) {
-    let sum = 0;
-    const picked: number[] = [];
-    for (let i = 0; i < n; i++) {
-      if (mask & (1 << i)) {
-        sum += values[i];
-        picked.push(values[i]);
-      }
-    }
-    if (sum === target) seen.add(picked.sort((a, b) => a - b).join('+'));
-  }
-  return [...seen];
-}
 
 export function buildFuelProblem(level: number, age: number, rng: Rng = Math.random): FuelProblem {
   const rand = (min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min;

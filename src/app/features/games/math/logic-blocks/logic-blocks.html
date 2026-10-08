@@ -1,0 +1,105 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="goBack()"
+></game-rest-overlay>
+
+<div class="blocks-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="idleMessage()"
+    ></game-feedback>
+
+    @if (hint()) {
+      <p class="hint">{{ hint() }}</p>
+    }
+
+    <!-- ZONAS: canastas o diagrama de Venn -->
+    <section class="zones" (click)="onBoardTap($event)">
+      @if (mode() !== 'venn') {
+        <div class="baskets" [class.single]="mode() === 'one'">
+          @for (z of zones(); track z.region) {
+            <div #zone class="basket" [attr.data-region]="z.region">
+              <div class="basket-title">🧺 {{ z.title }}</div>
+              <div class="basket-items">
+                @for (b of placedIn(z.region); track b.id) {
+                  <span
+                    class="blk placed"
+                    [class]="'blk placed ' + b.shape + ' ' + b.size"
+                    [style.--c]="color(b)"
+                    [attr.aria-label]="name(b)"
+                  ></span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div #venn class="venn">
+          <div class="circle a"><span class="cap">{{ labelA() }}</span></div>
+          <div class="circle b"><span class="cap">{{ labelB() }}</span></div>
+          <span class="cap both-cap">Las dos</span>
+
+          <div class="slot a-only">
+            @for (b of placedIn('A'); track b.id) {
+              <span class="blk placed" [class]="'blk placed ' + b.shape + ' ' + b.size" [style.--c]="color(b)" [attr.aria-label]="name(b)"></span>
+            }
+          </div>
+          <div class="slot both">
+            @for (b of placedIn('both'); track b.id) {
+              <span class="blk placed" [class]="'blk placed ' + b.shape + ' ' + b.size" [style.--c]="color(b)" [attr.aria-label]="name(b)"></span>
+            }
+          </div>
+          <div class="slot b-only">
+            @for (b of placedIn('B'); track b.id) {
+              <span class="blk placed" [class]="'blk placed ' + b.shape + ' ' + b.size" [style.--c]="color(b)" [attr.aria-label]="name(b)"></span>
+            }
+          </div>
+        </div>
+
+        <div #outside class="outside">
+          <div class="outside-title">🚫 Ni {{ labelA().toLowerCase() }} ni {{ labelB().toLowerCase() }}</div>
+          <div class="outside-items">
+            @for (b of placedIn('none'); track b.id) {
+              <span class="blk placed" [class]="'blk placed ' + b.shape + ' ' + b.size" [style.--c]="color(b)" [attr.aria-label]="name(b)"></span>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- FIGURAS POR CLASIFICAR -->
+    <section class="pool" aria-label="Figuras por clasificar">
+      @for (b of poolBlocks(); track b.id) {
+        <span
+          class="blk"
+          [class]="'blk ' + b.shape + ' ' + b.size"
+          [class.selected]="selectedId() === b.id"
+          [class.shake]="shakeId() === b.id"
+          [style.--c]="color(b)"
+          cdkDrag
+          role="button"
+          [attr.aria-label]="name(b)"
+          (cdkDragEnded)="onDragEnded($event, b.id)"
+          (click)="onTap(b.id)"
+        ></span>
+      }
+    </section>
+  </main>
+</div>

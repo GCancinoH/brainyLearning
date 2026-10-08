@@ -1,0 +1,71 @@
+<div class="lab">
+  <!-- ============ PANEL DE CONTROL ============ -->
+  <aside class="lab-panel">
+    <header class="lab-head">
+      <button class="lab-back" (click)="goBack()">← Salir</button>
+      <h1>🧪 Laboratorio Tiendita</h1>
+      <span class="lab-tag">solo en desarrollo</span>
+    </header>
+
+    <!-- EDAD (define el modo) -->
+    <section class="lab-section">
+      <h2>Edad / modo</h2>
+      <div class="lab-buttons">
+        <button class="lab-btn" [class.on]="age() === 4" (click)="setAge(4)">
+          4 años · contar 🍎
+        </button>
+        <button class="lab-btn" [class.on]="age() === 6" (click)="setAge(6)">
+          6 años · pagar 🪙
+        </button>
+      </div>
+    </section>
+
+    <!-- NIVEL -->
+    <section class="lab-section">
+      <h2>Nivel</h2>
+      <div class="lab-buttons">
+        @for (l of levels; track l) {
+          <button class="lab-btn lab-btn--sm" [class.on]="level() === l" (click)="setLevel(l)">
+            {{ l }}
+          </button>
+        }
+      </div>
+      <div class="lab-buttons">
+        <button class="lab-btn lab-btn--sm" (click)="prevLevel()">◀ Anterior</button>
+        <button class="lab-btn lab-btn--sm" (click)="nextLevel()">Siguiente ▶</button>
+        <button class="lab-btn lab-btn--sm" (click)="remount()">↻ Reiniciar</button>
+      </div>
+    </section>
+
+    <!-- AUDITORÍA DE NIVELES -->
+    <section class="lab-section">
+      <h2>
+        Auditoría de niveles
+        <span class="lab-verdict" [class.bad]="!allSolvable()">
+          {{ allSolvable() ? '✅ todos resolubles' : '❌ hay imposibles' }}
+        </span>
+      </h2>
+      <div class="lab-audit">
+        @for (row of audit(); track row.age + '-' + row.level) {
+          <div class="lab-row" [class.broken]="!row.solvable">
+            <span class="lab-row-age">{{ row.age }}a</span>
+            <span class="lab-row-level">N{{ row.level }}</span>
+            <span class="lab-row-detail">{{ row.summary }}</span>
+            @if (row.age === 6) {
+              <span class="lab-row-ways">{{ row.available }} formas</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  </aside>
+
+  <!-- ============ ESCENARIO ============ -->
+  <section class="lab-stage">
+    @for (k of [stageKey()]; track k) {
+      <div class="lab-game">
+        <coin-shop />
+      </div>
+    }
+  </section>
+</div>

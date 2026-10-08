@@ -1,0 +1,260 @@
+.blocks-container {
+  min-height: 100vh;
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+
+  .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .level-badge {
+    background: rgba(250, 204, 21, 0.16);
+    border: 1px solid #facc15;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-weight: bold;
+    color: #fef08a;
+
+    .stars {
+      display: flex;
+      gap: 0.2rem;
+      span {
+        opacity: 0.3;
+        font-size: 0.9rem;
+        &.active { opacity: 1; }
+      }
+    }
+  }
+}
+
+.game-board {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  padding: 1.2rem 1.2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.hint {
+  margin: 0;
+  padding: 0.6rem 1rem;
+  border-radius: 16px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px dashed #f59e0b;
+  color: #fde68a;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ---------- FIGURAS ---------- */
+.blk {
+  --size: 54px;
+  display: inline-block;
+  width: var(--size);
+  height: var(--size);
+  background: var(--c);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
+  user-select: none;
+
+  &.small { --size: 36px; }
+  &.circle { border-radius: 50%; }
+  &.square { border-radius: 8px; }
+  &.triangle {
+    border-radius: 0;
+    box-shadow: none;
+    clip-path: polygon(50% 4%, 0% 96%, 100% 96%);
+  }
+
+  &.placed {
+    --size: 38px;
+    &.small { --size: 26px; }
+    animation: pop 0.25s ease-out;
+  }
+
+  &.selected {
+    outline: 4px solid #fff;
+    outline-offset: 4px;
+  }
+  &.triangle.selected {
+    outline: none;
+    filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 6px #fff);
+  }
+
+  &.shake { animation: shake 0.45s ease; }
+}
+
+.pool {
+  width: 100%;
+  min-height: 80px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  justify-content: center;
+  align-items: center;
+  padding: 0.6rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+
+  .blk {
+    cursor: grab;
+    touch-action: none;
+    transition: transform 0.15s ease;
+    &:hover { transform: translateY(-3px); }
+    &.cdk-drag-dragging {
+      cursor: grabbing;
+      z-index: 1000;
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5));
+    }
+  }
+}
+
+.zones { width: 100%; }
+
+/* ---------- CANASTAS (4 años) ---------- */
+.baskets {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+
+  &.single { justify-content: center; }
+
+  .basket {
+    flex: 1;
+    min-height: 150px;
+    max-width: 420px;
+    padding: 0.7rem;
+    border-radius: 24px;
+    border: 3px dashed #facc15;
+    background: rgba(250, 204, 21, 0.08);
+
+    .basket-title {
+      text-align: center;
+      font-weight: 800;
+      color: #fef08a;
+      margin-bottom: 0.5rem;
+    }
+
+    .basket-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+  }
+}
+
+/* ---------- DIAGRAMA DE VENN (6 años) ---------- */
+.venn {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 3;   /* H = 0.6 W: coincide con la geometría de vennRegionAt */
+  margin-bottom: 0.8rem;
+
+  .circle {
+    position: absolute;
+    top: 50%;
+    width: 52%;
+    aspect-ratio: 1;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    border: 3px solid;
+
+    &.a { left: 12%; background: rgba(239, 68, 68, 0.16); border-color: #f87171; }
+    &.b { left: 36%; background: rgba(59, 130, 246, 0.16); border-color: #60a5fa; }
+  }
+
+  .cap {
+    position: absolute;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.1;
+    pointer-events: none;
+  }
+  .circle.a .cap { top: 5%; left: 14%; width: 40%; color: #fecaca; }
+  .circle.b .cap { top: 5%; right: 14%; width: 40%; color: #bfdbfe; }
+  .both-cap { left: 37%; width: 26%; bottom: 4%; color: #e9d5ff; }
+
+  .slot {
+    position: absolute;
+    top: 24%;
+    height: 52%;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 4px;
+    pointer-events: none;
+
+    &.a-only { left: 13%; width: 23%; }
+    &.both { left: 38%; width: 24%; }
+    &.b-only { left: 64%; width: 23%; }
+  }
+}
+
+.outside {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 74px;
+  padding: 0.5rem 0.8rem;
+  border-radius: 18px;
+  border: 3px dashed rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+
+  .outside-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-align: center;
+    color: #cbd5e1;
+    margin-bottom: 0.3rem;
+  }
+
+  .outside-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+}
+
+/* ---------- ANIMACIONES ---------- */
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0.4; }
+  70% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blk.placed, .blk.shake { animation: none; }
+}
