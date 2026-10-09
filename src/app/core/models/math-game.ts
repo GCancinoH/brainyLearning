@@ -110,4 +110,15 @@ export const MATH_GAMES: MathGameInfo[] = [
     minAge: 4,
     startLevel: { 4: 1, 6: 1 },
   },
+  {
+    id: 'paths-bridges',
+    title: 'Caminos y Puentes',
+    description: 'Traza caminos con el dedo: lleva a la rana a casa y cruza todos los puentes una sola vez',
+    icon: '🌉',
+    route: '/games/math/paths-bridges',
+    cssClass: 'paths-bridges',
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
 ];

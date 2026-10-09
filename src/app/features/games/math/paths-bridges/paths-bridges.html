@@ -1,0 +1,89 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay
+  [isVisible]="isTimeUp()"
+  (onBack)="goBack()"
+></game-rest-overlay>
+
+<div class="bridges-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <!-- MENSAJE DE RETROALIMENTACIÓN -->
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="idleMessage()"
+    ></game-feedback>
+
+    @if (hint()) {
+      <p class="hint">{{ hint() }}</p>
+    }
+
+    @if (isEuler()) {
+      <p class="counter">🌉 Puentes cruzados: {{ solvedCount() }} / {{ puzzle().edges.length }}</p>
+    }
+
+    <!-- MAPA -->
+    <svg
+      #board
+      class="map"
+      [attr.viewBox]="viewBox()"
+      role="img"
+      aria-label="Mapa de caminos"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp()"
+      (pointercancel)="onPointerUp()"
+    >
+      <!-- Caminos / puentes -->
+      @for (e of edgeLines(); track e.id) {
+        <line
+          class="edge"
+          [class.safe]="e.kind === 'safe'"
+          [class.danger]="e.kind === 'danger'"
+          [class.walked]="e.walked"
+          [class.flash]="flashEdge() === e.id"
+          [attr.x1]="e.x1" [attr.y1]="e.y1" [attr.x2]="e.x2" [attr.y2]="e.y2"
+        />
+      }
+
+      <!-- Puntos -->
+      @for (n of nodeViews(); track n.id) {
+        <g class="node" [class.current]="n.isCurrent" [class.glow]="n.glow">
+          <circle [attr.cx]="n.x" [attr.cy]="n.y" r="6.5" />
+          @if (n.isGoal) {
+            <text class="emoji" [attr.x]="n.x" [attr.y]="n.y + 3.2">🏠</text>
+          } @else if (n.isCurrent && !isEuler()) {
+            <text class="emoji" [attr.x]="n.x" [attr.y]="n.y + 3.2">🐸</text>
+          } @else if (showDegrees()) {
+            <text class="deg" [attr.x]="n.x" [attr.y]="n.y + 2.6">{{ n.degree }}</text>
+          }
+        </g>
+      }
+    </svg>
+
+    @if (showDegrees()) {
+      <p class="legend">El número es cuántas líneas llegan a cada punto 🔢</p>
+    }
+
+    <!-- CONTROLES -->
+    <div class="controls">
+      <button class="ctl" (click)="undo()" [disabled]="solved() || path().length < (isEuler() ? 1 : 2)">↩️ Atrás</button>
+      <button class="ctl" (click)="restart()" [disabled]="solved()">🔄 Empezar de nuevo</button>
+      @if (canSayImpossible()) {
+        <button class="ctl impossible" (click)="sayImpossible()" [disabled]="solved()">🤷 No se puede</button>
+      }
+    </div>
+  </main>
+</div>

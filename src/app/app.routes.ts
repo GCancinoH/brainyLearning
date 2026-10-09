@@ -44,6 +44,10 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/math/logic-blocks/logic-blocks').then(m => m.LogicBlocks)
   },
   {
+    path: 'games/math/paths-bridges',
+    loadComponent: () => import('@features/games/math/paths-bridges/paths-bridges').then(m => m.PathsBridges)
+  },
+  {
     path: 'games/japanese',
     loadComponent: () => import('@features/games/japanese/japanese-menu/japanese-menu').then(m => m.JapaneseMenu)
   },
