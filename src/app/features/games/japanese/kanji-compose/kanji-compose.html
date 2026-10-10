@@ -15,12 +15,17 @@
     </div>
   </header>
 
-  <!-- GUÍA: Aki en Sakura, Long en Dragón -->
+  <!-- GUÍA: Aki en Sakura, Long en Dragón.
+       A los 4 años no se escribe nada: el saludo **se oye** al pasar la puerta de inicio,
+       así que aquí solo queda el guía, que es un rostro con el que identificar la voz. -->
   <div class="guide-bar">
-    <span class="guide-emoji">{{ guide().emoji }}</span>
-    <span class="guide-text">
-      Soy <strong>{{ guide().name }}</strong>, de {{ guide().planet }}
-    </span>
+    <span class="guide-emoji" [class.talking]="narrator.speaking()">{{ guide().emoji }}</span>
+    @if (!isPreReader()) {
+      <span class="guide-text">
+        Soy <strong>{{ guide().name }}</strong>, de {{ guide().planet }}
+      </span>
+    }
+    <button class="guide-hear" (click)="hearKanji()" aria-label="Escuchar otra vez">🔊</button>
   </div>
 
   <main class="game-board">
@@ -30,27 +35,40 @@
 
     <!-- ======================================================= -->
     <!-- PASO 1 · HISTORIA: el kanji completo y por qué se forma -->
+    <!-- Es un "cine": suena solo, y cada elemento se ilumina mientras es su turno. -->
     <!-- ======================================================= -->
     @if (step() === 'story' && target(); as t) {
-      <div class="story">
-        <div class="reveal">
+      <div class="story" [class.prereader]="isPreReader()">
+        <button class="reveal" [class.speaking]="isSpeakingKanji()" (click)="hearKanji()">
           <span class="reveal-kanji">{{ t.kanji }}</span>
-          <span class="reveal-reading">
-            {{ showPinyin() ? t.pinyin : t.reading }}
-          </span>
-          <span class="reveal-meaning">{{ t.meaning }} {{ t.emoji }}</span>
-        </div>
+          <span class="reveal-emoji">{{ t.emoji }}</span>
+          <!-- A los 6 años sí lee: hiragana grande (la palabra que ya conoce), no el
+               katakana erudito, que es justo lo que se olvidaba. -->
+          @if (!isPreReader()) {
+            <span class="reveal-reading">{{ showPinyin() ? t.pinyin : t.reading }}</span>
+            <span class="reveal-meaning">{{ t.meaning }}</span>
+          }
+        </button>
 
-        <p class="story-text">{{ t.story }}</p>
+        @if (!isPreReader()) {
+          <p class="story-text">{{ t.story }}</p>
+          <button class="mini-btn" (click)="hearStory()" aria-label="Escuchar la historia">
+            🔊
+          </button>
+        }
 
-        <!-- Las piezas que lo forman, reveladas -->
+        <!-- Las piezas que lo forman. Cada una se ilumina cuando suena su nombre. -->
         <div class="story-pieces">
           <span class="story-equals">{{ t.kanji }} =</span>
           @for (slot of t.slots; track $index) {
-            <span class="story-piece">
+            <button
+              class="story-piece"
+              [class.speaking]="isSpeakingPiece($index)"
+              (click)="hearPieceWithMeaning(slot.kanji)"
+            >
               <span class="piece-kanji">{{ slot.kanji }}</span>
               <span class="piece-emoji">{{ emojiOf(slot.kanji) }}</span>
-            </span>
+            </button>
             @if ($index < t.slots.length - 1) {
               <span class="story-plus">+</span>
             }
@@ -58,8 +76,13 @@
         </div>
       </div>
 
-      <button class="main-btn" (click)="startComposing()">
-        Ahora hazlo tú 🤲
+      <!-- A los 4 años, solo el icono: "Ahora hazlo tú" es una frase que no puede leer. -->
+      <button class="main-btn" (click)="skipStory()">
+        @if (isPreReader()) {
+          🤲 ▶
+        } @else {
+          Ahora hazlo tú 🤲
+        }
       </button>
     }
 
@@ -95,20 +118,25 @@
         </div>
 
         <!-- BANDEJA: piezas sueltas, barajadas -->
-        <div class="tray">
+        <div class="tray" [class.prereader]="isPreReader()">
           @for (piece of tray(); track piece.trayId) {
             <div
               class="tray-piece"
               cdkDrag
               [cdkDragData]="piece"
+              (cdkDragStarted)="onDragStarted(piece)"
               (cdkDragEnded)="onDragEnded($event, piece)"
               (click)="onTap(piece)"
             >
               <span class="tray-kanji">{{ piece.kanji }}</span>
               <span class="tray-emoji">{{ piece.emoji }}</span>
-              <span class="tray-label">
-                {{ pieceReading(piece.kanji, piece.reading, piece.pinyin) }}
-              </span>
+              <!-- A los 4 años la etiqueta se oculta: es ruido ilegible que compite con
+                   el emoji, que es lo que sí puede leer. El nombre se oye al tocarla. -->
+              @if (!isPreReader()) {
+                <span class="tray-label">
+                  {{ pieceReading(piece.kanji, piece.reading, piece.pinyin) }}
+                </span>
+              }
             </div>
           } @empty {
             <p class="tray-empty">Todas las piezas están en el marco 🤔</p>
@@ -122,14 +150,23 @@
     <!-- ======================================================= -->
     @if (step() === 'draw' && target(); as t) {
       <div class="draw-area">
-        <p class="draw-hint">
-          Ahora hazlo tú: dibuja <strong>{{ t.kanji }}</strong>
-          @if (showGhostInDraw()) {
-            <button class="ghost-toggle" (click)="showGhostInDraw.set(false)">
-              🙈 sin pista
-            </button>
+        <!-- A los 4 años solo el kanji grande y el botón de oírlo. "Ahora hazlo tú: dibuja
+             明" es una instrucción que no puede leer; el sonido y el ejemplo sí. -->
+        <div class="draw-title">
+          <button class="draw-kanji-btn" [class.speaking]="narrator.speaking()" (click)="hearKanji()">
+            {{ t.kanji }}
+          </button>
+          @if (!isPreReader()) {
+            <p class="draw-hint">
+              Ahora dibújalo tú
+              @if (showGhostInDraw()) {
+                <button class="ghost-toggle" (click)="showGhostInDraw.set(false)">
+                  🙈 sin pista
+                </button>
+              }
+            </p>
           }
-        </p>
+        </div>
 
         <div class="canvas-wrap">
           @if (showGhostInDraw()) {
@@ -146,11 +183,17 @@
         </div>
 
         <div class="draw-actions">
-          <button class="mini-btn" (click)="undoStroke()">↩️ Trazo</button>
-          <button class="mini-btn" (click)="clearCanvas()">🧽 Borrar</button>
-          <button class="main-btn" (click)="finishDrawing()">
-            ¡Listo! ✏️
-          </button>
+          <!-- Iconos solos a los 4 años: "Trazo" y "Borrar" son palabras que no puede leer,
+               y el icono ya se reconoce. -->
+          @if (isPreReader()) {
+            <button class="icon-btn big" (click)="undoStroke()" aria-label="Deshacer">↩️</button>
+            <button class="icon-btn big" (click)="clearCanvas()" aria-label="Borrar">🧽</button>
+            <button class="icon-btn big ok" (click)="finishDrawing()" aria-label="Terminar">✅</button>
+          } @else {
+            <button class="mini-btn" (click)="undoStroke()">↩️ Trazo</button>
+            <button class="mini-btn" (click)="clearCanvas()">🧽 Borrar</button>
+            <button class="main-btn" (click)="finishDrawing()">¡Listo! ✏️</button>
+          }
         </div>
       </div>
     }
@@ -160,6 +203,21 @@
     }
   </main>
 </div>
+
+<!-- PUERTA DE INICIO.
+     No es decorativa: iOS y Safari rechazan el audio que no sigue a un gesto del usuario,
+     y ese rechazo es silencioso. Sin esta puerta, el primer kanji aparecería **mudo**, que
+     es exactamente el problema que este spec viene a arreglar. Al tocarla, el guía saluda
+     en voz alta y el audio queda desbloqueado para el resto de la partida. -->
+@if (!started() && !autoStart()) {
+  <div class="start-gate">
+    <div class="start-gate-card">
+      <span class="start-gate-emoji" [attr.data-world]="script()">{{ guide().emoji }}</span>
+      <p class="start-gate-title">{{ guide().planet }}</p>
+      <button class="start-gate-btn" (click)="startGame()" aria-label="Empezar">▶</button>
+    </div>
+  </div>
+}
 
 <!-- HERMANOS: "con las mismas piezas salen otros kanji" -->
 @if (showSiblings() && target(); as t) {

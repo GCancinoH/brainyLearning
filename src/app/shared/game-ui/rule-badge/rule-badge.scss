@@ -1,0 +1,131 @@
+@use './block-shapes' as shapes;
+
+// ============================================================
+// La insignia de la regla.
+//
+// Tamaños: `lg` es la de la barra de regla (72 px), `md` la de la etiqueta de una
+// canasta (52 px). Los dos por encima de 44 px porque a los 4 años el dedo es grande
+// y fallar el toque significa no poder repetir la consigna.
+//
+// ⚠️ Las siluetas NO se redefinen aquí: se incluyen con `@include shapes.blk` para que
+// sean pixel-perfect las mismas del tablero. Si la insignia se dibujara por su cuenta,
+// la niña compararía una muestra de 52 px con figuras de 68 px y no vería que son "lo
+// mismo", que es exactamente lo que se le pide comparar.
+// ============================================================
+
+:host { display: inline-flex; }
+
+.badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  // Sin tamaño propio, el badge se ajustaría al contenido — es decir, mediría lo que
+  // mide la silueta interior (0.34 × --badge) y no lo que debe. Una insignia de 24 px
+  // no se distingue de una figura de 68 px, que es justo lo que tiene que pasar.
+  width: var(--badge);
+  height: var(--badge);
+  flex: 0 0 auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s ease, filter 0.18s ease;
+
+  &:active { transform: scale(0.94); }
+
+  &.badge-lg { --badge: 72px; }
+  &.badge-md { --badge: 52px; }
+
+  // Foco visible solo con teclado: para una niña es ruido, para quien navega con
+  // teclado es imprescindible.
+  &:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
+}
+
+// ---------- REGLA DE COLOR: muestra de pintura ----------
+// El color PUESTO, sin forma reconocible. Si fuera un círculo rojo, la niña lo leería
+// como "los círculos" y compararía por la forma en vez de por el color, que es justo
+// lo contrario de lo que se le pide.
+.paint {
+  position: absolute;
+  inset: 0;
+  border-radius: 26%;
+  // Borde blanco grueso: separa la muestra de cualquier figura del tablero con un color
+  // parecido, que es el riesgo real de "roja" y "amarilla" a los 4 años.
+  border: 5px solid #fff;
+  background: var(--c);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+// Silueta dentro del color, pequeña y clara: sugiere "figura de este color" sin
+// contradecir el mensaje. Usa el mismo `@include` que el tablero para que no haya
+// discrepancies de tamaño.
+.inner {
+  --size: calc(var(--badge) * 0.34);
+  position: relative;
+  @include shapes.blk;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: none;
+}
+
+// ---------- REGLA DE FORMA: silueta neutra ----------
+.shape {
+  --size: calc(var(--badge) * 0.62);
+  @include shapes.blk;
+  --c: #e2e8f0;   // gris neutro: que no se confunda con una regla de color
+}
+
+// ---------- REGLA DE TAMAÑO ----------
+.sizes { display: inline-flex; align-items: flex-end; gap: 8px; }
+
+.mark-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  // La que NO cumple la regla queda atenuada: se ven las dos a propósito, de eso se
+  // trata, de poder comparar y elegir. Si solo se mostrara la correcta no habría nada
+  // que decidir.
+  opacity: 0.3;
+  transition: opacity 0.18s ease;
+}
+.mark-wrap.is-target { opacity: 1; }
+
+.small-mark {
+  --size: calc(var(--badge) * 0.3);
+  @include shapes.blk;
+  --c: #e2e8f0;
+}
+
+.big-mark {
+  --size: calc(var(--badge) * 0.5);
+  @include shapes.blk;
+  --c: #e2e8f0;
+}
+
+.finger {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  translate: -50% 0;
+  font-size: calc(var(--badge) * 0.34);
+  line-height: 1;
+}
+
+// ---------- AYUDA (nivel 1+ de la escalera) ----------
+// Pulsar, no parpadear: parpadea molesta; un latido suave se lee como "esto".
+.badge.pulse { animation: badge-call 1.6s ease-in-out infinite; }
+
+@keyframes badge-call {
+  0%, 100% { transform: scale(1);    filter: brightness(1); }
+  50%      { transform: scale(1.09); filter: brightness(1.25); }
+}
+
+// Como etiqueta de canasta necesita fondo propio para separarse de las figuras dentro.
+:host(.as-label) .badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge.pulse { animation: none; filter: brightness(1.2); }
+}

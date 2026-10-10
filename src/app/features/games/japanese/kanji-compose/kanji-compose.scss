@@ -618,3 +618,146 @@ $ink: #1b1b3a;
     animation: none !important;
   }
 }
+/* ============================================================
+   PUERTA DE INICIO (§5.5)
+   Existe por el autoplay de iOS/Safari, no por gusto. El botón es enorme y sin texto
+   porque es un niño de 4 años el que lo tiene que encontrar solo.
+   ============================================================ */
+.start-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #2a1a3d 0%, #1a1030 100%);
+}
+
+.start-gate-card { text-align: center; }
+
+.start-gate-emoji {
+  display: block;
+  font-size: 6rem;
+  animation: guide-bob 2.4s ease-in-out infinite;
+
+  &[data-world='chinese'] { animation-duration: 3s; }
+}
+
+@keyframes guide-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
+
+.start-gate-title {
+  margin: 0.6rem 0 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.start-gate-btn {
+  width: 148px;
+  height: 148px;
+  font-size: 4rem;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #7c3aed;
+  cursor: pointer;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &:active {
+    transform: translateY(6px);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* ============================================================
+   EL "CINE" DE LA HISTORIA: karaoke (§6.2)
+   Cada elemento se ilumina mientras suena. Es lo que convierte una lista de piezas
+   en una secuencia con sentido: sin el illumination, los 13 del mismo color aparecen
+   juntos y no hay nada a lo que asociar el sonido.
+   ============================================================ */
+.story-piece,
+.reveal,
+.draw-kanji-btn {
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.story-piece.speaking,
+.reveal.speaking,
+.draw-kanji-btn.speaking {
+  animation: karaoke-glow 0.62s ease-in-out infinite alternate;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+}
+
+@keyframes karaoke-glow {
+  from { transform: scale(1);      filter: brightness(1); }
+  to   { transform: scale(1.10);   filter: brightness(1.45); }
+}
+
+// El guía se mueve mientras habla: da la sensación de que es él quien dice la frase.
+.guide-emoji.talking { animation: guide-bob 1.1s ease-in-out infinite alternate; }
+
+.guide-hear {
+  margin-left: auto;
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ============================================================
+   4 AÑOS: sin texto (§6.1)
+   El emoji sustituye a la palabra y la voz hace el resto. El kanji se agranda porque
+   es lo que se está presentando, no algo que haya que decodificar.
+   ============================================================ */
+.prereader {
+  .reveal-kanji { font-size: 7rem; }
+  .piece-emoji   { font-size: 1.9rem; }
+  .tray-emoji    { font-size: 1.8rem; }
+}
+
+.tray.prereader .tray-piece { padding: 0.7rem; }
+
+/* ============================================================
+   BOTONES SOLO CON ICONO (paso de dibujar a los 4 años)
+   ============================================================ */
+.icon-btn {
+  width: 84px;
+  height: 84px;
+  font-size: 2.2rem;
+  border: none;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+
+  &.ok { background: #22c55e; }
+  &:active { transform: scale(0.92); }
+}
+
+.draw-title { text-align: center; }
+
+.draw-kanji-btn {
+  font-size: 4.2rem;
+  background: none;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  padding: 0.2rem 0.9rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-piece.speaking,
+  .reveal.speaking,
+  .draw-kanji-btn.speaking,
+  .guide-emoji.talking,
+  .start-gate-emoji { animation: none; }
+}

@@ -39,6 +39,24 @@ export interface Round {
 
 export type Rng = () => number;
 
+/**
+ * RNG determinista y con semilla.
+ *
+ * Vive aquí y no en los specs porque estaba **duplicado** en dos ficheros de test, y cada
+ * copia era una variante subtly distinta del mismo algoritmo. Dos copias que se
+ * "creen" parecidas son la forma más fácil de tener un test que pasa por casualidad: con
+ * una sola implementación, cualquier cambio en la generación se ve en los dos sitios.
+ */
+export function mulberry32(seed: number): Rng {
+  let a = seed | 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export const SHAPES: readonly Shape[] = ['circle', 'square', 'triangle'];
 export const COLORS: readonly Color[] = ['red', 'blue', 'yellow'];
 export const SIZES: readonly Size[] = ['big', 'small'];

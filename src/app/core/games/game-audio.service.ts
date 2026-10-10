@@ -198,6 +198,86 @@ export class GameAudioService {
   private _pendingAudio = signal<{ path: string; volume: number } | null>(null);
 
   /**
+   * Reproduce un archivo y **espera a que termine**. Devuelve `true` si realmente se oyó.
+   *
+   * Existe porque `_playFile` se traga todos los errores a propósito (el juego debe seguir
+   * aunque no haya audio), y quien narra necesita saberlo: si el clip no existe, hay que
+   * caer al TTS; si sonó, hay que marcar la consigna como oída para no castigar a la niña
+   * por no haber entendido (§5.9 del spec).
+   *
+   * ⚠️ `playFileAndWait` devuelve `false` en estos casos, todos ellos indistinguibles desde
+   * fuera salvo por el motivo:
+   *  - el juego tiene el sonido apagado;
+   *  - el navegador bloqueó el autoplay (queda en `_pendingAudio`);
+   *  - el archivo no existe o no es audio (queda `audio.error`);
+   *  - `stopAll()` la cortó a mitad.
+   */
+  async playFileAndWait(path: string, volume = 0.85, maxWaitMs = 8000): Promise<boolean> {
+    if (!this._enabled()) return false;
+    const resolved = this._resolve(path);
+
+    await this._playFile(resolved, volume);
+
+    const audio = this._audioCache.get(resolved);
+    if (!audio) return false;
+
+    // Autoplay bloqueado: no sonó, pero hay un reintento pendiente de un toque.
+    if (this._pendingAudio()?.path === resolved) return false;
+
+    // 404 / formato inválido: el elemento de audio lo sabe aunque `play()` no lanzara.
+    if (audio.error) return false;
+
+    if (audio.ended) return true;
+    if (audio.paused) return false;   // llegó a `play()` pero no arrancó
+
+    // Techo de seguridad: si el evento nunca llega, esta promesa quedaría colgada para
+    // siempre y con ella toda la secuencia de narración de la ronda.
+    await new Promise<void>(resolve => {
+      const fin = () => resolve();
+      const techo = setTimeout(fin, maxWaitMs);
+      audio.addEventListener('ended', () => { clearTimeout(techo); fin(); }, { once: true });
+      audio.addEventListener('pause', () => { clearTimeout(techo); fin(); }, { once: true });
+      audio.addEventListener('error', () => { clearTimeout(techo); fin(); }, { once: true });
+    });
+
+    return audio.ended && !audio.error;
+  }
+
+  /**
+   * Calienta clips para que suenan al instante, sin pagar la descarga en el momento de
+   * oírlos.
+   *
+   * Importa en los juegos "audio-first": el sonido tiene que llegar **justo cuando** el
+   * elemento aparece, porque esa coincidencia es lo que forma la asociación. Si el
+   * primer sonido de una ronda espera medio segundo a que se descargue el fichero, la
+   * niña ve el kanji aparecer en silencio y el momento se pierde.
+   */
+  preload(paths: string[], volume = 0.85): void {
+    for (const raw of paths) {
+      const path = this._resolve(raw);
+      if (this._audioCache.has(path)) continue;
+      try {
+        const audio = new Audio(path);
+        audio.preload = 'auto';
+        audio.volume = volume * this._masterVolume();
+        this._audioCache.set(path, audio);
+        // `load()` explícito: sin esto algunos navegadores no empiezan a descargar hasta
+        // que hay un `<audio>` en el DOM, y este elemento nunca lo estará.
+        audio.load();
+      } catch {
+        // Un clip que no se puede precalentar no es motivo para romper nada: se descargará
+        // al usarlo.
+      }
+    }
+  }
+
+  /**
+   * Hay un audio que el navegador bloqueó por autoplay y que sonará tras el próximo toque.
+   * El juego lo usa para mostrar el botón 🔊 pulsando desde el principio.
+   */
+  readonly hasPending = computed(() => this._pendingAudio() !== null);
+
+  /**
    * Reintenta audio pendiente (llamar tras interacción del usuario, ej. click en botón)
    */
   retryPendingAudio(): void {

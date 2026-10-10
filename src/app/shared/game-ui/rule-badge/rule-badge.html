@@ -1,0 +1,51 @@
+<!--
+  La insignia de la regla. Se toca para que diga su nombre en voz alta.
+
+  El texto va solo en `aria-label`, no se ve: el objetivo es que una pre-lectora NO lea,
+  y unaScreen reader sí lo necesita.
+-->
+<span
+  [class]="classes()"
+  [style.--c]="color() ? COLOR_HEX[color()!] : null"
+  [style.--emph]="emphasis()"
+  role="img"
+  [attr.aria-label]="ariaLabel()"
+  (click)="onTouch($event)"
+  (keydown.enter)="onTouch($event)"
+  (keydown.space)="onTouch($event)"
+  tabindex="0"
+>
+
+  @if (isColor()) {
+    <!-- Muestra de pintura: el color PUESTO, sin forma reconocible.
+         La silueta de dentro es un detalle, no el mensaje: para eso está en gris claro
+         y es pequeña. Si dominara, la niña leería "círculos" en vez de "rojo". -->
+    <span class="paint"></span>
+    <span class="inner" [class]="'inner ' + innerShape()"></span>
+  } @else if (isShape()) {
+    <!-- Silueta neutra: sin color, para que no se confunda con una regla de color. -->
+    <span class="shape" [class]="'shape ' + shape()"></span>
+  } @else {
+    <!-- Tamaño: las dos siluetas una al lado de la otra, y un dedo encima de la que
+         cumple la regla. Se ven las dos a propósito: de eso se trata, de poder comparar
+         y elegir. Si solo se mostrara la correcta no habría nada que decidir. -->
+    <span class="sizes">
+      <span
+        class="mark-wrap"
+        [class.is-target]="sizeValue() === 'small'"
+        [class.is-other]="sizeValue() === 'big'"
+      >
+        <span class="shape small-mark circle"></span>
+        @if (sizeValue() === 'small') { <span class="finger" aria-hidden="true">☝️</span> }
+      </span>
+      <span
+        class="mark-wrap"
+        [class.is-target]="sizeValue() === 'big'"
+        [class.is-other]="sizeValue() === 'small'"
+      >
+        <span class="shape big-mark" [class]="'shape big-mark ' + innerShape()"></span>
+        @if (sizeValue() === 'big') { <span class="finger" aria-hidden="true">☝️</span> }
+      </span>
+    </span>
+  }
+</span>

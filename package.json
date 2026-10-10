@@ -9,7 +9,12 @@
     "watch": "ng build --watch --configuration development",
     "runProd": "ng serve --configuration production",
     "runDev": "ng serve --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "voice": "python3 tools/narration/generate.py",
+    "voice:check": "node tools/narration/verify.mjs",
+    "voice:export": "tsx tools/narration/export-kanji.ts",
+    "voice:kanji": "tsx tools/narration/export-kanji.ts && python3 tools/narration/generate.py kanji-compose",
+    "voice:check:kanji": "node tools/narration/verify-kanji.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.1",

@@ -49,7 +49,7 @@
     <div class="rest-backdrop" role="dialog" aria-modal="true" aria-labelledby="rest-title">
       <div class="rest-dialog">
         <div class="rest-emoji" margin="bottom 40px">⏰</div>
-        <h2 id="rest-title">¡Se acabó el tiempo de {{ rest.title }}!</h2>
+        <h2 id="rest-title" margin="bottom 40px">¡Se acabó el tiempo!</h2>
         <p class="saved">✅ Tu avance quedó guardado.</p>
         <p>Por ahora toca descansar de este tema. ¡Vuelve en unos {{ restMinutes() }} min!</p>
 
@@ -62,7 +62,7 @@
                   <span>{{ sg.subject.icon }}</span>
                   <strong>{{ sg.subject.title }}</strong>
                 </div>
-                <div class="suggestion-games">
+                <div class="suggestion-games" margin="top 20px">
                   @for (g of sg.games; track g.id) {
                     <button class="game-btn" (click)="openGame(g.route)">
                       <span>{{ g.icon }}</span> {{ g.title }}

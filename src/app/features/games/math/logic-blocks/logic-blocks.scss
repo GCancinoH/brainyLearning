@@ -1,3 +1,5 @@
+@use "../../../../shared/game-ui/rule-badge/block-shapes" as shapes;
+
 .blocks-container {
   min-height: 100vh;
   padding: 1.5rem;
@@ -71,24 +73,13 @@
   text-align: center;
 }
 
-/* ---------- FIGURAS ---------- */
+/* ---------- FIGURAS ----------
+   Las formas viven en el parcial compartido con la insignia de regla, para que ambas
+   sean pixel-perfect iguales: es la comparación entre la muestra y la figura lo que
+   permite a una pre-lectora entender la consigna sin leerla. */
 .blk {
   --size: 54px;
-  display: inline-block;
-  width: var(--size);
-  height: var(--size);
-  background: var(--c);
-  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
-  user-select: none;
-
-  &.small { --size: 36px; }
-  &.circle { border-radius: 50%; }
-  &.square { border-radius: 8px; }
-  &.triangle {
-    border-radius: 0;
-    box-shadow: none;
-    clip-path: polygon(50% 4%, 0% 96%, 100% 96%);
-  }
+  @include shapes.blk;
 
   &.placed {
     --size: 38px;
@@ -96,16 +87,17 @@
     animation: pop 0.25s ease-out;
   }
 
-  &.selected {
-    outline: 4px solid #fff;
-    outline-offset: 4px;
-  }
-  &.triangle.selected {
-    outline: none;
-    filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 6px #fff);
-  }
+  @include shapes.blk-selected;
 
   &.shake { animation: shake 0.45s ease; }
+}
+
+// Tamaño táctil para 4 años. Los dedos de 4 años fallan el toque con 54 px, y un toque
+// fallido en la insignia significa no poder volver a oír la consigna.
+.prereader {
+  .blk { --size: 68px; &.small { --size: 44px; } }
+  .blk.placed { --size: 44px; &.small { --size: 32px; } }
+  .basket { min-height: 190px; }
 }
 
 .pool {
@@ -257,4 +249,163 @@
 
 @media (prefers-reduced-motion: reduce) {
   .blk.placed, .blk.shake { animation: none; }
+}
+
+/* ============================================================
+   BARRA DE REGLA (§5.1)
+   El cambio central: la consigna deja de ser un banner que aparece y desaparece,
+   y pasa a ser una barra fija que siempre está ahí.
+   ============================================================ */
+.rule-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  transition: opacity 0.4s ease;
+
+  /* Durante el tutorial se atenúa todo menos esto. */
+  &.dimmed { opacity: 1; box-shadow: 0 0 0 2px #facc15; }
+
+  .rule-arrow { font-size: 1.6rem; opacity: 0.75; }
+
+  .rule-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    opacity: 0.9;
+  }
+}
+
+/* Botón 🔊: 64×64 px a los 4 años. Es el botón que le da autonomía al juego,
+   así que fallar el toque significa no poder recovery la consigna. */
+.speak-btn {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  font-size: 1.9rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, background 0.15s ease;
+
+  &:active { transform: scale(0.9); }
+  &.speaking { background: rgba(250, 204, 21, 0.3); }
+
+  /* Ayuda nivel 1: late suave. */
+  &.pulse { animation: speak-pulse 1.6s ease-in-out infinite; }
+}
+
+@keyframes speak-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.5); }
+  50%      { box-shadow: 0 0 0 14px rgba(250, 204, 21, 0); }
+}
+
+/* ============================================================
+   CARA DE ÁNIMO (§5.10) — sustituye al banner a los 4 años
+   ============================================================ */
+.mood {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 74px;
+  margin-bottom: 0.5rem;
+
+  .mood-emoji {
+    font-size: 3rem;
+    animation: mood-pop 0.35s ease-out;
+  }
+
+  &[data-state='try-again'] .mood-emoji { animation: mood-shrug 1.6s ease-in-out infinite; }
+  &[data-state='success']    .mood-emoji { animation: mood-star 0.8s ease-in-out 2; }
+}
+
+@keyframes mood-pop   { from { transform: scale(0.5); } to { transform: scale(1); } }
+@keyframes mood-shrug { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-8deg); } }
+@keyframes mood-star  { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+
+/* ============================================================
+   RANURAS FANTASMA (§5.8) — "¿cuántas faltan?" sin texto
+   ============================================================ */
+.ghost-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 0.4rem 0;
+}
+
+.ghost-slot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  transition: background 0.25s ease, border-color 0.25s ease;
+
+  &.filled {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: transparent;
+  }
+}
+
+/* ============================================================
+   AYUDAS SOBRE LAS FIGURAS (§5.5)
+   ============================================================ */
+
+/* Nivel 2: se resalta lo que cumple. No se dice la respuesta: se señala dónde mirar. */
+.blk.hint {
+  filter: brightness(1.35) drop-shadow(0 0 10px rgba(250, 204, 21, 0.8));
+  animation: hint-beat 1.4s ease-in-out infinite;
+}
+
+@keyframes hint-beat {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.07); }
+}
+
+/* Nivel 3: lo que no cumple se atenúa. Hay algo ya resuelto, así que no es parálisis. */
+.blk.dim { opacity: 0.25; }
+
+/* ============================================================
+   TUTORIAL (§5.7)
+   ============================================================ */
+.tutorial-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3rem;
+}
+
+.tutorial-hint {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0.8rem 1.6rem;
+  border-radius: 999px;
+  animation: mood-pop 0.4s ease-out;
+}
+
+/* Solo para lectores de pantalla: el texto nunca se ve, pero no puede faltar. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blk.hint, .speak-btn.pulse, .mood .mood-emoji { animation: none; }
 }

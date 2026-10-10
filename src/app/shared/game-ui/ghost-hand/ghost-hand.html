@@ -1,0 +1,10 @@
+<!--
+  La mano y su figura viajan juntas del punto `from` al `to`.
+
+  Ambas coordenadas son relativas al contenedor del juego, no a la ventana: así el gesto
+  sigue siendo correcto aunque la página se desplace mientras se reproduce.
+-->
+<span class="ghost" [style]="styleVars()" aria-hidden="true">
+  <span class="carry" [class]="'carry ' + shape()"></span>
+  <span class="hand">👆</span>
+</span>

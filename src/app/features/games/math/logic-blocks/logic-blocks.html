@@ -4,7 +4,7 @@
   (onBack)="goBack()"
 ></game-rest-overlay>
 
-<div class="blocks-container">
+<div #container class="blocks-container" [class.prereader]="isPreReader()">
   <!-- ENCABEZADO -->
   <header class="game-header">
     <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
@@ -19,14 +19,56 @@
   </header>
 
   <main class="game-board">
-    <!-- MENSAJE DE RETROALIMENTACIÓN -->
-    <game-feedback
-      [state]="feedbackState()"
-      [customMessages]="customFeedbackMessages"
-      [customMessage]="idleMessage()"
-    ></game-feedback>
 
-    @if (hint()) {
+    <!-- ============ BARRA DE REGLA ============
+       Visible a las DOS edades (§2.1). A los 4 años la insignia *sustituye* al texto;
+       a los 6 el texto acompaña a la muestra. Nunca se oculta: es lo que garantiza que
+       la consigna esté siempre a la vista, cosa que el banner efímero no cumplía. -->
+  @if (mode() !== 'venn') {
+      <section class="rule-bar" [class.dimmed]="tutorialDim()">
+        <button
+          class="speak-btn"
+          [class.pulse]="pulseBadge()"
+          [class.speaking]="narrator.speaking()"
+          (click)="repeatRule()"
+          aria-label="Escuchar la consigna otra vez"
+        >🔊</button>
+
+        @for (a of ruleAttrs(); track $index) {
+          <rule-badge
+            [attr]="a"
+            [pulse]="pulseBadge()"
+            (speak)="speakLabel($event)"
+          />
+        }
+
+        <span class="rule-arrow" aria-hidden="true">➜</span>
+        <span class="rule-arrow" aria-hidden="true">🧺</span>
+
+        @if (!isPreReader()) {
+          <!-- A los 6 años la consigna escrita acompaña a la muestra. -->
+          <span class="rule-text">{{ idleMessage() }}</span>
+        }
+      </section>
+    }
+
+    <!-- MENSAJE DE RETROALIMENTACIÓN:
+         a los 4 años, una cara de ánimo en vez de un banner de texto. Un banner largo
+         compite visualmente con la insignia de regla, que es lo que hay que leer. -->
+    @if (isPreReader()) {
+      <div class="mood" [attr.data-state]="feedbackState()" aria-live="polite">
+        <span class="mood-emoji" aria-hidden="true">{{ mood() }}</span>
+        <span class="sr-only">{{ moodText() }}</span>
+      </div>
+    } @else {
+      <game-feedback
+        [state]="feedbackState()"
+        [customMessages]="customFeedbackMessages"
+        [customMessage]="idleMessage()"
+      ></game-feedback>
+    }
+
+    @if (hint() && !isPreReader()) {
       <p class="hint">{{ hint() }}</p>
     }
 
@@ -36,7 +78,25 @@
         <div class="baskets" [class.single]="mode() === 'one'">
           @for (z of zones(); track z.region) {
             <div #zone class="basket" [attr.data-region]="z.region">
-              <div class="basket-title">🧺 {{ z.title }}</div>
+              <div class="basket-title">
+                @if (isPreReader()) {
+                  <!-- A los 4 años la etiqueta ES la insignia: el texto no le dice nada. -->
+                  <rule-badge [attr]="ruleAttrs()[$index]" size="md" (speak)="speakZone(z.region)" />
+                } @else {
+                  🧺 {{ z.title }}
+                }
+              </div>
+
+              <!-- Ranuras fantasma (§5.8): dicen cuántas van aquí y cuándo se acabó,
+                   sin decir cuáles. Solo en los niveles 1-5, para que no sea una muleta. -->
+              @if (showSlots()) {
+                <div class="ghost-slots" aria-hidden="true">
+                  @for (s of slotRange(); track s) {
+                    <span class="ghost-slot" [class.filled]="s < slotFilled()"></span>
+                  }
+                </div>
+              }
+
               <div class="basket-items">
                 @for (b of placedIn(z.region); track b.id) {
                   <span
@@ -88,10 +148,14 @@
     <section class="pool" aria-label="Figuras por clasificar">
       @for (b of poolBlocks(); track b.id) {
         <span
+          #poolBlk
           class="blk"
+          [attr.data-id]="b.id"
           [class]="'blk ' + b.shape + ' ' + b.size"
           [class.selected]="selectedId() === b.id"
           [class.shake]="shakeId() === b.id"
+          [class.hint]="isHint(b.id)"
+          [class.dim]="isDim(b)"
           [style.--c]="color(b)"
           cdkDrag
           role="button"
@@ -101,5 +165,23 @@
         ></span>
       }
     </section>
+
+    <!-- ============ DEMOSTRACIÓN (§5.6) ============
+         Puramente visual: la figura que viaja es un clon, no toca `placed()`. -->
+    @if (demo(); as d) {
+      <ghost-hand [from]="d.from" [to]="d.to" [shape]="d.shape" [color]="d.color" />
+    }
+
+    <!-- ============ TUTORIAL (§5.7) ============
+         Solo la primera vez por perfil y modo. Si toca algo, se corta. -->
+    @if (tutorial() !== 'off') {
+      <div class="tutorial-veil" (pointerdown)="skipTutorial()">
+        <p class="tutorial-hint" aria-live="polite">
+          @if (tutorial() === 'look') { 👀 Mira la regla }
+          @else if (tutorial() === 'demo') { 👆 Mira cómo }
+          @else { 🙋 Ahora tú }
+        </p>
+      </div>
+    }
   </main>
 </div>

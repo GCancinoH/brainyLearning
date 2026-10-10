@@ -1,0 +1,86 @@
+@use '../rule-badge/block-shapes' as shapes;
+
+// ============================================================
+// La demostración.
+//
+// El contenedor `.ghost-hand-slot` (en el juego) tiene que ser `position: relative`:
+// las coordenadas del gesto son relativas a él.
+// ============================================================
+
+:host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;      // jamás debe robarle un toque a la niña
+  z-index: 40;
+}
+
+.ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  // Se repite `repeats` veces: una sola pasada puede pasar desapercibida mientras la
+  // niña sigue mirando la regla.
+  animation: hand-drag 1.9s ease-in-out var(--repeats, 2) both;
+}
+
+// La figura que viaja: misma forma que las del tablero, a tamaño ligeramente menor para
+// que se vea que es una copia y no la figura real.
+.carry {
+  --size: 56px;
+  @include shapes.blk;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  opacity: 0.95;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+.hand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  font-size: 3rem;
+  line-height: 1;
+  // Detrás de la figura: el dedo "sostiene" el bloque.
+  z-index: -1;
+}
+
+@keyframes hand-drag {
+  0% {
+    translate: var(--x0) var(--y0);
+    opacity: 0;
+    scale: 1;
+  }
+  10% {
+    opacity: 1;
+  }
+  25% {
+    scale: 0.86;                 // "presiona" la figura
+  }
+  78% {
+    translate: var(--x1) var(--y1);
+    scale: 0.86;
+  }
+  92% {
+    scale: 1;
+    opacity: 1;
+  }
+  100% {
+    translate: var(--x1) var(--y1);
+    opacity: 0;
+  }
+}
+
+// Con movimiento reducido la mano no se arrastra, pero la figura **sí** aparece ya en su
+// sitio: el mensaje es "aquí va", que es lo único que importa. Quitarla del todo dejaría a
+// la niña sin ninguna pista de qué hacer.
+@media (prefers-reduced-motion: reduce) {
+  .ghost {
+    animation: none;
+    translate: var(--x1) var(--y1);
+    opacity: 1;
+  }
+  .hand { display: none; }
+}

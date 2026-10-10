@@ -20,11 +20,13 @@ import { GameAudioService } from '@core/games/game-audio.service';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { SpeechService } from '@core/services/speech.service';
 import { SessionEvent } from '@core/games/game-types';
+import { Narrator } from '@core/games/narrator.service';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import {
   buildCompositionProblem,
   CompositionProblem,
+  KanjiComposition,
   MAX_LEVEL,
   pickLine,
   pieceData,
@@ -32,6 +34,23 @@ import {
   SocraticMoment,
   TrayPiece,
 } from '@core/learning/kanji-composition';
+import {
+  CLIP_BASE,
+  CLIP_MANIFEST,
+  clipsForProblem,
+  kanjiMeaning,
+  kanjiStory,
+  kanjiWord,
+  SOCRATIC_LINE_COUNT,
+  pieceMeaning,
+  pieceWord,
+  socraticLine,
+  storyCues,
+  sys,
+  type Cue,
+  type Highlight,
+  type StoryMode,
+} from '@core/learning/kanji-narration';
 
 /**
  * "Construye el Kanji" — cómo se forman los caracteres compuestos.
@@ -84,6 +103,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
   private readonly speech = inject(SpeechService);
+  /** Público: la plantilla lo usa para animar mientras suena. */
+  readonly narrator = inject(Narrator);
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -129,6 +150,32 @@ export class KanjiCompose implements OnInit, OnDestroy {
   readonly showSiblings = signal(false);
   /** En la fase de dibujo, el kanji se muestra al trasluz */
   readonly showGhostInDraw = signal(true);
+
+  /**
+   * La puerta de inicio: un botón enorme y sin texto antes de empezar.
+   *
+   * No es un adorno. iOS y Safari **exigen un gesto del usuario** para dejar sonar audio
+   * programado: sin él, el primer sonido se rechaza en silencio y no hay error visible.
+   * Además es el único momento en que la niña ve al guía saludarla, lo que sustituye al
+   * texto "Soy Aki, del Planeta Sakura" que no le dice nada a una pre-lectora.
+   */
+  readonly started = signal(false);
+
+  /**
+   * Cuánto se cuenta la historia: `full` la primera vez a los 4 años, `short` si ya la
+   * conoce, `skip` si se la sabe de sobra. Se calcula por edad y por nivel; la
+   * repetición espaciada (§7.3 del spec) lo afinará con el tiempo.
+   */
+  readonly storyMode = computed<StoryMode>(() => {
+    if (!this.isPreReader()) return 'short';
+    return this.currentLevel() <= 2 ? 'full' : this.currentLevel() <= 5 ? 'short' : 'skip';
+  });
+
+  /** Qué cue está sonando ahora. La plantilla lo usa para el karaoke. */
+  readonly cue = signal<Cue<Highlight> | null>(null);
+
+  /** 4 años: sin texto. El emoji y la voz son el mensaje. */
+  readonly isPreReader = computed(() => (this.activeProfile()?.age ?? 6) <= 4);
 
   private readonly localFeedback = signal<'idle' | 'success'>('idle');
 
@@ -180,6 +227,15 @@ export class KanjiCompose implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // El manifiesto no es documentación: es el plan B. Si un `.wav` falta, el TTS dice
+    // lo mismo **en el idioma correcto** (japonés para las piezas, español para las
+    // historias). Sin manifiesto, un clip japonés ausente se intentaría en voz española.
+    this.narrator.configure({
+      base: CLIP_BASE,
+      manifest: CLIP_MANIFEST,
+      defaultLang: 'es-MX'
+    });
+
     this.audio.registerAssets([
       { type: 'praise', paths: ['audio/praise-1.wav', 'audio/praise-2.wav', 'audio/praise-3.wav'], volume: 0.85 },
       { type: 'level-up', paths: ['audio/level-up.wav'], volume: 0.9 },
@@ -199,12 +255,22 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
     this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
     this.generateProblem();
+
+    // Empieza sola en el laboratorio: allí no hay problema de autoplay y se quiere iterar rápido.
+    if (this.autoStart()) this.later(() => this.startGame(), 200);
   }
+
+  /** El laboratorio salta la puerta de inicio para probar sin toques extra. */
+  readonly autoStart = input(false, { alias: 'autoStart' });
 
   ngOnDestroy(): void {
     this.destroyed = true;
     this.clearTimers();
     this.unsubscribeEvents?.();
+    // ⚠️ Antes de `audio.dispose()`: al revés, `dispose()` deja los elementos inservibles
+    // y `cancel()` intentaría pararlos después. Además corta la secuencia en vuelo, que si
+    // no seguiría sonando fuera de la pantalla.
+    this.narrator.cancel();
     try {
       if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
     } catch {
@@ -230,6 +296,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   generateProblem(): void {
     this.clearTimers();
+    this.narrator.cancel();
     const age = this.activeProfile()?.age ?? 6;
     const p = buildCompositionProblem(this.currentLevel(), age);
 
@@ -246,6 +313,16 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.strokes.set([]);
     this.drawing = null;
     this.localFeedback.set('idle');
+    this.cue.set(null);
+
+    // Precarga: los clips del problema ya se descargan en silencio, para que el primer
+    // sonido llegue **justo** cuando el kanji aparece. Sin esto se oye medio segundo de
+    // nada en el momento exacto en el que la niña está mirando, y se pierde la asociación.
+    this.narrator.preload([...clipsForProblem(p.target), sys('now-you')]);
+
+    // La historia solo se cuenta sola si ya hubo un gesto: si no, el navegador la rechazará
+    // y el paso quedaría mudo, que es exactamente el fallo que se quería arreglar.
+    if (this.started()) this.later(() => void this.playStory(), 500);
   }
 
   /** Lectura de la pieza según el mundo (kana o pinyin) */
@@ -259,11 +336,112 @@ export class KanjiCompose implements OnInit, OnDestroy {
   }
 
   // ============================================
+  // PUERTA DE INICIO
+  // ============================================
+
+  /**
+   * El toque que desbloquea el audio.
+   *
+   * Además del gesto, aprovecha para que suene el saludo: es lo primero que oye de esta
+   * app, y lo que sustituye a la frase "Soy Aki, del Planeta Sakura" en pantalla.
+   */
+  startGame(): void {
+    if (this.started()) return;
+    this.started.set(true);
+    this.audio.retryPendingAudio();
+    const saludo = this.script() === 'japanese' ? sys('greeting.aki') : sys('greeting.long');
+    void this.narrator.say(saludo);
+    this.later(() => void this.playStory(), 400);
+  }
+
+  // ============================================
+  // PASO 1: EL "CINE" DE LA HISTORIA
+  // ============================================
+
+  /**
+   * Cuenta la historia: suena el kanji, se la narrada, suena cada pieza mientras se
+   * ilumina, y el kanji vuelve a sonar al final.
+   *
+   * Este paso era **mudo** antes: la única asociación posible era en el paso de componer,
+   * donde ya había que saber arrastrar. Aquí el sonido llega antes de tocar nada.
+   */
+  async playStory(): Promise<void> {
+    const t = this.target();
+    if (!t) return;
+    const cues = storyCues(t, { age: this.isPreReader() ? 4 : 6, mode: this.storyMode() });
+    await this.narrator.play(cues, c => this.cue.set(c));
+  }
+
+  /** Corta la narración (botón grande del paso Historia) y pasa a componer. */
+  skipStory(): void {
+    this.narrator.cancel();
+    this.cue.set(null);
+    this.startComposing();
+  }
+
+  /** Qué elemento está sonando: el karaoke. */
+  isSpeakingKanji(): boolean {
+    return this.cue()?.tag?.kind === 'kanji';
+  }
+
+  isSpeakingPiece(index: number): boolean {
+    const tag = this.cue()?.tag;
+    return !!tag && tag.kind === 'piece' && tag.index === index;
+  }
+
+  // ============================================
+  // OÍR (siempre por clip, nunca mandando el kanji al TTS)
+  // ============================================
+
+  /**
+   * Oye el kanji objetivo.
+   *
+   * Antes esto era `speech.speak('明', 'ja-JP')`: el motor decidía entre on'yomi y
+   * kun'yomi, así que podía decir "メイ" cuando lo que había que enseñar era "あかるい",
+   * y en un tablet sin voz japonesa no decía nada en absoluto. Con el clip, el sonido es
+   * exactamente el que queremos y además **suena sin conexión**.
+   */
+  hearKanji(): void {
+    const t = this.target();
+    if (!t) return;
+    void this.narrator.say(kanjiWord(t.id));
+  }
+
+  /** Oye el significado en español. Para quien todavía no asocia forma y sonido. */
+  hearMeaning(): void {
+    const t = this.target();
+    if (!t) return;
+    void this.narrator.say(kanjiMeaning(t.id));
+  }
+
+  /** Oye la historia completa en voz (a los 6 la lee; a los 4 no puede). */
+  hearStory(): void {
+    const t = this.target();
+    if (!t) return;
+    void this.narrator.say(kanjiStory(t.id));
+  }
+
+  /** Oye una pieza. Se llama al tocarla, al arrastrarla y al colocarla. */
+  hearPiece(piece: TrayPiece | PlacedPiece): void {
+    const id = pieceData(piece.kanji).id;
+    if (!id) return;
+    void this.narrator.say(pieceWord(id));
+  }
+
+  /** Oye una pieza **con su significado**: "ひ… sol". Para el paso de historia. */
+  hearPieceWithMeaning(kanji: string): void {
+    const p = pieceData(kanji);
+    if (!p.id) return;
+    void this.narrator.say([pieceWord(p.id), pieceMeaning(p.id)]);
+  }
+
+  // ============================================
   // PASO 1 → 2: HISTORIA
   // ============================================
 
   startComposing(): void {
     this.audio.retryPendingAudio();
+    this.narrator.cancel();
     this.step.set('compose');
     // Nada de texto que cante un acierto antes de tiempo: aquí empieza la investigación.
     this.line.set(
@@ -271,13 +449,22 @@ export class KanjiCompose implements OnInit, OnDestroy {
         ? '👀 Mira el dibujo borroso. ¿Qué piezas crees que necesita?'
         : '🤔 ¿Qué pieza va en cada hueco? Puedes probarlas.',
     );
-    // Se dice el kanji en voz alta para anclar el sonido antes de construirlo
-    this.speak(this.target()?.kanji ?? '');
+    // Y se dice en voz, no se escribe: a los 4 años ese texto no le llega.
+    void this.narrator.say(this.showGhost() ? sys('look-ghost') : sys('which-piece'));
+    // El sonido del kanji justo al entrar: ancla la palabra antes de construirla.
+    this.later(() => this.hearKanji(), 700);
   }
 
   // ============================================
   // PASO 2: COMPOSICIÓN
   // ============================================
+
+  onDragStarted(piece: TrayPiece): void {
+    // Agarrar una pieza **suena**. Es lo que hace posible el emparejamiento pieza ↔ sonido:
+    // antes el sonido solo ocurría al soltar, y entonces ya era demasiado tarde para
+    // asociar la pieza que tenía en la mano.
+    this.hearPiece(piece);
+  }
 
   onDragEnded(event: CdkDragEnd, piece: TrayPiece): void {
     this.lastDragEnd = Date.now();
@@ -301,6 +488,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
   /** Tap como alternativa al arrastre: coloca en el primer hueco libre */
   onTap(piece: TrayPiece): void {
     if (Date.now() - this.lastDragEnd < 300) return; // ignora el click que sigue al arrastre
+    // Tocar en la bandeja también suena: es una de las dos formas de agarrar sin arrastrar.
+    this.hearPiece(piece);
     const free = this.placed().findIndex(p => p === null);
     if (free < 0) return;
     this.place(free, piece);
@@ -311,6 +500,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
     if (this.busy() || this.isOver()) return;
     const occupant = this.placed()[index];
     if (!occupant) return;
+    this.hearPiece(occupant);
     this.placed.update(list => {
       const copy = [...list];
       copy[index] = null;
@@ -320,21 +510,28 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.hint.set('');
   }
 
-  private toTrayPiece(placed: PlacedPiece): TrayPiece {
+  /**
+ * Devuelve una pieza colocada a la bandeja.
+ *
+ * Antes se reconstruía a mano dejando `reading/pinyin/meaning` **vacíos**, lo que al
+ * devolver una pieza hacía que apareciera sin nombre y, peor, sin los datos que hacen
+ * falta para oírla. Ahora se reconstruye desde `pieceData(kanji)`, que es la única
+ * fuente: no hay dos listas que puedan desincronizarse.
+ *
+ * `correct: true` porque todo lo que vuelve a la bandeja viene de un hueco del objetivo.
+ */
+private toTrayPiece(placed: PlacedPiece): TrayPiece {
     return {
+      ...pieceData(placed.kanji),
       trayId: placed.trayId,
-      kanji: placed.kanji,
-      emoji: placed.emoji,
-      reading: '',
-      pinyin: '',
-      meaning: '',
-      correct: true,
+      correct: true
     };
   }
 
   private place(index: number, piece: TrayPiece): void {
     if (this.busy() || this.isOver()) return;
     this.audio.retryPendingAudio();
+    this.hearPiece(piece);
 
     // Si el hueco ya tenía algo, esa vuelve a la bandeja
     this.placed.update(list => {
@@ -346,6 +543,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
     });
     this.tray.update(list => list.filter(t => t.trayId !== piece.trayId));
     this.hint.set('');
+    // Soltar también suena: es el refuerzo del gesto. Agarrar y soltar son los dos
+    // momentos en que la niña está mirando la pieza.
 
     if (this.allFilled()) this.evaluate();
   }
@@ -375,18 +574,39 @@ export class KanjiCompose implements OnInit, OnDestroy {
     // No se penaliza ni se rompe la racha: se devuelve una pregunta
     this.line.set(pickLine(moment));
     this.hint.set('🤔 Prueba otra vez, o muévelas y observa qué cambia');
-    this.audio.playFailure();
+
+    // ⚠️ Aquí se quitó `audio.playFailure()`. Un zumbido de error es un **veredicto**:
+    // le dice a la niña que lo que hizo está mal antes de que sepa *por qué*. El método
+    // socrático no necesita ese mensaje; necesita que la pregunta se oiga, porque si la
+    // duda solo está escrita no llega a quien no lee. Y en silencio no habría ningún
+    // canal para la pregunta, así que el sonido es la pregunta, no el castigo.
+    this.speakSocratic(moment);
+
     this.later(() => {
       this.line.set('');
       this.hint.set('');
     }, 3200);
   }
 
+  /**
+   * Dice la duda socrática en voz alta.
+   *
+   * El número de línea es estable por momento y se elige de forma determinista según la
+   * ronda, para que no suene distinta cada vez que se repite la misma situación.
+   */
+  private speakSocratic(moment: SocraticMoment): void {
+    const opciones = SOCRATIC_LINE_COUNT[moment] ?? 3;
+    const n = this.currentLevel() % opciones;
+    void this.narrator.say(socraticLine(moment, n));
+  }
+
   private onComposed(): void {
     this.busy.set(true);
     this.localFeedback.set('success');
     this.hint.set('');
-    this.speak(this.target()?.kanji ?? '');
+    // El kanji ya compuesto suena **antes** de nada: es el momento en que la forma que
+    // ella acaba de construir y su sonido se encuentran por primera vez.
+    this.hearKanji();
 
     // Si el kanji tiene "hermanos", es el mejor momento para el descubrimiento
     const siblings = this.target()?.siblings ?? [];
@@ -548,11 +768,18 @@ export class KanjiCompose implements OnInit, OnDestroy {
     return !!(s?.isTimeUp || s?.isCompleted);
   }
 
-  private speak(kanji: string): void {
-    // El servicio decide si puede: sin voz local para ja-JP/zh-CN no intenta nada,
-    // en vez de leer el kanji con una voz española (que es lo que pasaría con u.lang).
-    this.speech.speak(kanji, this.script() === 'japanese' ? 'ja-JP' : 'zh-CN', { rate: 0.7 });
-  }
+  // ⚠️ Aquí vivía `speak(kanji)`, que mandaba el **carácter kanji** al TTS:
+  //
+  //     this.speech.speak('明', 'ja-JP')
+  //
+  // Era la causa raíz de que "el kanji no suena". Tres fallos en una línea:
+  //  1. El motor elige entre on'yomi y kun'yomi, así que podía decir 明 como "メイ"
+  //     cuando lo que había que enseñar era "あかるい".
+  //  2. Sin conexión, un tablet puede no tener voz `ja-JP` → silencio, sin error.
+  //  3. Cuando sí había voz, la lectura era correcta por casualidad, no por diseño.
+  //
+  // Ahora el sonido siempre viene de un clip (`hearKanji`, `hearPiece`), y el TTS queda
+  // solo como plan B con el texto del manifiesto.
 
   private triggerConfetti(): void {
     try {

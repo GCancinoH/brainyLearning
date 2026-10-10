@@ -32,6 +32,19 @@
       </div>
     </section>
 
+    <section class="lab-section">
+      <h2>Audio</h2>
+      <div class="lab-buttons">
+        <button class="lab-btn" [class.on]="autoStart()" (click)="autoStart.set(!autoStart())">
+          Saltar puerta de inicio
+        </button>
+      </div>
+      <p class="lab-note">
+        Desmárcalo para ver la puerta: es la que desbloquea el audio en iOS/Safari y la que
+        hace que suene el saludo. Con el autoplay bloqueado, el primer kanji aparecería mudo.
+      </p>
+    </section>
+
     <!-- NIVEL -->
     <section class="lab-section">
       <h2>Nivel</h2>
@@ -105,9 +118,15 @@
 
   <!-- ============ ESCENARIO ============ -->
   <section class="lab-stage">
-    @for (k of [stageKey()]; track k) {
+    <!-- `autoStart` va en la clave del `@for` a propósito: es un `input` del juego y solo
+         se lee al construirse, así que sin esto el interruptor no cambiaría nada hasta
+         recargar la página. -->
+    @for (k of [stageKey() + ':' + autoStart()]; track k) {
       <div class="lab-game">
-        <kanji-compose [script]="script()" />
+        <!-- `autoStart` salta la puerta de inicio: en el laboratorio no hay problema de
+             autoplay y se quiere iterar sin un toque de más. Desmárcalo para probar la
+             puerta, que es la que hace sonar el saludo en un dispositivo real. -->
+        <kanji-compose [script]="script()" [autoStart]="autoStart()" />
       </div>
     }
   </section>

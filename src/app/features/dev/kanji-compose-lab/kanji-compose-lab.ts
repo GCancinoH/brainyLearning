@@ -48,6 +48,9 @@ export class KanjiComposeLab {
   /** Mundo: Sakura 🌸 (japonés) o Dragón 🐉 (chino) */
   readonly script = signal<Script>('japanese');
 
+  /** Saltar la puerta de inicio. Ver la nota en la plantilla. */
+  readonly autoStart = signal(true);
+
   /** Cambia para forzar el remontaje del juego */
   readonly stageKey = computed(
     () => `${this.age()}-${this.level()}-${this.script()}-${this.saved()}`,

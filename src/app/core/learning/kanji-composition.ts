@@ -40,10 +40,24 @@ export type PieceLayout =
   | 'left-surround';// una a la izquierda, dos apiladas a la derecha
 
 export interface KanjiPiece {
+  /**
+   * Nombre estable de la pieza. Es también el **nombre de fichero** del clip de audio
+   * (`kc.ja.p.<id>.wav`), así que cambiarlo cambia la voz.
+   *
+   * Antes no existía y se usaba la clave del catálogo, lo que obligaba a inventar
+   * sufijos: había `ko` (子, niño) y `ko_` (小, pequeño), y `hi_` (火) / `oo` (大). Con dos
+   * piezas que empiezan igual, un `ko` mal escrito rompe el audio en silencio.
+   */
+  id: string;
   kanji: string;
-  reading: string;      // hiragana (japonés)
+  reading: string;      // hiragana (japonés). Es lo que se enseña y lo que va al TTS.
   pinyin: string;       // mandarín
-  meaning: string;      // español
+  meaning: string;      // español, para la pantalla (puede llevar comas: "sol, día")
+  /**
+   * El significado **solo para el TTS**. Sin comas sueltas ni emojis: un motor de voz
+   * intentaría leerlos en voz alta ("sol, día" → "sol coma día").
+   */
+  meaningTts: string;
   emoji: string;
 }
 
@@ -54,15 +68,37 @@ export interface PieceSlot {
   y: number;
 }
 
+/** Lectura erudita (on'yomi). Para 6 años a partir del nivel 5, siempre con hiragana debajo. */
+export interface Onyomi {
+  kata: string;         // メイ
+  hira: string;         // めい
+}
+
 export interface KanjiComposition {
   id: string;
   kanji: string;
+  /**
+   * La palabra que la niña **ya conoce**, en hiragana: `あかるい`, `やすむ`, `はやし`.
+   *
+   * Antes era el on'yomi en katakana (`メイ`, `キュウ`), que es justo lo que la de 6 años
+   * olvida y lo que la de 4 no puede leer. Cambiarlo no es cosmético: el juego pasa a
+   * enseñar una palabra del idioma en vez de una lectura erudita.
+   */
   reading: string;
+  /** Lectura erudita, solo como material complementario de 6 años. */
+  onyomi?: Onyomi;
   pinyin: string;
   meaning: string;
+  /** Significado solo para TTS (sin comas sueltas). */
+  meaningTts: string;
   emoji: string;
   /** La historia de por qué se forma así. Es la enseñanza, no la instrucción. */
   story: string;
+  /**
+   * La misma historia **para el TTS**: sin emojis ni kanji. Si se mandara `story`, el
+   * motor español intentaría leer "☀️" y "明" en voz alta, que es ruido puro.
+   */
+  storyTts: string;
   /** Número aproximado de trazos, para la fase de dibujo */
   strokeCount: number;
   layout: PieceLayout;
@@ -80,27 +116,41 @@ export interface KanjiComposition {
 // CATÁLOGO
 // ============================================
 
+/**
+ * Catálogo de piezas.
+ *
+ * Cada clave es el `id` de la pieza. Los ids se eligen por lo que significan, no por lo que
+ * empiezan a parecerse: `ko` (niño) y `chiisai` (pequeño) conviven sin ambigüedad, mientras
+ * que `ko`/`ko_` obligaban a recordar cuál tenía el guion.
+ *
+ * ⚠️ 日 (hi, sol) y 火 (hi-fire, fuego) se leen **igual**: `ひ`. Es correcto, no es un
+ * error. Se distinguen por el significado y el emoji, y el juego nunca las pone como
+ * opciones una de otra (ver `kanji-recall.ts`). El audio las hace idénticas a propósito.
+ */
 const P = {
-  hi: { kanji: '日', reading: 'ひ', pinyin: 'rì', meaning: 'sol, día', emoji: '☀️' },
-  tsuki: { kanji: '月', reading: 'つき', pinyin: 'yuè', meaning: 'luna, mes', emoji: '🌙' },
-  hito: { kanji: '亻', reading: 'にんべん', pinyin: 'rén', meaning: 'persona', emoji: '🧍' },
-  ki: { kanji: '木', reading: 'き', pinyin: 'mù', meaning: 'árbol', emoji: '🌳' },
-  yama: { kanji: '山', reading: 'やま', pinyin: 'shān', meaning: 'montaña', emoji: '⛰️' },
-  ishi: { kanji: '石', reading: 'いし', pinyin: 'shí', meaning: 'piedra', emoji: '🪨' },
-  ta: { kanji: '田', reading: 'た', pinyin: 'tián', meaning: 'campo de arroz', emoji: '🌾' },
-  chikara: { kanji: '力', reading: 'ちから', pinyin: 'lì', meaning: 'fuerza', emoji: '💪' },
-  onna: { kanji: '女', reading: 'おんな', pinyin: 'nǚ', meaning: 'mujer', emoji: '👧' },
-  ko: { kanji: '子', reading: 'こ', pinyin: 'zǐ', meaning: 'niño', emoji: '👶' },
-  ichi: { kanji: '一', reading: 'いち', pinyin: 'yī', meaning: 'uno', emoji: '1️⃣' },
-  ko_: { kanji: '小', reading: 'ちい', pinyin: 'xiǎo', meaning: 'pequeño', emoji: '🔹' },
-  oo: { kanji: '大', reading: 'おおきい', pinyin: 'dà', meaning: 'grande', emoji: '🔶' },
-  hi_: { kanji: '火', reading: 'ひ', pinyin: 'huǒ', meaning: 'fuego', emoji: '🔥' },
-  sei: { kanji: '生', reading: 'うまれる', pinyin: 'shēng', meaning: 'nacer, vida', emoji: '🌱' },
-  iu: { kanji: '言', reading: 'い-う', pinyin: 'yán', meaning: 'hablar', emoji: '💬' },
-  itsutsu: { kanji: '五', reading: 'いつつ', pinyin: 'wǔ', meaning: 'cinco', emoji: '5️⃣' },
-  kuchi: { kanji: '口', reading: 'くち', pinyin: 'kǒu', meaning: 'boca', emoji: '👄' },
-  te: { kanji: '手', reading: 'て', pinyin: 'shǒu', meaning: 'mano', emoji: '✋' },
-  me: { kanji: '目', reading: 'め', pinyin: 'mù', meaning: 'ojo', emoji: '👀' },
+  hi:       { id: 'hi',       kanji: '日', reading: 'ひ',      pinyin: 'rì',  meaning: 'sol, día',       meaningTts: 'sol',              emoji: '☀️' },
+  tsuki:    { id: 'tsuki',    kanji: '月', reading: 'つき',    pinyin: 'yuè', meaning: 'luna, mes',      meaningTts: 'luna',             emoji: '🌙' },
+  hito:     { id: 'hito',     kanji: '亻', reading: 'にんべん', pinyin: 'rén', meaning: 'persona',       meaningTts: 'persona',          emoji: '🧍' },
+  ki:       { id: 'ki',       kanji: '木', reading: 'き',      pinyin: 'mù',   meaning: 'árbol',          meaningTts: 'árbol',            emoji: '🌳' },
+  yama:     { id: 'yama',     kanji: '山', reading: 'やま',    pinyin: 'shān',meaning: 'montaña',        meaningTts: 'montaña',          emoji: '⛰️' },
+  ishi:     { id: 'ishi',     kanji: '石', reading: 'いし',    pinyin: 'shí',  meaning: 'piedra',         meaningTts: 'piedra',           emoji: '🪨' },
+  ta:       { id: 'ta',       kanji: '田', reading: 'た',      pinyin: 'tián', meaning: 'campo de arroz', meaningTts: 'campo de arroz',   emoji: '🌾' },
+  chikara:  { id: 'chikara',  kanji: '力', reading: 'ちから',  pinyin: 'lì',   meaning: 'fuerza',         meaningTts: 'fuerza',           emoji: '💪' },
+  onna:     { id: 'onna',     kanji: '女', reading: 'おんな',  pinyin: 'nǚ',   meaning: 'mujer',          meaningTts: 'mujer',            emoji: '👧' },
+  ko:       { id: 'ko',       kanji: '子', reading: 'こ',      pinyin: 'zǐ',   meaning: 'niño',           meaningTts: 'niño',             emoji: '👶' },
+  ichi:     { id: 'ichi',     kanji: '一', reading: 'いち',    pinyin: 'yī',   meaning: 'uno',            meaningTts: 'uno',              emoji: '1️⃣' },
+  // `ちい` estaba truncado: 小 es "pequeño" y su adverbio es ちいさい.
+  chiisai:  { id: 'chiisai',  kanji: '小', reading: 'ちいさい', pinyin: 'xiǎo', meaning: 'pequeño',        meaningTts: 'pequeño',          emoji: '🔹' },
+  ookii:    { id: 'ookii',    kanji: '大', reading: 'おおきい', pinyin: 'dà',   meaning: 'grande',          meaningTts: 'grande',           emoji: '🔶' },
+  // Homófono de 日: los dos se leen ひ.
+  hi_fire:  { id: 'hi-fire',  kanji: '火', reading: 'ひ',      pinyin: 'huǒ',  meaning: 'fuego',          meaningTts: 'fuego',            emoji: '🔥' },
+  sei:      { id: 'sei',      kanji: '生', reading: 'うまれる', pinyin: 'shēng',meaning: 'nacer, vida',    meaningTts: 'nacer',            emoji: '🌱' },
+  // El guion de `い-う` rompía el TTS (lo leía como "i-guion-u") y se veía en pantalla.
+  iu:       { id: 'iu',       kanji: '言', reading: 'いう',    pinyin: 'yán',  meaning: 'hablar',         meaningTts: 'hablar',           emoji: '💬' },
+  itsutsu:  { id: 'itsutsu',  kanji: '五', reading: 'いつつ',  pinyin: 'wǔ',   meaning: 'cinco',          meaningTts: 'cinco',            emoji: '5️⃣' },
+  kuchi:    { id: 'kuchi',    kanji: '口', reading: 'くち',    pinyin: 'kǒu',  meaning: 'boca',           meaningTts: 'boca',             emoji: '👄' },
+  te:       { id: 'te',       kanji: '手', reading: 'て',      pinyin: 'shǒu', meaning: 'mano',           meaningTts: 'mano',             emoji: '✋' },
+  me:       { id: 'me',       kanji: '目', reading: 'め',      pinyin: 'mù',   meaning: 'ojo',            meaningTts: 'ojo',              emoji: '👀' },
 } satisfies Record<string, KanjiPiece>;
 
 export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
@@ -108,11 +158,14 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'mei',
     kanji: '明',
-    reading: 'メイ',
+    reading: 'あかるい',
+    onyomi: { kata: 'メイ', hira: 'めい' },
     pinyin: 'míng',
     meaning: 'luminoso, claro',
+    meaningTts: 'claro, luminoso',
     emoji: '💡',
     story: 'Cuando sale el sol ☀️ y está la luna 🌙 a la vez, se ve clarísimo. Los japoneses escribieron 明 para decir "claro".',
+    storyTts: 'Cuando sale el sol y también está la luna, todo se ve clarísimo. Sol y luna juntos quieren decir: claro, luminoso.',
     strokeCount: 8,
     layout: 'left-right',
     slots: [
@@ -124,11 +177,14 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'kyuu',
     kanji: '休',
-    reading: 'キュウ',
+    reading: 'やすむ',
+    onyomi: { kata: 'キュウ', hira: 'きゅう' },
     pinyin: 'xiū',
     meaning: 'descansar',
+    meaningTts: 'descansar',
     emoji: '😌',
     story: 'Una persona 🧍 apoyada en un árbol 🌳… ¡así se descansa! El árbol sostiene a la persona, por eso este kanji significa "descansar".',
+    storyTts: 'Una persona apoyada en un árbol: así se descansa. El árbol sostiene a la persona. Por eso significa descansar.',
     strokeCount: 6,
     layout: 'left-right',
     slots: [
@@ -140,11 +196,14 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'rin',
     kanji: '林',
-    reading: 'リン',
+    reading: 'はやし',
+    onyomi: { kata: 'リン', hira: 'りん' },
     pinyin: 'lín',
     meaning: 'arboleda (dos árboles)',
+    meaningTts: 'arboleda',
     emoji: '🌲',
     story: 'Un árbol solo 🌳 es un árbol. Dos 木 ya son una arboleda 🌲. Pero si le sumas un tercero, sale 森, que sí es un bosque de verdad.',
+    storyTts: 'Un árbol solo es un árbol. Dos árboles juntos ya son un bosque pequeño.',
     strokeCount: 8,
     layout: 'left-right',
     slots: [
@@ -156,11 +215,14 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'iwa',
     kanji: '岩',
-    reading: 'ガン',
+    reading: 'いわ',
+    onyomi: { kata: 'ガン', hira: 'がん' },
     pinyin: 'yán',
     meaning: 'roca',
+    meaningTts: 'roca',
     emoji: '🪨',
     story: 'Una montaña ⛰️ y una piedra 🪨: la piedra que vive en la montaña es una roca.',
+    storyTts: 'Una montaña y una piedra. La piedra que vive en la montaña es una roca.',
     strokeCount: 8,
     layout: 'top-bottom',
     slots: [
@@ -172,11 +234,14 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'otoko',
     kanji: '男',
-    reading: 'ダン',
+    reading: 'おとこ',
+    onyomi: { kata: 'ダン', hira: 'だん' },
     pinyin: 'nán',
     meaning: 'hombre',
+    meaningTts: 'hombre',
     emoji: '👨',
     story: 'En el campo de arroz 🌾 hace falta fuerza 💪. El campo arriba y la fuerza abajo: eso es el hombre que trabaja la tierra.',
+    storyTts: 'En el campo de arroz hace falta fuerza. El campo arriba y la fuerza abajo: el hombre que trabaja la tierra.',
     strokeCount: 7,
     layout: 'top-bottom',
     slots: [
@@ -188,11 +253,14 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'koi',
     kanji: '好',
-    reading: 'コウ',
+    reading: 'すき',
+    onyomi: { kata: 'コウ', hira: 'こう' },
     pinyin: 'hǎo',
     meaning: 'bueno, querer',
+    meaningTts: 'querer',
     emoji: '💞',
     story: 'Una mujer 👧 y su niño 👶. En chino y japonés esta pareja significa "querer" o "estar bien".',
+    storyTts: 'Una mujer y su niño juntos. Esta pareja significa querer, o estar bien.',
     strokeCount: 6,
     layout: 'left-right',
     slots: [
@@ -206,11 +274,15 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'hon',
     kanji: '本',
-    reading: 'ホン',
+    // Sin on'yomi: en 本 la lectura erudita (ホン) y la palabra (ほん) son distintas,
+    // pero la palabra es la que se enseña, así que añadirla solo sería ruido.
+    reading: 'ほん',
     pinyin: 'běn',
     meaning: 'libro, raíz, origen',
+    meaningTts: 'libro, raíz, origen',
     emoji: '📕',
     story: 'Un árbol 🌳 con un uno 1️⃣ marcado en la BASE, donde nacen las raíces. El uno señala la raíz, y de ahí viene "origen".',
+    storyTts: 'Un árbol con una rayita en la base, justo donde nacen las raíces. La rayita señala la raíz: el origen.',
     strokeCount: 5,
     layout: 'top-bottom',
     slots: [
@@ -218,51 +290,61 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
       { kanji: P.ichi.kanji, x: 0.5, y: 0.79 },
     ],
     minAge: 6,
+    // Lecturas en hiragana, no en katakana: マツ/ミ eran justo lo que se olvidaba.
     siblings: [
-      { kanji: '末', reading: 'マツ', meaning: 'punta de la rama' },
-      { kanji: '未', reading: 'ミ', meaning: 'aún no, retoño' },
+      { kanji: '末', reading: 'すえ', meaning: 'punta de la rama' },
+      { kanji: '未', reading: 'まだ', meaning: 'aún no, retoño' },
     ],
   },
   {
     id: 'sen',
     kanji: '尖',
-    reading: 'セン',
+    reading: 'とがる',
+    onyomi: { kata: 'セン', hira: 'せん' },
     pinyin: 'jiān',
     meaning: 'puntiagudo',
+    meaningTts: 'puntiagudo',
     emoji: '📐',
     story: 'Lo pequeño 🔹 encima de lo grande 🔶 hace una punta afilada. Por eso 尖 es "puntiagudo".',
+    storyTts: 'Lo pequeño encima de lo grande hace una punta afilada. Por eso significa puntiagudo.',
     strokeCount: 6,
     layout: 'top-bottom',
     slots: [
-      { kanji: P.ko_.kanji, x: 0.5, y: 0.31 },
-      { kanji: P.oo.kanji, x: 0.5, y: 0.71 },
+      { kanji: P.chiisai.kanji, x: 0.5, y: 0.31 },
+      { kanji: P.ookii.kanji, x: 0.5, y: 0.71 },
     ],
     minAge: 6,
   },
   {
     id: 'en',
     kanji: '炎',
-    reading: 'エン',
+    reading: 'ほのお',
+    onyomi: { kata: 'エン', hira: 'えん' },
     pinyin: 'yán',
     meaning: 'llama',
+    meaningTts: 'llama',
     emoji: '🔥',
     story: 'Fuego 🔥 encima de fuego 🔥. El fuego de arriba salta al de abajo y los dos juntos arden más: una llama.',
+    storyTts: 'Fuego encima de fuego. Los dos juntos arden más: una llama.',
     strokeCount: 8,
     layout: 'top-bottom',
     slots: [
-      { kanji: P.hi_.kanji, x: 0.5, y: 0.29 },
-      { kanji: P.hi_.kanji, x: 0.5, y: 0.71 },
+      { kanji: P.hi_fire.kanji, x: 0.5, y: 0.29 },
+      { kanji: P.hi_fire.kanji, x: 0.5, y: 0.71 },
     ],
     minAge: 6,
   },
   {
     id: 'hoshi',
     kanji: '星',
-    reading: 'セイ',
+    reading: 'ほし',
+    onyomi: { kata: 'セイ', hira: 'せい' },
     pinyin: 'xīng',
     meaning: 'estrella',
+    meaningTts: 'estrella',
     emoji: '⭐',
     story: 'El sol ☀️ que ilumina, y debajo algo que "nace" 🌱 como una planta. El sol viendo crecer la vida: una estrella brillando en el cielo.',
+    storyTts: 'El sol que ilumina y, debajo, algo que nace como una planta. El sol viendo crecer la vida: una estrella brillando en el cielo.',
     strokeCount: 9,
     layout: 'top-bottom',
     slots: [
@@ -274,11 +356,16 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'miran',
     kanji: '看',
-    reading: 'カン',
+    reading: 'みる',
+    onyomi: { kata: 'カン', hira: 'かん' },
     pinyin: 'kàn',
     meaning: 'mirar',
+    meaningTts: 'mirar',
     emoji: '👀',
-    story: 'Una mano ✋ tapando los ojos 👀. Cuando tapas y destapas rápido, lo que hay delante lo estás "mirando".',
+    // 看 se compone de 手 (mano) ARRIBA y 目 (ojo) ABAJO: la mano tapa el ojo para
+    // alejar el sol y poder ver lejos. No es "una mano sobre los ojos" como se leía antes.
+    story: 'Una mano ✋ arriba tapa el ojo 👀 de abajo. Así tapas el sol para ver más lejos. Eso es mirar.',
+    storyTts: 'Una mano tapa los ojos, como cuando te tapas el sol para mirar de lejos. Eso es mirar.',
     strokeCount: 9,
     layout: 'top-bottom',
     slots: [
@@ -290,11 +377,14 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
   {
     id: 'mori',
     kanji: '森',
-    reading: 'シン',
+    reading: 'もり',
+    onyomi: { kata: 'シン', hira: 'しん' },
     pinyin: 'sēn',
     meaning: 'bosque profundo',
+    meaningTts: 'bosque',
     emoji: '🌳',
     story: 'Un árbol 🌳 y debajo dos árboles más 🌳🌳. Tres 木 juntos: un bosque tan grande que parece un laberinto.',
+    storyTts: 'Tres árboles juntos: un bosque tan grande y profundo que parece un laberinto.',
     strokeCount: 12,
     layout: 'tree',
     slots: [
@@ -303,16 +393,18 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
       { kanji: P.ki.kanji, x: 0.7, y: 0.72 },
     ],
     minAge: 6,
-    siblings: [{ kanji: '林', reading: 'リン', meaning: 'arboleda de dos árboles' }],
+    siblings: [{ kanji: '林', reading: 'はやし', meaning: 'arboleda de dos árboles' }],
   },
   {
     id: 'go',
     kanji: '語',
-    reading: 'ゴ',
+    reading: 'ご',
     pinyin: 'yǔ',
     meaning: 'palabra, idioma',
+    meaningTts: 'palabra, idioma',
     emoji: '💬',
     story: 'Hablar 💬 es una boca 👄 que dice un cinco 5️⃣. La boca que dice "cinco" es una palabra.',
+    storyTts: 'Hablar es una boca que dice un cinco. La boca que dice cinco forma una palabra.',
     strokeCount: 14,
     layout: 'left-surround',
     slots: [

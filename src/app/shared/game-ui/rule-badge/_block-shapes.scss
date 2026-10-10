@@ -1,0 +1,50 @@
+// ============================================================
+// Formas de los bloques, compartidas entre el tablero y la insignia.
+//
+// Se extrae a un parcial por una razón concreta: la insignia de regla tiene que ser
+// *pixel-perfect igual* que las figuras del tablero. Si se dibujara aparte, el niño
+// compararía una muestra de 52 px con figuras de 68 px y no vería que son "lo mismo",
+// que es justamente lo que se le está pidiendo comparar.
+//
+// Uso:  @use 'shared/game-ui/rule-badge/block-shapes' as shapes;  →  @include shapes.blk;
+// ============================================================
+
+@mixin blk {
+  // ⚠️ El mixin NO fija `--size`: cada consumidor lo declara antes de incluirlo. Si lo
+  // fijara aquí, ganaría por orden dentro de la misma regla y pisaría el valor de quien
+  // incluye, que es justo el bug que hizo que la insignia saliera del tamaño del tablero.
+  display: inline-block;
+  width: var(--size);
+  height: var(--size);
+  background: var(--c, #94a3b8);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
+  user-select: none;
+
+  &.small { --size: 36px; }
+  &.circle { border-radius: 50%; }
+  &.square { border-radius: 8px; }
+  // El triángulo NO puede ser un rectángulo redondeado: hace falta clip-path.
+  &.triangle {
+    border-radius: 0;
+    box-shadow: none;
+    clip-path: polygon(50% 4%, 0% 96%, 100% 96%);
+  }
+
+  &.placed {
+    --size: 38px;
+    &.small { --size: 26px; }
+  }
+}
+
+// El contorno de "seleccionada" tiene que resolverse distinto en el triángulo: un
+// `outline` dibuja un rectángulo y delataría que el triángulo es un cuadrado con corte.
+@mixin blk-selected {
+  &.selected {
+    outline: 4px solid #fff;
+    outline-offset: 4px;
+  }
+  &.triangle.selected {
+    outline: none;
+    filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 6px #fff);
+  }
+}
