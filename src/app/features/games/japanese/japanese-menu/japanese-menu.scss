@@ -87,6 +87,13 @@
     &:active { transform: scale(0.98); }
   }
 
+  &.kanji-compose {
+    background: linear-gradient(135deg, #a78bfa 0%, #6d28d9 100%);
+    box-shadow: 0 10px 25px rgba(167, 139, 250, 0.3);
+
+    &:active { transform: scale(0.98); }
+  }
+
   &.disabled {
     background: rgba(255, 255, 255, 0.05);
     border: 1px dashed rgba(255, 255, 255, 0.2);

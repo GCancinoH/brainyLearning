@@ -48,6 +48,10 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/math/paths-bridges/paths-bridges').then(m => m.PathsBridges)
   },
   {
+    path: 'games/math/coin-shop',
+    loadComponent: () => import('@features/games/math/coin-shop/coin-shop').then(m => m.CoinShop)
+  },
+  {
     path: 'games/japanese',
     loadComponent: () => import('@features/games/japanese/japanese-menu/japanese-menu').then(m => m.JapaneseMenu)
   },
@@ -66,6 +70,10 @@ const baseRoutes: Routes = [
   {
     path: 'games/japanese/calendar',
     loadComponent: () => import('@features/games/japanese/calendar/calendar-game').then(m => m.CalendarGameComponent)
+  },
+  {
+    path: 'games/japanese/kanji-compose',
+    loadComponent: () => import('@features/games/japanese/kanji-compose/kanji-compose').then(m => m.KanjiCompose)
   },
   {
     // Laboratorio de la Tiendita. Va fuera de `games/` para que el reloj por tema no lo

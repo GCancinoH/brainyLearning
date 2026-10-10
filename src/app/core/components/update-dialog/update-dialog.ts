@@ -13,6 +13,6 @@ export class UpdateDialog {
   readonly pwaUpdater = inject(SWUpdater);
 
   reloadApp(): void {
-    this.pwaUpdater.reload()
+    this.pwaUpdater.reload();
   }
 }

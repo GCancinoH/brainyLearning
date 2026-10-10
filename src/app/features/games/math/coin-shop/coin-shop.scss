@@ -5,8 +5,7 @@
 
 $coin: #fbbf24;
 $coin-dark: #d97706;
-$apple: #ef4444;
-$piggy: #f472b6;
+$green: #22c55e;
 
 .shop-container {
   min-height: 100vh;
@@ -17,6 +16,7 @@ $piggy: #f472b6;
   flex-direction: column;
   color: #fff;
 
+  &.shaking .bag,
   &.shaking .piggy-area {
     animation: shake 0.5s ease;
   }
@@ -36,7 +36,7 @@ $piggy: #f472b6;
     padding: 0.6rem 1.2rem;
     border-radius: 16px;
     font-weight: 600;
-    cursor:pointer;
+    cursor: pointer;
 
     &:active {
       transform: scale(0.95);
@@ -54,17 +54,12 @@ $piggy: #f472b6;
     font-weight: bold;
     color: $coin;
 
-    .stars {
-      display: flex;
-      gap: 0.2rem;
+    .stars span {
+      opacity: 0.3;
+      font-size: 0.9rem;
 
-      span {
-        opacity: 0.3;
-        font-size: 0.9rem;
-
-        &.active {
-          opacity: 1;
-        }
+      &.active {
+        opacity: 1;
       }
     }
   }
@@ -84,60 +79,76 @@ $piggy: #f472b6;
 
 .caption {
   font-size: 0.95rem;
-  opacity: 0.7;
+  opacity: 0.8;
   margin: 0 0 0.8rem;
+  text-align: center;
 }
 
-// ---------- MODO COUNT ----------
-.apples {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.9rem;
-  justify-content: center;
-  margin-bottom: 1.5rem;
+.caption-asked {
+  color: $coin;
+  font-weight: 700;
+}
 
-  &--dim .apple {
+// ============================================
+// ESTANTE (modos count / give)
+// ============================================
+.shelf {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 5 / 3;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 24px;
+  margin-bottom: 1.2rem;
+  touch-action: manipulation;
+
+  &--dim .thing {
     opacity: 0.45;
   }
 }
 
-.apple {
-  position: relative;
-  width: 72px;
-  height: 72px;
-  font-size: 3rem;
-  line-height: 1;
-  background: transparent;
+.thing {
+  position: absolute;
+  width: 62px;
+  height: 62px;
+  transform: translate(-50%, -50%);
   border: none;
+  background: transparent;
+  padding: 0;
   cursor: pointer;
   display: grid;
   place-items: center;
   user-select: none;
 
   &:active {
-    transform: scale(0.9);
+    transform: translate(-50%, -50%) scale(0.88);
   }
 
-  &--counted {
-    .pip {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: $coin;
-      color: #4a2c00;
-      font-size: 0.9rem;
-      font-weight: 800;
-      display: grid;
-      place-items: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      animation: pop-in 0.25s ease-out;
-    }
+  &-emoji {
+    font-size: 2.6rem;
+    line-height: 1;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+  }
+
+  &--counted .pip {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: $coin;
+    color: #4a2c00;
+    font-size: 0.9rem;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    animation: pop-in 0.25s ease-out;
   }
 }
 
+// ---------- OPCIONES ----------
 .options-grid {
   display: flex;
   gap: 1.2rem;
@@ -175,13 +186,82 @@ $piggy: #f472b6;
   }
 
   &.success {
-    background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    background: linear-gradient(135deg, $green 0%, #15803d 100%);
     color: #fff;
-    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.5);
   }
 }
 
-// ---------- MODO PAY ----------
+// ---------- BOLSA (modo 'give') ----------
+.bag {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 24px;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+
+  &--full {
+    border-style: solid;
+    border-color: $green;
+  }
+
+  &-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    opacity: 0.85;
+    margin-bottom: 0.5rem;
+  }
+
+  &-count {
+    color: $coin;
+    font-weight: 900;
+  }
+
+  &-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-height: 48px;
+    align-items: center;
+  }
+
+  &-item {
+    font-size: 1.9rem;
+    line-height: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    padding: 0.15rem 0.3rem;
+    cursor: pointer;
+    animation: pop-in 0.25s ease-out;
+  }
+
+  &-empty {
+    font-size: 0.85rem;
+    opacity: 0.55;
+  }
+}
+
+.deliver-btn {
+  padding: 0.85rem 2rem;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(135deg, $green 0%, #15803d 100%);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 56px;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// ============================================
+// MODO 'pay'
+// ============================================
 .counter {
   display: flex;
   gap: 1rem;
@@ -258,7 +338,7 @@ $piggy: #f472b6;
 
   &--full {
     border-style: solid;
-    border-color: #22c55e;
+    border-color: $green;
   }
 
   &-empty {
@@ -273,7 +353,7 @@ $piggy: #f472b6;
   user-select: none;
 }
 
-// ---------- GALERÍA DE FORMAS ----------
+// ---------- GALERÍA ----------
 .gallery {
   width: 100%;
   background: rgba(255, 255, 255, 0.04);
@@ -304,9 +384,15 @@ $piggy: #f472b6;
     color: #86efac;
     animation: pop-in 0.3s ease-out;
   }
+
+  &-total {
+    margin: 1rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
 }
 
-// ---------- CAJÓN ----------
+// ---------- MONEDERO ----------
 .drawer {
   display: flex;
   gap: 0.9rem;
@@ -316,21 +402,27 @@ $piggy: #f472b6;
 }
 
 .coin-btn {
-  min-width: 76px;
-  height: 76px;
-  border-radius: 50%;
+  position: relative;
+  min-width: 78px;
+  height: 84px;
+  border-radius: 20px;
   border: 3px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   cursor: pointer;
   display: grid;
   place-items: center;
-  gap: 0;
   padding: 0.3rem;
   transition: transform 0.15s ease;
 
   &:active {
     transform: scale(0.9);
+  }
+
+  &--empty {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-style: dashed;
   }
 
   &-emoji {
@@ -339,8 +431,26 @@ $piggy: #f472b6;
   }
 
   &-value {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 800;
+  }
+
+  // El contador de stock: es lo que hace que planifique en vez de llenar de $1
+  &-left {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 0.3rem;
+    border-radius: 13px;
+    background: $coin;
+    color: #4a2c00;
+    font-size: 0.78rem;
+    font-weight: 900;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -368,7 +478,6 @@ $piggy: #f472b6;
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.15s ease;
 
   &:active {
     transform: scale(0.95);
@@ -394,11 +503,11 @@ $piggy: #f472b6;
   }
 }
 
-// ---------- OVERLAY DE REFLEXIÓN ----------
+// ---------- OVERLAY ----------
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.75);
   display: grid;
   place-items: center;
   padding: 1.5rem;
@@ -416,9 +525,15 @@ $piggy: #f472b6;
   text-align: center;
 
   h2 {
-    margin: 0 0 1.2rem;
+    margin: 0 0 1rem;
     font-size: 1.3rem;
   }
+}
+
+.ways-message {
+  font-size: 0.95rem;
+  color: $coin;
+  margin: 0 0 1.1rem;
 }
 
 .reflection-options {
@@ -452,26 +567,21 @@ $piggy: #f472b6;
 
 // ============================================
 // CLASES DE `animate.enter` / `animate.leave`
-//
-// IMPORTANTE: `animate.enter="coin-drop"` NO lleva el timing (a diferencia del
-// `animate('420ms', ...)` de la API vieja con @trigger). La instrucción únicamente AÑADE la
-// clase en runtime, así que la declaración `animation` tiene que vivir aquí.
-//
-// Estas reglas son scopeadas por Angular: el selector gana el atributo `_ngcontent-*` y el
-// nombre del @keyframes se renombra. Funciona porque los elementos los crea esta plantilla,
-// por lo que ya llevan ese atributo.
+// IMPORTANTE: la instrucción solo AÑADE la clase; la declaración
+// `animation` tiene que existir aquí. Sin esto no hay animación y
+// tampoco hay error.
 // ============================================
 
 .coin-drop {
   animation: coin-drop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.coin-pop {
-  animation: coin-pop 0.3s ease-in both;
+.thing-pop {
+  animation: thing-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.apple-pop {
-  animation: apple-pop 0.35s ease-out both;
+.coin-pop {
+  animation: coin-pop 0.3s ease-in both;
 }
 
 // ============================================
@@ -494,7 +604,6 @@ $piggy: #f472b6;
   }
 }
 
-// La moneda rebota de vuelta al cajón.
 @keyframes coin-pop {
   to {
     transform: translateY(-48px) scale(0.4);
@@ -502,17 +611,17 @@ $piggy: #f472b6;
   }
 }
 
-@keyframes apple-pop {
+@keyframes thing-pop {
   0% {
-    transform: scale(0.4);
+    transform: translate(-50%, -50%) scale(0.3);
     opacity: 0;
   }
-  45% {
-    transform: scale(1.25);
+  60% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
   }
   100% {
-    transform: scale(1);
-    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -574,10 +683,12 @@ $piggy: #f472b6;
 @media (prefers-reduced-motion: reduce) {
   .coin-drop,
   .coin-pop,
-  .apple-pop,
-  .apple--counted .pip,
+  .thing-pop,
+  .thing--counted .pip,
+  .bag-item,
   .gallery-item,
   .piggy--gobbling,
+  .shaking .bag,
   .shaking .piggy-area,
   .overlay {
     animation: none !important;

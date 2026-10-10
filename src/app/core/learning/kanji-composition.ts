@@ -142,9 +142,9 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     kanji: '林',
     reading: 'リン',
     pinyin: 'lín',
-    meaning: 'bosque (dos árboles)',
+    meaning: 'arboleda (dos árboles)',
     emoji: '🌲',
-    story: 'Un árbol solo 🌳 es un árbol. Dos árboles juntos ya son un bosque 🌲. Los dos 木 se miran y se dicen "somos familia".',
+    story: 'Un árbol solo 🌳 es un árbol. Dos 木 ya son una arboleda 🌲. Pero si le sumas un tercero, sale 森, que sí es un bosque de verdad.',
     strokeCount: 8,
     layout: 'left-right',
     slots: [
@@ -303,7 +303,7 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
       { kanji: P.ki.kanji, x: 0.7, y: 0.72 },
     ],
     minAge: 6,
-    siblings: [{ kanji: '林', reading: 'リン', meaning: 'bosque de dos árboles' }],
+    siblings: [{ kanji: '林', reading: 'リン', meaning: 'arboleda de dos árboles' }],
   },
   {
     id: 'go',

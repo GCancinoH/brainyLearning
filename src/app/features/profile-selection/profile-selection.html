@@ -8,6 +8,13 @@
     <p class="subtitle">¿Quién va a explorar hoy?</p>
   </header>
 
+  <!-- VERSIÓN EN EJECUCIÓN
+       Se ve sin DevTools para saber, de un vistazo, si una tableta se quedó con una
+       versión vieja. Cambia `buildToken` en app.ts en cada despliegue. -->
+  <div class="build-stamp" title="Versión de la app en esta tableta">
+    {{ buildToken }}
+  </div>
+
   <!-- MODO 1: SELECCIÓN DE PERFIL -->
   @if (mode() === 'select') {
     <div class="profiles-grid">

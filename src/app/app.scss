@@ -17,10 +17,8 @@
         opacity: 1;
       }
 
-      /* Deja sitio al reloj para que no tape el encabezado de los juegos */
-      &.with-clock {
-        padding-top: 44px;
-      }
+      /* Ya no hace falta hueco arriba: la barra de tiempo son 5px pegados al borde
+         y cada juego tiene su propio padding, así que no baja el contenido. */
     }
 
 /*.main-layout {

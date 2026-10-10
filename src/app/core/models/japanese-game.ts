@@ -27,6 +27,19 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
     startLevel: { 4: 1, 6: 1 },
   },
   {
+    id: 'japanese-kanji-compose',
+    title: 'Construye el Kanji',
+    description: 'Descubre de qué piezas está hecho cada kanji, colócalas y luego dibújalo tú',
+    icon: '🧩',
+    route: '/games/japanese/kanji-compose',
+    cssClass: 'kanji-compose',
+    // Sin candado a propósito: se deja accesible mientras se afinan los niveles con las
+    // niñas. Cuando esté listo, encadenarlo (p. ej. tras Kanji Naturaleza nivel 3).
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
+  {
     id: 'japanese-kanji-find',
     title: 'Encuentra el Kanji',
     description: 'Relaciona kanji con su significado y lectura',
@@ -35,7 +48,7 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
     cssClass: 'kanji',
     unlockRequirement: {
       requiredGameId: 'japanese-listening',
-      requiredLevel: 3,
+      requiredLevel: 16,
       description: 'Llega al Nivel 3 en ¿Qué escuchaste?'
     },
     minAge: 6,

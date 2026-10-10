@@ -6,6 +6,7 @@ import { ProfileStateService } from '@core/services/profile-state';
 import { GameSessionService } from '@core/games/game-session.service';
 import { GameAudioService } from '@core/games/game-audio.service';
 import { GameProgressService } from '@core/games/game-progress.service';
+import { SpeechService } from '@core/services/speech.service';
 import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
@@ -53,6 +54,7 @@ export class SpaceRescueMission implements OnInit, OnDestroy {
   private readonly session = inject(GameSessionService);
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
+  private readonly speech = inject(SpeechService);
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -390,15 +392,10 @@ export class SpaceRescueMission implements OnInit, OnDestroy {
   }
 
   private speak(n: number): void {
-    try {
-      if (!this.audio.enabled() || typeof speechSynthesis === 'undefined') return;
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(String(n));
-      u.lang = 'es-MX';
-      u.rate = 0.85;
-      u.pitch = 1.1;
-      speechSynthesis.speak(u);
-    } catch { /* sin voz disponible: el juego sigue */ }
+    if (!this.audio.enabled()) return;
+    // delegated a SpeechService: without a LOCAL voice for es-MX nothing is attempted
+    // (a network voice fails silently when offline). The game continues either way.
+    this.speech.speak(String(n), 'es-MX', { rate: 0.85, pitch: 1.1 });
   }
 
   private triggerConfetti(): void {

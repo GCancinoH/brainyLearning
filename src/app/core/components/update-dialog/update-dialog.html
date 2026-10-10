@@ -1,18 +1,28 @@
 @if(pwaUpdater.updateAvailable()) {
-<div class="update-modal-overlay">
-  <div class="update-modal-card">
-    <div class="icon-container">
-      🚀✨
-    </div>
-    <h2>¡Nueva versión disponible!</h2>
-    <p>
-      Hay nuevas sorpresas y juegos listos para despegar.
-      Presiona el botón para actualizar.
-    </p>
+  <div class="update-modal-overlay">
+    <div class="update-modal-card">
+      <div class="icon-container">
+        🚀✨
+      </div>
+      <h2>¡Nueva versión disponible!</h2>
+      <p>
+        Hay nuevas sorpresas y juegos listos para despegar.
+        Presiona el botón para actualizar.
+      </p>
 
-    <button class="update-btn" (click)="reloadApp()">
-      Actualizar ahora 🔄
-    </button>
+      <!-- El botón se bloquea mientras se activa: `reload()` llama a
+           `activateUpdate()` y recarga, y un doble toque lo dejaría a medias. -->
+      <button
+        class="update-btn"
+        [disabled]="pwaUpdater.activating()"
+        (click)="reloadApp()"
+      >
+        @if (pwaUpdater.activating()) {
+          Actualizando…
+        } @else {
+          Actualizar ahora 🔄
+        }
+      </button>
+    </div>
   </div>
-</div>
 }

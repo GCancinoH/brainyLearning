@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ProfileStateService } from '@core/services/profile-state';
 import { createInitialProfile, PlayerProfile, ThemePreference } from '@core/models/player-profile';
+import { APP_BUILD_TOKEN } from '../../build-token';
 
 @Component({
   selector: 'app-profile-selection',
@@ -17,6 +18,15 @@ export class ProfileSelectionComponent {
 
   // Signals del servicio
   readonly profiles = this.profileState.profiles;
+
+  /**
+   * Versión de la app que está corriendo en ESTE dispositivo. Se incrementa en cada
+   * despliegue (en `app.ts`). Verlo en la pantalla de perfiles permite detectar, sin
+   * DevTools, que una tableta se quedó atrás con la versión vieja.
+   *
+   * ⚠️ Para que sirva de algo hay que cambiarlo en cada `npm run build`.
+   */
+  readonly buildToken = APP_BUILD_TOKEN;
 
   // Modos de vista: 'select' (Elegir perfil) o 'create' (Formulario de nuevo perfil)
   readonly mode = signal<'select' | 'create'>('select');

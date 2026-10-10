@@ -248,6 +248,35 @@ describe('diálogos socráticos', () => {
   });
 });
 
+describe('etimología de los árboles', () => {
+  it('林 usa 2 木 y 森 usa 3: arboleda frente a bosque', () => {
+    // Es la diferencia que se le olvidó al preparar el catálogo, y la niña la detectó:
+    // 林 = dos árboles = arboleda, no bosque. El bosque de verdad es 森 (tres 木).
+    const rin = getComposition('rin')!;
+    const mori = getComposition('mori')!;
+
+    expect(rin.slots.map(s => s.kanji)).toEqual(['木', '木']);
+    expect(mori.slots.map(s => s.kanji)).toEqual(['木', '木', '木']);
+
+    expect(rin.meaning).toContain('arboleda');
+    expect(rin.meaning).not.toMatch(/^bosque/);
+    expect(rin.story).toContain('森');
+
+    expect(mori.meaning).toMatch(/bosque/);
+    // 森 se presenta a la niña como el "hermano mayor" de 林
+    expect(mori.siblings?.some(s => s.kanji === '林')).toBe(true);
+  });
+
+  it('cada kanji con "bosque" en el significado tiene al menos 2 木', () => {
+    for (const c of KANJI_COMPOSITIONS) {
+      if (/bosque/.test(c.meaning)) {
+        const arboles = c.slots.filter(s => s.kanji === '木').length;
+        expect(arboles, `${c.kanji} dice "bosque" con solo ${arboles} 木`).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+});
+
 describe('getComposition', () => {
   it('devuelve el kanji pedido y undefined si no existe', () => {
     expect(getComposition('mei')?.kanji).toBe('明');

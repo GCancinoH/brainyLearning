@@ -10,6 +10,7 @@ import { ThemeTimeService } from '@core/services/theme-time.service';
 import { Theme, parseGameUrl } from '@core/services/theme-time';
 import { GameSessionService } from '@core/games/game-session.service';
 import { GameProgressService } from '@core/games/game-progress.service';
+import { APP_BUILD_TOKEN } from './build-token';
 
 @Component({
   imports: [
@@ -29,7 +30,7 @@ export class App {
   private readonly session = inject(GameSessionService);
   private readonly progress = inject(GameProgressService);
   readonly showSplash = signal<boolean>(true);
-  readonly buildToken = 'BUILD_VERSION_1_0_A';
+  readonly buildToken = APP_BUILD_TOKEN;
 
   readonly updateAvailable = this.swUpdater.updateAvailable;
 

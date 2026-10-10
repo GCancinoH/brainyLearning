@@ -121,4 +121,17 @@ export const MATH_GAMES: MathGameInfo[] = [
     minAge: 4,
     startLevel: { 4: 1, 6: 1 },
   },
+  {
+    id: 'coin-shop',
+    title: 'La Tiendita de Monedas',
+    description: 'Cuenta objetos de verdad y descubre cuántas formas hay de pagar con monedas',
+    icon: '🪙',
+    route: '/games/math/coin-shop',
+    cssClass: 'coin-shop',
+    // Sin candado a propósito: se deja accesible mientras se afinan los niveles con las
+    // niñas. Cuando esté listo, encadenarlo (p. ej. tras Carga la Nave nivel 6).
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
 ];

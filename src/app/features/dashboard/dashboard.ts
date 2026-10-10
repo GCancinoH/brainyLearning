@@ -7,6 +7,7 @@ import { ProfileStateService } from '@core/services/profile-state';
 import { ThemeTimeService } from '@core/services/theme-time.service';
 import { Theme } from '@core/services/theme-time';
 import { ALL_GAMES } from '@core/models/game-catalog';
+import { Margin } from '@core/directives/margin';
 
 interface SubjectCard {
   id: 'math' | 'japanese' | 'spanish' | 'english' | 'chinese';
@@ -19,7 +20,7 @@ interface SubjectCard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, Margin],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })

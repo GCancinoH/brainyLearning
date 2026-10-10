@@ -18,6 +18,7 @@ import { ProfileStateService } from '@core/services/profile-state';
 import { GameSessionService } from '@core/games/game-session.service';
 import { GameAudioService } from '@core/games/game-audio.service';
 import { GameProgressService } from '@core/games/game-progress.service';
+import { SpeechService } from '@core/services/speech.service';
 import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
@@ -82,6 +83,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
   private readonly session = inject(GameSessionService);
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
+  private readonly speech = inject(SpeechService);
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -547,17 +549,9 @@ export class KanjiCompose implements OnInit, OnDestroy {
   }
 
   private speak(kanji: string): void {
-    if (!kanji) return;
-    try {
-      if (typeof speechSynthesis === 'undefined') return;
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(kanji);
-      u.lang = this.script() === 'japanese' ? 'ja-JP' : 'zh-CN';
-      u.rate = 0.7;
-      speechSynthesis.speak(u);
-    } catch {
-      /* sin voz: el juego sigue */
-    }
+    // El servicio decide si puede: sin voz local para ja-JP/zh-CN no intenta nada,
+    // en vez de leer el kanji con una voz española (que es lo que pasaría con u.lang).
+    this.speech.speak(kanji, this.script() === 'japanese' ? 'ja-JP' : 'zh-CN', { rate: 0.7 });
   }
 
   private triggerConfetti(): void {

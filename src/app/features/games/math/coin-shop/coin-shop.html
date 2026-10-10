@@ -15,7 +15,6 @@
     </div>
   </header>
 
-  <!-- ÁREA DEL EJERCICIO -->
   <main class="game-board">
     <game-feedback
       [state]="feedbackState()"
@@ -23,49 +22,83 @@
       [customMessage]="prompt()"
     />
 
-    @if (mode() === 'count') {
-      <!-- ============ 4 AÑOS: contar manzanas ============ -->
-      <p class="caption">{{ items().length }} manzanas en la mesa</p>
+    <!-- ==================================================== -->
+    <!-- MODOS 'count' y 'give' (4 años)                        -->
+    <!-- ==================================================== -->
+    @if (mode() !== 'pay') {
+      <p class="caption">
+        {{ shelf().length }} {{ item() }} en la mesa
+        @if (mode() === 'give') {
+          <span class="caption-asked">· la clienta pide {{ answer() }}</span>
+        }
+      </p>
 
-      <div class="apples" [class.apples--dim]="!canAnswer()">
-        @for (apple of items(); track apple) {
+      <!-- ESTANTE -->
+      <div class="shelf" [class.shelf--dim]="!canAnswer()">
+        @for (o of shelfVisible(); track o.id) {
           <button
-            class="apple"
-            [class.apple--counted]="tapped().has(apple)"
-            [style.animation-delay.ms]="apple * 70"
-            animate.enter="apple-pop"
-            (click)="onAppleTap(apple)"
-            [attr.aria-label]="'Manzana ' + (apple + 1)"
+            class="thing"
+            [style.left.%]="o.x"
+            [style.top.%]="o.y"
+            [class.thing--counted]="tapped().includes(o.id)"
+            animate.enter="thing-pop"
+            [style.animation-delay.ms]="o.id * 60"
+            (click)="mode() === 'give' ? putInBag(o.id) : onItemTap(o.id)"
+            [attr.aria-label]="'Pieza ' + (o.id + 1)"
           >
-            🍎
-            @if (tapped().has(apple)) {
-              <span class="pip">{{ tappedOrder(apple) }}</span>
+            <span class="thing-emoji">{{ item() }}</span>
+            @if (mode() === 'count' && tapped().includes(o.id)) {
+              <span class="pip">{{ tappedOrder(o.id) }}</span>
             }
           </button>
         }
       </div>
 
-      @if (showHint() && tapped().size < items().length) {
-        <p class="hint hint--strong">
-          Toca las manzanas una por una y cuéntalas 👆🍎 ({{ tapped().size }}/{{ items().length }})
-        </p>
-      }
-
-      <div class="options-grid">
-        @for (opt of options(); track opt) {
-          <button
-            class="option-btn"
-            [class.disabled]="disabledOptions().includes(opt)"
-            [class.success]="solved() && opt === items().length"
-            [class.locked]="!canAnswer()"
-            (click)="selectOption(opt)"
-          >
-            {{ opt }}
-          </button>
+      @if (mode() === 'count') {
+        @if (showHint() && tapped().length < shelf().length) {
+          <p class="hint hint--strong">
+            Toca uno por uno y cuéntalos 👆 ({{ tapped().length }}/{{ shelf().length }})
+          </p>
         }
-      </div>
-    } @else {
-      <!-- ============ 6 AÑOS: pagar con monedas ============ -->
+
+        <div class="options-grid">
+          @for (opt of options(); track opt) {
+            <button
+              class="option-btn"
+              [class.disabled]="disabledOptions().includes(opt)"
+              [class.locked]="!canAnswer()"
+              [class.success]="solved() && opt === answer()"
+              (click)="selectOption(opt)"
+            >
+              {{ opt }}
+            </button>
+          }
+        </div>
+      } @else {
+        <!-- BOLSA DE LA CLIENTA -->
+        <div class="bag" [class.bag--full]="inBag().length === answer()">
+          <div class="bag-title">🛍️ Bolsa <span class="bag-count">{{ inBag().length }}</span></div>
+          <div class="bag-items">
+            @for (o of shelf(); track o.id) {
+              @if (inBag().includes(o.id)) {
+                <button class="bag-item" (click)="takeOutOfBag(o.id)" aria-label="Sacar de la bolsa">
+                  {{ item() }}
+                </button>
+              }
+            } @empty {
+              <span class="bag-empty">Toca los que pidió 👆</span>
+            }
+          </div>
+        </div>
+
+        <button class="deliver-btn" (click)="deliver()">¡Listo! ✅</button>
+      }
+    }
+
+    <!-- ==================================================== -->
+    <!-- MODO 'pay' (6 años)                                 -->
+    <!-- ==================================================== -->
+    @if (mode() === 'pay') {
       <div class="counter">
         <div class="counter-item">
           <span class="counter-label">Juguete</span>
@@ -83,7 +116,6 @@
         </div>
       </div>
 
-      <!-- ALCANCÍA + MONEDAS -->
       <div class="piggy-area">
         <div class="piggy" [class.piggy--gobbling]="gobbling()">🐷</div>
 
@@ -118,34 +150,34 @@
         </div>
       }
 
-      <!-- CAJÓN -->
+      <!-- MONEDERO: con contador, porque el stock es limitado -->
       <div class="drawer">
-        @for (denom of denominations(); track denom) {
+        @for (denom of coinValues(); track denom) {
           <button
             class="coin-btn"
             [class.coin--1]="denom === 1"
             [class.coin--2]="denom === 2"
             [class.coin--5]="denom === 5"
             [class.coin--10]="denom === 10"
+            [class.coin-btn--empty]="coinLeft(denom) <= 0"
             (click)="dropCoin(denom)"
           >
             <span class="coin-btn-emoji">{{ coinEmoji(denom) }}</span>
             <span class="coin-btn-value">${{ denom }}</span>
+            <span class="coin-btn-left">×{{ coinLeft(denom) }}</span>
           </button>
         }
       </div>
 
       <div class="actions">
-        <button
-          class="action-btn action-btn--ghost"
-          (click)="returnLast()"
-          [disabled]="purse().length === 0"
-        >
+        <button class="action-btn" (click)="returnLast()" [disabled]="purse().length === 0">
           ↩️ Devolver
         </button>
         <span class="actions-note">
           @if (remaining() === 0) {
             ¡Justo! 🎉
+          } @else if (isStuck()) {
+            🤔 ¿Podrás llegar con lo que queda?
           } @else if (remaining() > 0) {
             Faltan ${{ remaining() }}
           }
@@ -164,6 +196,9 @@
   <div class="overlay">
     <div class="overlay-card">
       <h2>¿Cómo supiste qué monedas iban? 🤔</h2>
+      @if (waysMessage()) {
+        <p class="ways-message">{{ waysMessage() }}</p>
+      }
       <div class="reflection-options">
         @for (r of reflections; track r.text) {
           <button class="reflection-btn" (click)="chooseReflection()">
@@ -172,6 +207,9 @@
           </button>
         }
       </div>
+      @if (galleryTotal() > 0) {
+        <p class="gallery-total">Colección: {{ galleryTotal() }} formas descubiertas 🏅</p>
+      }
     </div>
   </div>
 }
