@@ -45,14 +45,25 @@
           <!-- A los 6 años sí lee: hiragana grande (la palabra que ya conoce), no el
                katakana erudito, que es justo lo que se olvidaba. -->
           @if (!isPreReader()) {
-            <span class="reveal-reading">{{ showPinyin() ? t.pinyin : t.reading }}</span>
+            <!-- Fila propia: sin ella el 🔊 caía en la siguiente línea del flex de `.reveal`
+                 y se solapaba con el hiragana. -->
+            <span class="reading-row">
+              <span class="reveal-reading">{{ showPinyin() ? t.pinyin : t.reading }}</span>
+              <!-- El botón va pegado al hiragana, que es lo que se quiere oír. Un 🔊 suelto
+                   arriba no dice a qué se refiere. -->
+              <span class="reading-hear" role="button" tabindex="0"
+                    (click)="$event.stopPropagation(); hearKanji()"
+                    aria-label="Escuchar la palabra otra vez">🔊</span>
+            </span>
             <span class="reveal-meaning">{{ t.meaning }}</span>
           }
         </button>
 
         @if (!isPreReader()) {
           <p class="story-text">{{ t.story }}</p>
-          <button class="mini-btn" (click)="hearStory()" aria-label="Escuchar la historia">
+          <!-- Al final de la historia, que es donde una niña pierde el hilo: si quiere
+               oírla otra vez, el botón está donde termina de leerla. -->
+          <button class="mini-btn story-hear" (click)="hearStory()" aria-label="Escuchar la historia">
             🔊
           </button>
         }

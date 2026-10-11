@@ -299,16 +299,40 @@ export class GameAudioService {
   }
 
   /**
-   * Detiene todos los audios (NO detiene level-up para que termine)
-   */
-  stopAll(): void {
-    this._audioCache.forEach(audio => {
-      audio.pause();
-      audio.currentTime = 0;
-    });
-    this._currentAudio = null;
-    this._pendingAudio.set(null);
+ * Detiene **solo** los audios de las rutas dadas.
+ *
+ * Existe para que la narración no se corte a sí misma sin tocar los sonidos de sistema
+ * (`praise`, `level-up`, `failure`). `stopAll()` no puede usarse para eso: su comentario
+ * promete que respeta esos sonidos, pero la implementación pausa **todo** el caché,
+ * incluidos ellos. Es una discrepancia de hace tiempo; aquí no se arregla para no cambiar
+ * el comportamiento del resto de juegos, y por eso existe este método.
+ */
+stopPaths(paths: Iterable<string>): void {
+  for (const raw of paths) {
+    const path = this._resolve(raw);
+    const audio = this._audioCache.get(path);
+    if (!audio) continue;
+    audio.pause();
+    audio.currentTime = 0;
+    if (this._currentAudio === audio) this._currentAudio = null;
   }
+}
+
+/**
+ * Detiene todos los audios.
+ *
+ * ⚠️ El comentario que decía "NO detiene level-up ni praise para que terminen" era
+ * **falso**: pausaba también el resto. El comportamiento real es el de aquí, y es el que
+ * espera el resto de la app.
+ */
+stopAll(): void {
+  this._audioCache.forEach(audio => {
+    audio.pause();
+    audio.currentTime = 0;
+  });
+  this._currentAudio = null;
+  this._pendingAudio.set(null);
+}
 
   /**
    * Pausa/reanuda audio actual

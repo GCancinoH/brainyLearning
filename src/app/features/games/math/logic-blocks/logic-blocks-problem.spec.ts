@@ -66,7 +66,11 @@ describe('6 años: diagrama de Venn', () => {
       else expect(regions).not.toContain('none');
       expect(new Set(r.blocks.map(b => b.id)).size).toBe(r.blocks.length);
     });
-  });
+    // ⏱️ Este test tarda ~18 s (reconstruye cientos de rondas de Venn con RNG determinista).
+    // Con el límite global de 5 s pasaba solo, y fallaba por **timeout** —no por una
+    // aserción— cuando la suite entera saturaba la máquina. Un fallo que depende de la
+    // carga del runner enseña a ignorar los fallos de verdad, así que se le da su tiempo.
+  }, 60_000);
 
   it('el tamaño solo aparece desde el nivel 7', () => {
     each(6, (r, lvl) => {

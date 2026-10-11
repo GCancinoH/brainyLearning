@@ -350,8 +350,15 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.started.set(true);
     this.audio.retryPendingAudio();
     const saludo = this.script() === 'japanese' ? sys('greeting.aki') : sys('greeting.long');
-    void this.narrator.say(saludo);
-    this.later(() => void this.playStory(), 400);
+    // ⚠️ Encadenado, no concurrente. Antes se disparaba el saludo sin esperar y la historia
+    // arrancaba 400 ms después con un temporizador: como el saludo dura ~7 s, ambos
+    // ficheros sonaban **a la vez**, y encima la historia empezaba por su cuenta al
+    // generarse el problema. Aquí se espera a que el saludo termine.
+    void (async () => {
+      await this.narrator.say(saludo);
+      if (this.destroyed || this.step() !== 'story') return;
+      await this.playStory();
+    })();
   }
 
   // ============================================
@@ -428,11 +435,20 @@ export class KanjiCompose implements OnInit, OnDestroy {
     void this.narrator.say(pieceWord(id));
   }
 
-  /** Oye una pieza **con su significado**: "ひ… sol". Para el paso de historia. */
+  /**
+ * Oye una pieza **con su significado**: "ひ… sol".
+ *
+ * El hueco entre las dos es de 600 ms, no el de 120 ms por defecto. Con 120 ms, "ひ" y "sol"
+ * suenan casi pegados y el oído los agrupa en una sola palabra: en vez de oír el nombre y
+ * después el significado, la niña oye un sonido raro y no entiende qué son dos cosas.
+ */
   hearPieceWithMeaning(kanji: string): void {
     const p = pieceData(kanji);
     if (!p.id) return;
-    void this.narrator.say([pieceWord(p.id), pieceMeaning(p.id)]);
+    void this.narrator.play([
+      { clip: pieceWord(p.id), pauseAfterMs: 600 },
+      { clip: pieceMeaning(p.id) }
+    ]);
   }
 
   // ============================================

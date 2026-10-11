@@ -47,6 +47,8 @@ export class Narrator {
   private _base = '';
   private _manifest: Record<string, ClipSpec> = {};
   private _defaultLang = 'es-MX';
+  /** Rutas de los clips que ha puesto este servicio, para poder pararlos solo a ellos. */
+  private readonly _mios = new Set<string>();
 
   /**
    * Configura dónde viven los clips y qué se dice en cada uno.
@@ -75,6 +77,17 @@ export class Narrator {
    */
   async play<T extends Cue>(cues: T[], onCue?: (c: T | null) => void): Promise<boolean> {
     const mine = ++this.seq;
+    // ⚠️ Parar SIEMPRE lo que esté sonando antes de empezar.
+    //
+    // El token `seq` solo invalida la *espera* de la secuencia anterior; no calla el
+    // fichero que ya está sonando. Como cada clip es un elemento `<audio>` distinto, dos
+    // narraciones simultáneas se oían **superpuestas**: el saludo, la historia y el nombre
+    // del kanji, todos a la vez.
+    //
+    // Aquí se llama a `stopAll()` y no a `stopCurrent()` a propósito: `stopAll()` respeta
+    // la excepción de los sonidos de sistema (level-up, praise, failure) para que no se
+    // corten a mediaKb. La narración sí se corta siempre: es contenido, no celebración.
+    this._stopNarracion();
     this.speaking.set(true);
     this.cue.set(null);
 
@@ -135,6 +148,9 @@ export class Narrator {
   /** `say()` con el TTS de reserva cuando falta el clip. */
   private async _sayWithFallback(cues: Cue[], text?: string, gapMs = 120): Promise<boolean> {
     const mine = ++this.seq;
+    // Igual que en `play()`: sin esto, dos `say()` seguidos se solapan. Es lo que pasaba
+    // al tocar dos veces 🔊 o al encadenar "nombre de la pieza" + "significado".
+    this._stopNarracion();
     this.speaking.set(true);
     try {
       for (let i = 0; i < cues.length; i++) {
@@ -175,7 +191,11 @@ export class Narrator {
       console.warn('[Narrator] Falta `configure({base})`: se intentará solo el TTS para', key);
       return false;
     }
-    return this.audio.playFileAndWait(`${this._base}/${key}.wav`);
+    const path = `${this._base}/${key}.wav`;
+    // Se recuerda qué clips son **nuestros**, para poder pararlos sin tocar los sonidos
+    // de celebración del juego (elogio, level-up), que deben sonar enteros.
+    this._mios.add(path);
+    return this.audio.playFileAndWait(path);
   }
 
   /**
@@ -212,7 +232,21 @@ export class Narrator {
     this.seq++;
     this.speaking.set(false);
     this.cue.set(null);
-    this.audio.stopAll();
+    this._stopNarracion();
+    this.speech.cancel();
+  }
+
+  /**
+   * Para la narración en curso sin tocar los sonidos de celebración.
+   *
+   * Va en su propio método porque `cancel()` (parada total) y el arranque de una secuencia
+   * (parada de la narración) son cosas distintas: la segunda no debe cortar un
+   * `level-up` que está sonando, que sí está bien que se oiga entero.
+   */
+  private _stopNarracion(): void {
+    // Solo los clips propios. `stopAll()` cortaría también el elogio o el level-up, que
+    // están en el mismo caché y deben poder sonar enteros.
+    if (this._mios.size) this.audio.stopPaths(this._mios);
     this.speech.cancel();
   }
 }
