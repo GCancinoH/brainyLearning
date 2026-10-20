@@ -640,7 +640,8 @@ export type SocraticMoment =
   | 'right-pieces-wrong-place'
   | 'complete'
   | 'draw-done'
-  | 'sibling-discovery';
+  | 'sibling-discovery'
+  | 'stroke-retry';
 
 /**
  * Nunca se dice "está mal". Se propone pensar: contraejemplos, dudas y "probemos".
@@ -671,6 +672,11 @@ export const SOCRATIC_LINES: Record<SocraticMoment, readonly string[]> = {
     '🤯 ¡Mira! Con las MISMAS piezas salen otros kanji. Solo cambia dónde las pones.',
     '🤔 Con estas piezas también se puede… ¿qué cambia? Solo la posición.',
     '😮 ¡Dos personajes distintos con las mismas piezas! ¿Cuál te gusta más?',
+  ],
+  'stroke-retry': [
+    '✏️ ¿Probamos ese trazo otra vez? ¿Por dónde empieza?',
+    '🤔 ¿Hacia dónde va? Mira la línea amarilla.',
+    '✨ ¡Casi! ¿Lo trazamos siguiendo la línea?',
   ],
 };
 

@@ -125,3 +125,25 @@
     font-weight: 500;
   }
 }
+
+.creditos {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  // Tenue para no pelear con el menú, pero **legible**: un crédito que no se lee no
+  // cumple la licencia, que exige que sea visible.
+  color: #94a3b8;
+
+  a {
+    color: #cbd5e1;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover,
+    &:focus-visible {
+      color: #fff;
+    }
+  }
+}

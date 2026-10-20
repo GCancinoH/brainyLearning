@@ -151,6 +151,18 @@
     "tts": "¡Dos personajes distintos con las mismas piezas! ¿Cuál te gusta más?",
     "lang": "es-MX"
   },
+  "kc.es.line.stroke-retry.0": {
+    "tts": "¿Probamos ese trazo otra vez? ¿Por dónde empieza?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.stroke-retry.1": {
+    "tts": "¿Hacia dónde va? Mira la línea amarilla.",
+    "lang": "es-MX"
+  },
+  "kc.es.line.stroke-retry.2": {
+    "tts": "¡Casi! ¿Lo trazamos siguiendo la línea?",
+    "lang": "es-MX"
+  },
   "kc.es.line.wrong-piece.0": {
     "tts": "¿Y esta pieza aquí? ¿Qué le pasa si la probamos en otro hueco?",
     "lang": "es-MX"

@@ -499,6 +499,69 @@ $ink: #1b1b3a;
   overflow: hidden;
 }
 
+// ============================================================
+// GUÍA DE TRAZOS (§5.3)
+//
+// Tres estados, y el truco está en `stroke-dasharray`:
+//
+//  - **Futura**: trazo completo, casi invisible. Es la fantasma de siempre.
+//  - **Actual**: se dibuja sola, de arriba abajo, en bucle. Con `dasharray` y
+//    `dashoffset` iguales y mayores que la longitud del trazo, al empezar no se ve
+//    nada y al terminar se ve entero: la línea se dibuja **desde su punto de entrada**,
+//    que es exactamente la dirección que hay que imitar. No hace falta conocer la
+//    longitud del trazo —el dato va en el `d`—, solo sobrepasarla.
+//  - **Hecha**: tinta sólida, sin animación.
+// ============================================================
+
+.stroke-guide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;   // jamás debe robarle un toque al lienzo
+  user-select: none;
+}
+
+.stroke-guide-path {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.09);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stroke-guide-path--actual {
+  stroke: #f472b6;
+  stroke-width: 8;
+  // 200 > la diagonal del cuadrado de 109, así que cualquier trazo queda entero
+  // escondido con `dashoffset` 200 y entero visible con 0.
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: stroke-demo 1.7s ease-in-out infinite;
+}
+
+.stroke-guide-path--hecho {
+  stroke: #1f2937;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+  animation: none;
+}
+
+@keyframes stroke-demo {
+  0% {
+    stroke-dashoffset: 200;
+  }
+  // Se queda un instante trazado antes de repetir: sin esa pausa, en el bucle no se
+  // llega a leer qué forma tenía.
+  60%,
+  85% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 200;
+  }
+}
+
 .canvas-ghost {
   position: absolute;
   inset: 0;
@@ -723,7 +786,8 @@ $ink: #1b1b3a;
   }
   // La demostración de trazo no se anima, pero **se ve**: los dos trazos aparecen
   // completos. Quitársela entera sería dejar a la niña sin saber qué se hace aquí.
-  .draw-onboard-stroke {
+  .draw-onboard-stroke,
+  .stroke-guide-path--actual {
     animation: none !important;
     stroke-dashoffset: 0;
   }

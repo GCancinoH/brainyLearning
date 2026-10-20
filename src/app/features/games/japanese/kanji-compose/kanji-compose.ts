@@ -25,6 +25,8 @@ import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { GhostHand } from '@shared/game-ui/ghost-hand/ghost-hand';
 import { HintLadder, configForAge, type LadderLevel } from '@core/games/hint-ladder';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
+import { KANJI_TRAZOS, type KanjiTrazos } from '@core/learning/kanji-strokes';
+import { evaluarTrazo, type Punto } from './stroke-check';
 import {
   buildCompositionProblem,
   CompositionProblem,
@@ -254,6 +256,29 @@ export class KanjiCompose implements OnInit, OnDestroy {
    * años la instrucción escrita no le llega, el movimiento sí.
    */
   readonly drawHint = signal<'off' | 'demo' | 'your-turn'>('off');
+
+  /**
+   * Los trazos del kanji que se está dibujando, tal y como los da KanjiVG: uno por
+   * `<path>`, en orden. `null` si el kanji no está en el conjunto empaquetado — no
+   * debería ocurrir, y la plantilla cae entonces a la fantasma de fuente de siempre.
+   */
+  readonly trazoGuide = computed<KanjiTrazos | null>(
+    () => KANJI_TRAZOS[this.target()?.kanji ?? ''] ?? null,
+  );
+
+  /**
+   * Qué trazo le toca. Es el que se resalta y se anima: el orden de los trazos no se
+   * escribe, se ve — empieza donde empieza la línea amarilla y va hacia donde va.
+   *
+   * En E1 no avanza porque todavía no se valida nada; E2 lo moverá.
+   */
+  readonly trazoActual = signal(0);
+
+  /** Cuántos trazos lleva el kanji. `0` si no hay datos y no se valida nada. */
+  readonly trazoTotal = computed(() => this.trazoGuide()?.trazos.length ?? 0);
+
+  /** ¿Trazó ya el kanji entero? Es el momento en que se acaba la ronda. */
+  readonly kanjiTrazado = computed(() => this.trazoTotal() > 0 && this.trazoActual() >= this.trazoTotal());
 
   /**
    * La pieza que la mano fantasma está arrastrando, en coordenadas relativas a `.work-area`.
@@ -951,6 +976,7 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     // La ayuda solo tiene sentido mientras se compone. Con `busy` en `false` el reloj
     // seguiría corriendo durante el dibujo y a los 8 s se oiría el kanji otra vez.
     this.ladder.reset();
+    this.trazoActual.set(0);
     this.ladderLevel.set(0);
     this.demo.set(null);
 
@@ -1125,6 +1151,47 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
   // PASO 3: DIBUJAR
   // ============================================
 
+  /**
+   * Muestrea el trazo de KanjiVG en puntos, en coordenadas normalizadas del lienzo.
+   *
+   * Se deja medir al propio navegador (`getPointAtLength`) en vez de parsear el `d` a
+   * mano: KanjiVG usa curvas `C` y `c` con control variables, y reimplementar eso sería
+   * código que solo puede fallar. El elemento va suelto, sin insertarse en la página.
+   *
+   * Devuelve `null` donde no hay geometría —jsdom en los tests—, y entonces la validación
+   * se apaga: se puede dibujar libre, que es como era antes. Ninguna prueba depende de
+   * que el navegador mida.
+   */
+  private muestreaTrazo(d: string, vb: string, n = 24): Punto[] | null {
+    try {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      const total = path.getTotalLength();
+      if (!total) return null;
+      // viewBox = "minX minY ancho alto"; el lienzo es cuadrado como el viewBox.
+      const [, , w, h] = vb.trim().split(/\s+/).map(Number);
+      const sx = 1 / (w || 109);
+      const sy = 1 / (h || 109);
+      const pts: Punto[] = [];
+      for (let i = 0; i <= n; i++) {
+        const p = path.getPointAtLength((total * i) / n);
+        pts.push({ x: p.x * sx, y: p.y * sy });
+      }
+      return pts;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Cache: el mismo trazo se muestrea una vez, no en cada levantamiento de dedo. */
+  private trazoEsperado(d: string, vb: string): Punto[] | null {
+    const clave = `${vb}|${d}`;
+    if (!this._muestra.has(clave)) this._muestra.set(clave, this.muestreaTrazo(d, vb));
+    return this._muestra.get(clave) ?? null;
+  }
+
+  private readonly _muestra = new Map<string, Punto[] | null>();
+
   private canvasPoint(event: PointerEvent): { x: number; y: number } | null {
     const el = this.canvasRef()?.nativeElement;
     if (!el) return null;
@@ -1153,15 +1220,103 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
   }
 
   onPointerUp(): void {
+    const trazo = this.drawing;
     this.drawing = null;
+    if (trazo) this.evaluarTrazoDibujado(trazo);
+  }
+
+  /**
+   * ¿Es ese el trazo que tocaba?
+   *
+   * La respuesta **nunca** es "incorrecto". Si no cuadra, el trazo no se queda, vuelve
+   * la demostración y se le pregunta otra vez; si cuadra, se pasa al siguiente. Y si no
+   * hay datos o no hay geometría, no se valida nada: se dibuja libre, como antes.
+   *
+   * El botón ✅ sigue funcionando igual, también cuando quedan trazos: no completar el
+   * kanji no es un fallo, y no debe ser una pantalla de la que no se pueda salir.
+   */
+  private evaluarTrazoDibujado(trazo: Punto[]): void {
+    if (this.step() !== 'draw') return;
+    const guia = this.trazoGuide();
+    const d = guia?.trazos[this.trazoActual()];
+    if (!guia || !d) return;
+
+    const esperado = this.trazoEsperado(d, guia.vb);
+    if (!esperado) return;
+
+    const v = evaluarTrazo(trazo, esperado);
+    if (v.esToque) {
+      // Un toque suelto no es un trazo. Tampoco se queda pintado: mientras quede en el
+      // lienzo, `strokes.length` deja de igualar `trazoActual` y `↩️ Trazo` —que quita
+      // un trazo— descontaría un punto que nunca subió la guía.
+      this.strokes.update(s => s.slice(0, -1));
+      return;
+    }
+
+    if (!v.aceptado) {
+      // Suave: se va el trazo, vuelve la demostración (la guía ya la repite sola) y se
+      // sigue en el mismo trazo. No se pone ningún aviso rojo ni se cuenta un error.
+      this.strokes.update(s => s.slice(0, -1));
+      this.dudaDeTrazo();
+      return;
+    }
+
+    this.trazoActual.update(n => n + 1);
+    // La duda se va en cuanto lo consigue: si se quedara hasta los 3200 ms, estaría
+    // preguntando "¿hacia dónde va?" mientras ella ya va por el trazo siguiente.
+    if (this.clearPromptTimer !== null) {
+      clearTimeout(this.clearPromptTimer);
+      this.clearPromptTimer = null;
+    }
+    this.hint.set('');
+    if (this.kanjiTrazado()) this.trazarKanjiCompleto();
+  }
+
+  /**
+   * La duda cuando un trazo no sale.
+   *
+   * Va en `hint` y no en `line`: `line` solo se pinta dentro del overlay de hermanos,
+   * mientras que `hint` es el pie que se ve en **todos** los pasos, dibujar incluido.
+   * A los 4 años ni lo lee —la frase se oye—, pero para quien lee está ahí.
+   *
+   * El temporizador usa el mismo `clearPromptTimer` que la duda de componer a propósito:
+   * si una duda queda viva al cambiar de paso, la nueva la cancela en lugar de apagarse
+   * a mitad de la frase que acaba de empezar.
+   */
+  private dudaDeTrazo(): void {
+    this.hint.set(pickLine('stroke-retry'));
+    this.speakSocratic('stroke-retry');
+
+    if (this.clearPromptTimer !== null) clearTimeout(this.clearPromptTimer);
+    const timer = setTimeout(() => {
+      this.timers.delete(timer);
+      this.clearPromptTimer = null;
+      this.hint.set('');
+    }, 3200);
+    this.clearPromptTimer = timer;
+    this.timers.add(timer);
+  }
+
+  /** Se acabó el kanji: se mira lo que dibujó y se acaba la ronda. */
+  private trazarKanjiCompleto(): void {
+    if (this.drawn() || this.busy() || this.isOver()) return;
+    this.drawn.set(true);
+    this.line.set(pickLine('draw-done'));
+    this.finishProblem();
   }
 
   undoStroke(): void {
     this.strokes.update(s => s.slice(0, -1));
+    // La guía vuelve un trazo atrás: en reposo `strokes.length` es igual a `trazoActual`
+    // (los rechazos se van del lienzo), así que quitar el último es deshacer el último
+    // aceptado. Sin esto la guía diría "siguiente" mientras ella mira un trazo menos y
+    // no podría repetir el que acabó de borrar.
+    this.trazoActual.update(n => Math.max(0, n - 1));
   }
 
   clearCanvas(): void {
     this.strokes.set([]);
+    this.trazoActual.set(0);
   }
 
   /** Pinta los trazos sobre el canvas; se llama con afterRenderEffect */

@@ -508,4 +508,164 @@ describe('KanjiCompose (integración)', () => {
     expect(component.step()).toBe('draw');
     expect(component.drawHint()).toBe('off');
   });
+
+  // ================================================================
+  // §5.3 · TRAZO GUIADO
+  //
+  // jsdom no mide geometría (`getTotalLength` no existe), así que se sustituye el
+  // prototipo del `<path>` por una línea horizontal. Eso hace que **todos** los trazos
+  // esperados vayan de izquierda a derecha, que es todo lo que necesitan saber estas
+  // pruebas: la validación compara dirección, no forma.
+  // ================================================================
+
+  let pathProto: any = null;
+  let totalOriginal: unknown;
+  let puntoOriginal: unknown;
+
+  function conGeometriaDeTrazo(): void {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    pathProto = Object.getPrototypeOf(p) as any;
+    totalOriginal = pathProto.getTotalLength;
+    puntoOriginal = pathProto.getPointAtLength;
+    pathProto.getTotalLength = (): number => 60;
+    pathProto.getPointAtLength = (l: number): { x: number; y: number } => ({ x: l, y: 0 });
+  }
+
+  function sinGeometriaDeTrazo(): void {
+    if (!pathProto) return;
+    if (totalOriginal === undefined) delete pathProto.getTotalLength;
+    else pathProto.getTotalLength = totalOriginal;
+    if (puntoOriginal === undefined) delete pathProto.getPointAtLength;
+    else pathProto.getPointAtLength = puntoOriginal;
+    pathProto = null;
+  }
+
+  /**
+   * Pone el lienzo en condiciones para `onPointer*`: jsdom mide 0×0, y con `width` 0 la
+   * coordenada normalizada saldría `Infinity`. La captura de puntero se anula porque un
+   * puntero sintético no está activo y `setPointerCapture` lanzaría `NotFoundError`.
+   */
+  function prepararLienzo(): HTMLCanvasElement {
+    const canvas = fixture.nativeElement.querySelector('.draw-canvas') as HTMLCanvasElement;
+    expect(canvas, 'el lienzo debe estar pintado en el paso de dibujar').toBeTruthy();
+    canvas.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top: 0,
+        width: 100,
+        height: 100,
+        right: 100,
+        bottom: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    canvas.setPointerCapture = () => {
+      /* sin puntero real que capturar */
+    };
+    return canvas;
+  }
+
+  /** Traza un segmento como lo haría el dedo: abajo, mover, arriba. */
+  function trazar(
+    canvas: HTMLCanvasElement,
+    de: { x: number; y: number },
+    a: { x: number; y: number },
+  ): void {
+    const ev = (type: string, p: { x: number; y: number }): void => {
+      canvas.dispatchEvent(
+        new MouseEvent(type, { clientX: p.x * 100, clientY: p.y * 100, bubbles: true }),
+      );
+    };
+    ev('pointerdown', de);
+    ev('pointermove', a);
+    ev('pointerup', a);
+    fixture.detectChanges();
+  }
+
+  /** El trazo esperado, que con la geometría stubeada va de (0,0) a (60/109, 0). */
+  const IZQUIERDA = { x: 0.05, y: 0.5 };
+  const DERECHA = { x: 0.5, y: 0.5 };
+
+  afterEach(() => sinGeometriaDeTrazo());
+
+  it('§5.3 el trazo al revés no avanza: se queda en el mismo y se pregunta otra vez', async () => {
+    mount(4);
+    conGeometriaDeTrazo();
+    await composeCorrectly();
+    const canvas = prepararLienzo();
+    expect(component.trazoTotal(), 'el kanji debe tener trazos').toBeGreaterThan(0);
+
+    trazar(canvas, DERECHA, IZQUIERDA); // al revés
+
+    expect(component.trazoActual()).toBe(0);
+    expect(component.strokes(), 'el trazo no se queda en el lienzo').toHaveLength(0);
+    // La duda se formula, no se dictamina. Ni siquiera en el texto de la pista.
+    expect(component.hint()).not.toBe('');
+    expect(component.hint().toLowerCase()).not.toContain('incorrecto');
+    expect(component.hint().toLowerCase()).not.toContain('está mal');
+  });
+
+  it('§5.3 el trazo en la buena dirección avanza al siguiente', async () => {
+    mount(4);
+    conGeometriaDeTrazo();
+    await composeCorrectly();
+    const canvas = prepararLienzo();
+
+    // Una duda queda viva tras el trazo al revés…
+    trazar(canvas, DERECHA, IZQUIERDA);
+    expect(component.hint()).not.toBe('');
+
+    trazar(canvas, IZQUIERDA, DERECHA);
+
+    expect(component.trazoActual()).toBe(1);
+    expect(component.strokes(), 'el trazo aceptado se queda dibujado').toHaveLength(1);
+    expect(component.hint(), 'una duda vieja no se queda colgada').toBe('');
+  });
+
+  it('§5.3 deshacer y borrar devuelven la guía al trazo anterior', async () => {
+    mount(4);
+    conGeometriaDeTrazo();
+    await composeCorrectly();
+    const canvas = prepararLienzo();
+
+    trazar(canvas, IZQUIERDA, DERECHA);
+    expect(component.trazoActual()).toBe(1);
+
+    component.undoStroke();
+    fixture.detectChanges();
+    expect(component.trazoActual(), 'desdibuja el trazo, no solo la tinta').toBe(0);
+    expect(component.strokes()).toHaveLength(0);
+
+    trazar(canvas, IZQUIERDA, DERECHA);
+    component.clearCanvas();
+    fixture.detectChanges();
+    expect(component.trazoActual()).toBe(0);
+    expect(component.strokes()).toHaveLength(0);
+  });
+
+  it('§5.3 trazar todos los trazos termina la ronda sin pulsar ✅', async () => {
+    mount(4);
+    conGeometriaDeTrazo();
+    await composeCorrectly();
+    const canvas = prepararLienzo();
+
+    const total = component.trazoTotal();
+    for (let i = 0; i < total; i++) {
+      expect(component.trazoActual(), `trazo ${i + 1} de ${total}`).toBe(i);
+      trazar(canvas, IZQUIERDA, DERECHA);
+    }
+
+    expect(component.kanjiTrazado()).toBe(true);
+    // El acierto se apunta al cerrar el último trazo, de forma síncrona. No se espera a
+    // ningún temporizador: además, `fixture.whenStable()` se queda esperando una tarea
+    // que la app deja abierta al cerrar la ronda, y el test se iría de tiempo.
+    expect(component.consecutiveCorrect(), 'se anota UN acierto, como en el botón').toBe(1);
+
+    // La ronda ya está cerrada: pulsar ✅ a posteriori no puede apuntar otro acierto
+    // (la guarda B1, que es `drawn`, no se toca desde aquí).
+    component.finishDrawing();
+    fixture.detectChanges();
+    expect(component.consecutiveCorrect()).toBe(1);
+  });
 });

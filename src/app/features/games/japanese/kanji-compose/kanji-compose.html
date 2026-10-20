@@ -231,8 +231,32 @@
         </div>
 
         <div class="canvas-wrap">
+          <!-- La guía ya no es el kanji escrito con la fuente: son **sus trazos**, uno
+               por `<path>`, en orden. Se ve por tanto dónde empieza cada uno y hacia dónde
+               va, que es lo que antes solo se insinuaba con la forma completa. -->
           @if (showGhostInDraw()) {
-            <span class="canvas-ghost" lang="ja" aria-hidden="true">{{ t.kanji }}</span>
+            @if (trazoGuide(); as g) {
+              <svg
+                class="stroke-guide"
+                [attr.viewBox]="g.vb"
+                preserveAspectRatio="xMidYMid meet"
+                aria-hidden="true"
+              >
+                @for (d of g.trazos; track $index) {
+                  <path
+                    class="stroke-guide-path"
+                    [class.stroke-guide-path--actual]="$index === trazoActual()"
+                    [class.stroke-guide-path--hecho]="$index < trazoActual()"
+                    [attr.data-trazo]="$index + 1"
+                    [attr.d]="d"
+                  />
+                }
+              </svg>
+            } @else {
+              <!-- Plan B: si un kanji no estuviera en el conjunto empaquetado, al menos
+                   se ve la forma. No debería pasar; el fetch lo valida contra el catálogo. -->
+              <span class="canvas-ghost" lang="ja" aria-hidden="true">{{ t.kanji }}</span>
+            }
           }
           <canvas
             #canvas

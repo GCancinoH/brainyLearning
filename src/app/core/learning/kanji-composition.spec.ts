@@ -335,13 +335,10 @@ describe('§3.2 progresión y niveles', () => {
 });
 
 describe('diálogos socráticos', () => {
-  const moments: SocraticMoment[] = [
-    'wrong-piece',
-    'right-pieces-wrong-place',
-    'complete',
-    'draw-done',
-    'sibling-discovery',
-  ];
+  // No se escribe a mano: se deriva del propio mapa. Con la lista fija, `stroke-retry`
+  // habría entrado sin pasar por el test de "nunca dice que está mal", que es justo el
+  // que no se puede saltar.
+  const moments = Object.keys(SOCRATIC_LINES) as SocraticMoment[];
 
   it('cada momento tiene al menos 2 frases distintas', () => {
     for (const m of moments) {
