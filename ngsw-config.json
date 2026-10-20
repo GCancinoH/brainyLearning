@@ -25,6 +25,17 @@
       }
     },
     {
+      "name": "kanji-compose-audio",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/audio/kanji-compose/**/*.wav",
+          "/audio/kanji-compose/*.wav"
+        ]
+      }
+    },
+    {
       "name": "game-audio",
       "installMode": "lazy",
       "updateMode": "prefetch",

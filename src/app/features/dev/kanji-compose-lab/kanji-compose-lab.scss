@@ -1,6 +1,6 @@
 // ============================================
 // Laboratorio de Kanji - andamiaje de pruebas
-// Reutiliza la estética del laboratorio de la Tiendita, con acento por mundo
+// Reutiliza la estética del laboratorio de la Tiendita, 
 // ============================================
 
 .lab {
@@ -9,10 +9,6 @@
   min-height: 100vh;
   color: #e2e8f0;
   font-family: system-ui, sans-serif;
-
-  &[data-world='chinese'] {
-    --lab-accent: #fbbf24;
-  }
 }
 
 .lab-panel {

@@ -1,0 +1,430 @@
+{
+  "kc.es.k.en.meaning": {
+    "tts": "llama",
+    "lang": "es-MX"
+  },
+  "kc.es.k.en.story": {
+    "tts": "Fuego encima de fuego. Los dos juntos arden más: una llama.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.go.meaning": {
+    "tts": "palabra, idioma",
+    "lang": "es-MX"
+  },
+  "kc.es.k.go.story": {
+    "tts": "Hablar es una boca que dice un cinco. La boca que dice cinco forma una palabra.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.hon.meaning": {
+    "tts": "libro, raíz, origen",
+    "lang": "es-MX"
+  },
+  "kc.es.k.hon.story": {
+    "tts": "Un árbol con una rayita en la base, justo donde nacen las raíces. La rayita señala la raíz: el origen.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.hoshi.meaning": {
+    "tts": "estrella",
+    "lang": "es-MX"
+  },
+  "kc.es.k.hoshi.story": {
+    "tts": "El sol que ilumina y, debajo, algo que nace como una planta. El sol viendo crecer la vida: una estrella brillando en el cielo.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.iwa.meaning": {
+    "tts": "roca",
+    "lang": "es-MX"
+  },
+  "kc.es.k.iwa.story": {
+    "tts": "Una montaña y una piedra. La piedra que vive en la montaña es una roca.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.koi.meaning": {
+    "tts": "querer",
+    "lang": "es-MX"
+  },
+  "kc.es.k.koi.story": {
+    "tts": "Una mujer y su niño juntos. Esta pareja significa querer, o estar bien.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.kyuu.meaning": {
+    "tts": "descansar",
+    "lang": "es-MX"
+  },
+  "kc.es.k.kyuu.story": {
+    "tts": "Una persona apoyada en un árbol: así se descansa. El árbol sostiene a la persona. Por eso significa descansar.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.mei.meaning": {
+    "tts": "claro, luminoso",
+    "lang": "es-MX"
+  },
+  "kc.es.k.mei.story": {
+    "tts": "Cuando sale el sol y también está la luna, todo se ve clarísimo. Sol y luna juntos quieren decir: claro, luminoso.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.miran.meaning": {
+    "tts": "mirar",
+    "lang": "es-MX"
+  },
+  "kc.es.k.miran.story": {
+    "tts": "Una mano tapa los ojos, como cuando te tapas el sol para mirar de lejos. Eso es mirar.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.mori.meaning": {
+    "tts": "bosque",
+    "lang": "es-MX"
+  },
+  "kc.es.k.mori.story": {
+    "tts": "Tres árboles juntos: un bosque tan grande y profundo que parece un laberinto.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.otoko.meaning": {
+    "tts": "hombre",
+    "lang": "es-MX"
+  },
+  "kc.es.k.otoko.story": {
+    "tts": "En el campo de arroz hace falta fuerza. El campo arriba y la fuerza abajo: el hombre que trabaja la tierra.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.rin.meaning": {
+    "tts": "arboleda",
+    "lang": "es-MX"
+  },
+  "kc.es.k.rin.story": {
+    "tts": "Un árbol solo es un árbol. Dos árboles juntos ya son un bosque pequeño.",
+    "lang": "es-MX"
+  },
+  "kc.es.k.sen.meaning": {
+    "tts": "puntiagudo",
+    "lang": "es-MX"
+  },
+  "kc.es.k.sen.story": {
+    "tts": "Lo pequeño encima de lo grande hace una punta afilada. Por eso significa puntiagudo.",
+    "lang": "es-MX"
+  },
+  "kc.es.line.complete.0": {
+    "tts": "¡Se formó! ¿Y qué significará?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.complete.1": {
+    "tts": "¡Lo hiciste! Mira cómo las piezas cuentan una historia.",
+    "lang": "es-MX"
+  },
+  "kc.es.line.complete.2": {
+    "tts": "¡Claro! ¿Quieres ver otro?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.draw-done.0": {
+    "tts": "¡Lo dibujaste! ¿Qué le pasa si le quitamos una línea?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.draw-done.1": {
+    "tts": "Mira tu dibujo. ¿Se parece al de las piezas? ¿En qué se diferencia?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.draw-done.2": {
+    "tts": "Cada vez lo dibujas con más seguridad.",
+    "lang": "es-MX"
+  },
+  "kc.es.line.right-pieces-wrong-place.0": {
+    "tts": "¡Son las piezas correctas! Pero mira las dos posiciones… ¿y si las cambiamos?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.right-pieces-wrong-place.1": {
+    "tts": "Las tenemos todas. ¿Dónde va cada una? Probemos las dos maneras.",
+    "lang": "es-MX"
+  },
+  "kc.es.line.right-pieces-wrong-place.2": {
+    "tts": "Casi… ¿qué cambia si esta sube y esta baja?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.sibling-discovery.0": {
+    "tts": "¡Mira! Con las MISMAS piezas salen otros kanji. Solo cambia dónde las pones.",
+    "lang": "es-MX"
+  },
+  "kc.es.line.sibling-discovery.1": {
+    "tts": "Con estas piezas también se puede… ¿qué cambia? Solo la posición.",
+    "lang": "es-MX"
+  },
+  "kc.es.line.sibling-discovery.2": {
+    "tts": "¡Dos personajes distintos con las mismas piezas! ¿Cuál te gusta más?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.wrong-piece.0": {
+    "tts": "¿Y esta pieza aquí? ¿Qué le pasa si la probamos en otro hueco?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.wrong-piece.1": {
+    "tts": "Interesante… ¿cuál de las dos se parece más al dibujo de la pista?",
+    "lang": "es-MX"
+  },
+  "kc.es.line.wrong-piece.2": {
+    "tts": "¿Tal vez esta no va aquí? ¿Qué pasaría si la giramos o la cambiamos?",
+    "lang": "es-MX"
+  },
+  "kc.es.p.chiisai": {
+    "tts": "pequeño",
+    "lang": "es-MX"
+  },
+  "kc.es.p.chikara": {
+    "tts": "fuerza",
+    "lang": "es-MX"
+  },
+  "kc.es.p.hi": {
+    "tts": "sol",
+    "lang": "es-MX"
+  },
+  "kc.es.p.hi-fire": {
+    "tts": "fuego",
+    "lang": "es-MX"
+  },
+  "kc.es.p.hito": {
+    "tts": "persona",
+    "lang": "es-MX"
+  },
+  "kc.es.p.ichi": {
+    "tts": "uno",
+    "lang": "es-MX"
+  },
+  "kc.es.p.ishi": {
+    "tts": "piedra",
+    "lang": "es-MX"
+  },
+  "kc.es.p.itsutsu": {
+    "tts": "cinco",
+    "lang": "es-MX"
+  },
+  "kc.es.p.iu": {
+    "tts": "hablar",
+    "lang": "es-MX"
+  },
+  "kc.es.p.ki": {
+    "tts": "árbol",
+    "lang": "es-MX"
+  },
+  "kc.es.p.ko": {
+    "tts": "niño",
+    "lang": "es-MX"
+  },
+  "kc.es.p.kuchi": {
+    "tts": "boca",
+    "lang": "es-MX"
+  },
+  "kc.es.p.me": {
+    "tts": "ojo",
+    "lang": "es-MX"
+  },
+  "kc.es.p.onna": {
+    "tts": "mujer",
+    "lang": "es-MX"
+  },
+  "kc.es.p.ookii": {
+    "tts": "grande",
+    "lang": "es-MX"
+  },
+  "kc.es.p.sei": {
+    "tts": "nacer",
+    "lang": "es-MX"
+  },
+  "kc.es.p.ta": {
+    "tts": "campo de arroz",
+    "lang": "es-MX"
+  },
+  "kc.es.p.te": {
+    "tts": "mano",
+    "lang": "es-MX"
+  },
+  "kc.es.p.tsuki": {
+    "tts": "luna",
+    "lang": "es-MX"
+  },
+  "kc.es.p.yama": {
+    "tts": "montaña",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.draw-empty": {
+    "tts": "Dibuja con el dedo, aunque sea una línea.",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.draw-now": {
+    "tts": "Ahora dibújalo tú.",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.greeting.aki": {
+    "tts": "¡Hola! Soy Aki, del Planeta Sakura. ¡Vamos a construir un kanji!",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.look-ghost": {
+    "tts": "Mira el dibujo borroso. ¿Qué piezas necesitas?",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.now-you": {
+    "tts": "Ahora tú.",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.recall-again": {
+    "tts": "Escucha otra vez.",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.recall-hear": {
+    "tts": "Escucha. ¿Cuál es?",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.recall-see": {
+    "tts": "Mira. ¿Cómo suena?",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.siblings": {
+    "tts": "¡Mira! Con las mismas piezas salen otros kanji.",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.which-piece": {
+    "tts": "¿Qué pieza va en cada hueco? Puedes probar.",
+    "lang": "es-MX"
+  },
+  "kc.ja.k.en.word": {
+    "tts": "ほのお",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.go.word": {
+    "tts": "ご",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.hon.word": {
+    "tts": "ほん",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.hoshi.word": {
+    "tts": "ほし",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.iwa.word": {
+    "tts": "いわ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.koi.word": {
+    "tts": "すき",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.kyuu.word": {
+    "tts": "やすむ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.mei.word": {
+    "tts": "あかるい",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.miran.word": {
+    "tts": "みる",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.mori.word": {
+    "tts": "もり",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.otoko.word": {
+    "tts": "おとこ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.rin.word": {
+    "tts": "はやし",
+    "lang": "ja-JP"
+  },
+  "kc.ja.k.sen.word": {
+    "tts": "とがる",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.chiisai": {
+    "tts": "ちいさい",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.chikara": {
+    "tts": "ちから",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.hi": {
+    "tts": "ひ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.hi-fire": {
+    "tts": "ひ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.hito": {
+    "tts": "にんべん",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.ichi": {
+    "tts": "いち",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.ishi": {
+    "tts": "いし",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.itsutsu": {
+    "tts": "いつつ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.iu": {
+    "tts": "いう",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.ki": {
+    "tts": "き",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.ko": {
+    "tts": "こ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.kuchi": {
+    "tts": "くち",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.me": {
+    "tts": "め",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.onna": {
+    "tts": "おんな",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.ookii": {
+    "tts": "おおきい",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.sei": {
+    "tts": "うまれる",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.ta": {
+    "tts": "た",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.te": {
+    "tts": "て",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.tsuki": {
+    "tts": "つき",
+    "lang": "ja-JP"
+  },
+  "kc.ja.p.yama": {
+    "tts": "やま",
+    "lang": "ja-JP"
+  },
+  "kc.ja.sib.未": {
+    "tts": "まだ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.sib.末": {
+    "tts": "すえ",
+    "lang": "ja-JP"
+  },
+  "kc.ja.sib.林": {
+    "tts": "はやし",
+    "lang": "ja-JP"
+  }
+}

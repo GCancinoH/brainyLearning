@@ -101,11 +101,7 @@ export class GameFeedbackComponent {
     const custom = this.customMessage();
 
     // Solo usar customMessage para estado 'idle'
-    if (currentState === 'idle' && custom) return custom;
-
-    if (currentState === 'idle') {
-      return '¿Cuántos cohetes hay en total?';
-    }
+    if (currentState === 'idle') return custom;
 
     const messages = this.customMessages()[currentState as Exclude<FeedbackState, 'idle'>]
       ?? BASE_FEEDBACK_MESSAGES[currentState as Exclude<FeedbackState, 'idle'>];

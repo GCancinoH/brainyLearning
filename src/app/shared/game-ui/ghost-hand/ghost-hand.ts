@@ -24,6 +24,17 @@ export class GhostHand {
   /** Figura que viaja con la mano (clase de forma + color CSS var). */
   readonly shape = input<string>('circle');
   readonly color = input<string>('#94a3b8');
+  /**
+   * Lo que viaja, si no es una forma geométrica.
+   *
+   * En `logic-blocks` lo que se arrastra es un círculo o un cuadrado y la forma **es**
+   * el mensaje. En un juego de kanji no hay forma que represente a 木: si viajara un
+   * círculo la demostración diría "arrastra esto rojo", que no es lo que hay que
+   * arrastrar. Con `glyph` viaja el propio carácter, en una caja del mismo tamaño.
+   *
+   * Aditivo: si no se pasa, el componente sigue siendo el de siempre.
+   */
+  readonly glyph = input<string>('');
   /** Cuántas veces repite el gesto. 1 por ronda evita que parezca que la está mirando. */
   readonly repeats = input(2);
 

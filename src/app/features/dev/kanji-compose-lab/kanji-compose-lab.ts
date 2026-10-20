@@ -7,7 +7,6 @@ import {
   compositionsForAge,
   KANJI_COMPOSITIONS,
   MAX_LEVEL,
-  Script,
 } from '@core/learning/kanji-composition';
 import { LabProfileState, LabProgress } from '../lab-stubs';
 import { KanjiCompose } from '@features/games/japanese/kanji-compose/kanji-compose';
@@ -16,8 +15,7 @@ import { KanjiCompose } from '@features/games/japanese/kanji-compose/kanji-compo
  * LABORATORIO de "Construye el Kanji".
  *
  * Igual que el de la Tiendita: el juego no sabe que existe. Se falsean `activeProfile()`
- * (edad) y `getLevel()` (nivel), y además se controla el `script` (input real del componente,
- * no un hook de laboratorio) para probar Sakura 🌸 y Dragón 🐉.
+ * (edad) y `getLevel()` (nivel).
  *
  * Ruta `lab/kanji-compose`: fuera de `games/` para que el reloj por tema no la bloquee, y con
  * `devOnlyGuard` para que no exista en producción.
@@ -45,15 +43,11 @@ export class KanjiComposeLab {
   readonly levels = Array.from({ length: MAX_LEVEL }, (_, i) => i + 1);
   readonly MAX_LEVEL = MAX_LEVEL;
 
-  /** Mundo: Sakura 🌸 (japonés) o Dragón 🐉 (chino) */
-  readonly script = signal<Script>('japanese');
-
   /** Saltar la puerta de inicio. Ver la nota en la plantilla. */
-  readonly autoStart = signal(true);
 
   /** Cambia para forzar el remontaje del juego */
   readonly stageKey = computed(
-    () => `${this.age()}-${this.level()}-${this.script()}-${this.saved()}`,
+    () => `${this.age()}-${this.level()}-${this.saved()}`,
   );
   readonly saved = signal(0);
 
@@ -103,10 +97,6 @@ export class KanjiComposeLab {
 
   setLevel(level: number): void {
     this.labProgress.setLevel(level);
-  }
-
-  setScript(script: Script): void {
-    this.script.set(script);
   }
 
   nextLevel(): void {

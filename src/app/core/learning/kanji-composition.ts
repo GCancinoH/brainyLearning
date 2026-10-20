@@ -4,11 +4,8 @@
  * Tradición: adaptación lúdica del enfoque de reconocimiento de componentes
  * (doc. Zvonkin §B.6 "Robot Aki: Radicompuestos" y §C.4 "Construye el Carácter").
  *
- * Decisión de contenido importante: los kanji son **hanZi compartidos** entre japonés y
- * chino, así que el mismo carácter sirve a las dos lenguas. Para evitar la colisión que
- * advierte el documento entre los dos mundos, lo que cambia es laenvoltura:
- *   - Sakura 🌸 (japonés): lecturas en hiragana + audio ja-JP
- *   - Dragón 🐉 (chino): pinyin + audio zh-CN
+ * Decisión de contenido: solo japonés (Sakura 🌸, lecturas en hiragana + audio ja-JP).
+ * El mundo chino (Dragón) se retiró; los datos `pinyin` se conservan por si vuelve.
  *
  * Las descomposiciones son canónicas (radical + radical), no invenciones:
  *   明 = 日 + 月   休 = 亻 + 木   林 = 木 + 木   岩 = 山 + 石   男 = 田 + 力
@@ -23,14 +20,6 @@ import { Rng } from '../games/problem-picker';
 // ============================================
 // TIPOS
 // ============================================
-
-/**
- * Los kanji son hanZi compartidos entre japonés y chino, así que el mismo carácter sirve a
- * las dos lenguas. Lo que cambia es la envoltura, para que no se mezclen los dos mundos:
- *   - Sakura 🌸 (japonés): lecturas en hiragana + audio ja-JP, lo guía el Robot Aki
- *   - Dragón 🐉 (chino): pinyin + audio zh-CN, lo guía el Sabio Long
- */
-export type Script = 'japanese' | 'chinese';
 
 /** Cómo se colocan las piezas: sirve para dar pistas sin deletrear la respuesta */
 export type PieceLayout =
@@ -68,12 +57,6 @@ export interface PieceSlot {
   y: number;
 }
 
-/** Lectura erudita (on'yomi). Para 6 años a partir del nivel 5, siempre con hiragana debajo. */
-export interface Onyomi {
-  kata: string;         // メイ
-  hira: string;         // めい
-}
-
 export interface KanjiComposition {
   id: string;
   kanji: string;
@@ -85,8 +68,6 @@ export interface KanjiComposition {
    * enseñar una palabra del idioma en vez de una lectura erudita.
    */
   reading: string;
-  /** Lectura erudita, solo como material complementario de 6 años. */
-  onyomi?: Onyomi;
   pinyin: string;
   meaning: string;
   /** Significado solo para TTS (sin comas sueltas). */
@@ -159,7 +140,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'mei',
     kanji: '明',
     reading: 'あかるい',
-    onyomi: { kata: 'メイ', hira: 'めい' },
     pinyin: 'míng',
     meaning: 'luminoso, claro',
     meaningTts: 'claro, luminoso',
@@ -178,7 +158,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'kyuu',
     kanji: '休',
     reading: 'やすむ',
-    onyomi: { kata: 'キュウ', hira: 'きゅう' },
     pinyin: 'xiū',
     meaning: 'descansar',
     meaningTts: 'descansar',
@@ -197,7 +176,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'rin',
     kanji: '林',
     reading: 'はやし',
-    onyomi: { kata: 'リン', hira: 'りん' },
     pinyin: 'lín',
     meaning: 'arboleda (dos árboles)',
     meaningTts: 'arboleda',
@@ -216,7 +194,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'iwa',
     kanji: '岩',
     reading: 'いわ',
-    onyomi: { kata: 'ガン', hira: 'がん' },
     pinyin: 'yán',
     meaning: 'roca',
     meaningTts: 'roca',
@@ -235,7 +212,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'otoko',
     kanji: '男',
     reading: 'おとこ',
-    onyomi: { kata: 'ダン', hira: 'だん' },
     pinyin: 'nán',
     meaning: 'hombre',
     meaningTts: 'hombre',
@@ -254,7 +230,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'koi',
     kanji: '好',
     reading: 'すき',
-    onyomi: { kata: 'コウ', hira: 'こう' },
     pinyin: 'hǎo',
     meaning: 'bueno, querer',
     meaningTts: 'querer',
@@ -300,7 +275,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'sen',
     kanji: '尖',
     reading: 'とがる',
-    onyomi: { kata: 'セン', hira: 'せん' },
     pinyin: 'jiān',
     meaning: 'puntiagudo',
     meaningTts: 'puntiagudo',
@@ -319,7 +293,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'en',
     kanji: '炎',
     reading: 'ほのお',
-    onyomi: { kata: 'エン', hira: 'えん' },
     pinyin: 'yán',
     meaning: 'llama',
     meaningTts: 'llama',
@@ -338,7 +311,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'hoshi',
     kanji: '星',
     reading: 'ほし',
-    onyomi: { kata: 'セイ', hira: 'せい' },
     pinyin: 'xīng',
     meaning: 'estrella',
     meaningTts: 'estrella',
@@ -357,7 +329,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'miran',
     kanji: '看',
     reading: 'みる',
-    onyomi: { kata: 'カン', hira: 'かん' },
     pinyin: 'kàn',
     meaning: 'mirar',
     meaningTts: 'mirar',
@@ -378,7 +349,6 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     id: 'mori',
     kanji: '森',
     reading: 'もり',
-    onyomi: { kata: 'シン', hira: 'しん' },
     pinyin: 'sēn',
     meaning: 'bosque profundo',
     meaningTts: 'bosque',
@@ -428,18 +398,62 @@ export function getComposition(id: string): KanjiComposition | undefined {
 // ============================================
 
 /**
- * Tablas explícitas en vez de "filtrar por complejidad": hace el test trivial
- * (cada nivel devuelve siempre un id válido y con la edad correcta) y deja el
- * criterio pedagógico a la vista.
+ * Qué kanji se **introduce** en cada bloque de niveles. Se acumulan (`poolFor`), así que
+ * cada fila son *los nuevos de aquí en adelante* y nada se olvida al subir.
+ *
+ * Antes había una sola fila a los 4 años —mismos 6 kanji siempre— y filas que
+ * **reemplazaban** a 6 años: en el nivel 9 solo quedaban 森 y 語. Subir de nivel así no
+ * es progresar, es cambiar de bolsa de cartón y tirar la anterior.
  */
 const AGE4_LEVELS: ReadonlyArray<{ fromLevel: number; ids: readonly string[] }> = [
-  { fromLevel: 1, ids: ['mei', 'kyuu', 'rin', 'iwa', 'otoko', 'koi'] },
+  { fromLevel: 1, ids: ['mei', 'kyuu'] },
+  { fromLevel: 3, ids: ['rin', 'iwa'] },
+  { fromLevel: 5, ids: ['otoko', 'koi'] },
 ];
 
 const AGE6_LEVELS: ReadonlyArray<{ fromLevel: number; ids: readonly string[] }> = [
   { fromLevel: 1, ids: ['mei', 'kyuu', 'rin', 'iwa'] },
-  { fromLevel: 5, ids: ['otoko', 'hoshi', 'hon', 'sen', 'en', 'miran'] },
+  { fromLevel: 3, ids: ['otoko', 'koi'] },
+  { fromLevel: 5, ids: ['hoshi', 'hon', 'miran'] },
+  { fromLevel: 7, ids: ['sen', 'en'] },
   { fromLevel: 9, ids: ['mori', 'go'] },
+];
+
+/**
+ * Perillas de dificultad, **una por salto**.
+ *
+ * Antes se decidían a la vez desde una sola expresión (`guided = age <= 4 || lvl < 5`),
+ * con el resultado de que a los 6 años el nivel 5 cambiaba a la vez el kanji, metía
+ * distractores y quitaba la guía. Eso no es dificultad creciente: es un acantilado.
+ *
+ * Reglas que comprueba el test:
+ *   · el fantasma nunca se enciende de nuevo ni los distractores bajan;
+ *   · **cada cambio de nivel altera exactamente una de las dos perillas**.
+ *
+ * `ghost` es 1 → fantasma opaco, 0 → no se pinta. Se lleva al color y no a la opacidad
+ * porque `.ghost` ya es un blanco al 9 %: multiplicarlo por 0.3 habría dejado el
+ * fantasma en el 2.7 %, invisible. Se atenúa el alfa en su lugar.
+ */
+const AGE4_DIFFICULTY: ReadonlyArray<{ fromLevel: number; ghost: number; distractors: number }> = [
+  // Orden de los cambios: — (solo entran kanji nuevos), fantasma, distractores, fantasma.
+  // El nivel 3 no toca ninguna perilla: el dificultad nueva ES 林 y 岩, que ya es bastante.
+  // Como son 4 saltos y hay 4 cambios que hacer, la distribución queda fijada por la resta.
+  { fromLevel: 1, ghost: 1.0, distractors: 0 },
+  { fromLevel: 3, ghost: 1.0, distractors: 0 },
+  { fromLevel: 5, ghost: 0.5, distractors: 0 },
+  { fromLevel: 7, ghost: 0.5, distractors: 1 },
+  { fromLevel: 9, ghost: 0.0, distractors: 1 },
+];
+
+const AGE6_DIFFICULTY: ReadonlyArray<{ fromLevel: number; ghost: number; distractors: number }> = [
+  // Orden de los cambios: fantasma, distractores, fantasma, distractores.
+  // Quien ya lee se enfrenta pronto a una pieza que no es, y la ayuda visual —que es la
+  // que a los 4 años es imprescindible— se retira antes y se agota un nivel antes.
+  { fromLevel: 1, ghost: 1.0, distractors: 0 },
+  { fromLevel: 3, ghost: 0.5, distractors: 0 },
+  { fromLevel: 5, ghost: 0.5, distractors: 1 },
+  { fromLevel: 7, ghost: 0.0, distractors: 1 },
+  { fromLevel: 9, ghost: 0.0, distractors: 2 },
 ];
 
 export const MAX_LEVEL = 10;
@@ -450,31 +464,76 @@ export function clampLevel(level: number): number {
 
 /**
  * Kanji disponibles para una edad. `minAge` significa "edad mínima", así que un kanji
- * marcado como 4 lo juega también la niña de 6 (que es quien empieza en los niveles 1-4
- * con los mismos caracteres, pero sin distractores y con más cosas que deducir).
+ * marcado como 4 lo juega también la niña de 6: los dos tableros arrancan con los
+ * mismos caracteres, pero ella avanza antes —llega a 13— mientras la de 4 se queda en
+ * 6 y pasa los últimos niveles en repaso de lo ya visto.
  */
 export function compositionsForAge(age: number): readonly KanjiComposition[] {
   const effectiveAge = age <= 4 ? 4 : 6;
   return KANJI_COMPOSITIONS.filter(c => c.minAge <= effectiveAge);
 }
 
-function poolFor(age: number, level: number): readonly string[] {
+/**
+ * Kanji que puede tocar el problema de `level`, **acumulativo**: `⋃ filas ≤ level`.
+ *
+ * Devuelve `string[]` porque el orden es parte del contrato: `pickComposition` se apoya
+ * en él y un test fija qué id está en cada posición.
+ */
+export function poolFor(age: number, level: number): readonly string[] {
   const table = age <= 4 ? AGE4_LEVELS : AGE6_LEVELS;
-  let pool = table[0]!.ids;
+  const pool: string[] = [];
   for (const row of table) {
-    if (level >= row.fromLevel) pool = row.ids;
+    if (level < row.fromLevel) break;
+    for (const id of row.ids) if (!pool.includes(id)) pool.push(id);
   }
   return pool;
 }
 
+/** Los que **acaban de llegar** en este nivel, y los que ya se habían visto. */
+export function poolSplit(
+  age: number,
+  level: number,
+): { nuevos: readonly string[]; repaso: readonly string[] } {
+  const table = age <= 4 ? AGE4_LEVELS : AGE6_LEVELS;
+  let ultima = table[0]!;
+  for (const row of table) if (level >= row.fromLevel) ultima = row;
+
+  const todos = poolFor(age, level);
+  const nuevos = ultima.ids.filter(id => todos.includes(id));
+  return { nuevos, repaso: todos.filter(id => !nuevos.includes(id)) };
+}
+
+/** Opacidad del fantasma (1 opaco … 0 ausente) y distractores de la bandeja. */
+export function difficultyFor(
+  age: number,
+  level: number,
+): { ghost: number; distractors: number } {
+  const table = age <= 4 ? AGE4_DIFFICULTY : AGE6_DIFFICULTY;
+  let ultima = table[0]!;
+  for (const row of table) if (level >= row.fromLevel) ultima = row;
+  return { ghost: ultima.ghost, distractors: ultima.distractors };
+}
+
 /**
- * Elige el kanji del nivel. A partir del nivel 9 solo entran los de 3 piezas, así que
- * la composición en 3 dimensiones es una escalada explícita y no una casualidad.
+ * Elige el kanji del problema.
+ *
+ * **60 % de lo nuevo / 40 % de repaso** (§3.2). El reparto es necesario aunque el pool
+ * ya sea acumulado: con 13 kanji repartidos parejos a nivel 9, 森 y 語 —los de 3
+ * piezas, los que abren el nivel— saldrían 1 de cada 13 y nunca se llegaría a
+ * sentirse. A la inversa, solo elegir nuevo sería olvidar todo lo anterior.
+ *
+ * El SRS de §5.4 sustituirá "lo ya visto" por "lo que toca repasar según el olvido";
+ * mientras tanto el 40 % es la garantía mínima de que el kanji aprendido vuelve a salir.
  */
 export function pickComposition(level: number, age: number, rng: Rng = Math.random): KanjiComposition {
   const lvl = clampLevel(level);
-  const pool = poolFor(age, lvl);
-  const id = pool[Math.floor(rng() * pool.length)]!;
+  const { nuevos, repaso } = poolSplit(age, lvl);
+  const lista =
+    nuevos.length === 0 ? repaso
+    : repaso.length === 0 ? nuevos
+    : rng() < 0.6 ? nuevos
+    : repaso;
+  const id = lista[Math.floor(rng() * lista.length)]!;
   return BY_ID.get(id)!;
 }
 
@@ -497,6 +556,12 @@ export interface CompositionProblem {
   tray: readonly TrayPiece[];
   /** ¿Se muestra el kanji fantasma como guía? */
   showGhost: boolean;
+  /**
+   * Intensidad del fantasma, 1 opaco … 0 ausente. Va aparte de `showGhost` porque el
+   * andamiaje **se retira por capas** con el nivel en vez de saltar a cero: un problema
+   * puede tener `showGhost: true` y ya estar muy desvanecido.
+   */
+  ghost: number;
   /** Número de distractores en la bandeja */
   distractors: number;
 }
@@ -504,11 +569,9 @@ export interface CompositionProblem {
 /**
  * Monta el problema de un nivel.
  *
- * - 4 años (y niveles 1-4 de 6 años): SIN distractores y con guía fantasma. La niña ve
- *   exactamente cuántas piezas y dónde; el reto es la manipulación y el descubrimiento
- *   de la historia, no la deducción.
- * - 6 años desde el nivel 5: con distractores y sin guía. Aquí sí hay que deducir qué
- *   pieza va en cada hueco.
+ * La dificultad no se decide aquí: viene de `difficultyFor`, que separa las dos
+ * perillas y garantiza que solo una se mueve por salto. Lo que sí toca esta función es
+ * que **ningún distractor sea una pieza que pide el objetivo**, que sería ambiguo.
  */
 export function buildCompositionProblem(
   level: number,
@@ -516,8 +579,7 @@ export function buildCompositionProblem(
   rng: Rng = Math.random,
 ): CompositionProblem {
   const lvl = clampLevel(level);
-  const young = age <= 4;
-  const guided = young || lvl < 5;
+  const { ghost, distractors: nDistractors } = difficultyFor(age, lvl);
 
   const target = pickComposition(lvl, age, rng);
 
@@ -532,7 +594,6 @@ export function buildCompositionProblem(
   const pool = KANJI_COMPOSITIONS.filter(
     c => c.id !== target.id && !target.slots.some(s => s.kanji === c.slots[0]?.kanji),
   );
-  const nDistractors = guided ? 0 : Math.min(3, Math.max(2, target.slots.length));
 
   const distractors: TrayPiece[] = [];
   const used = new Set<string>();
@@ -550,7 +611,8 @@ export function buildCompositionProblem(
     target,
     slots: target.slots,
     tray: shuffle([...correct, ...distractors], rng),
-    showGhost: guided,
+    showGhost: ghost > 0,
+    ghost,
     distractors: distractors.length,
   };
 }

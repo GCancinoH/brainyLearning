@@ -36,6 +36,22 @@
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
 }
 
+// Lo que viaja es un carácter: no se le aplica ninguna clase de forma, así que `.carry`
+// conserva el `--size` y la sombra del mixin y aquí se le pone la caja redondeada y el
+// texto centrado. El color sigue viniendo de `--c`, que es quien da la tonalidad del
+// planeta y no una decisión de este componente.
+.carry.glyph {
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--size) * 0.62);
+  line-height: 1;
+}
+
+.carry-glyph {
+  user-select: none;
+}
+
 .hand {
   position: absolute;
   left: 50%;

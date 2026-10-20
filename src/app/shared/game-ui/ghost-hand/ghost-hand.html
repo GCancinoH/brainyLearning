@@ -5,6 +5,10 @@
   sigue siendo correcto aunque la página se desplace mientras se reproduce.
 -->
 <span class="ghost" [style]="styleVars()" aria-hidden="true">
-  <span class="carry" [class]="'carry ' + shape()"></span>
+  <span class="carry" [class]="glyph() ? 'carry glyph' : 'carry ' + shape()">
+    @if (glyph(); as g) {
+      <span class="carry-glyph" lang="ja">{{ g }}</span>
+    }
+  </span>
   <span class="hand">👆</span>
 </span>

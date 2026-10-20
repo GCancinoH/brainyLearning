@@ -23,7 +23,7 @@ import {
  */
 
 export type ClipKey = string;
-export type ClipLang = 'es-MX' | 'ja-JP' | 'zh-CN';
+export type ClipLang = 'es-MX' | 'ja-JP';
 
 /** Dónde viven los `.wav`. */
 export const CLIP_BASE = 'audio/kanji-compose';
@@ -40,7 +40,6 @@ export interface ClipSpec {
 // ============================================
 
 export const kanjiWord = (id: string): ClipKey => `kc.ja.k.${id}.word`;
-export const kanjiOnyomi = (id: string): ClipKey => `kc.ja.k.${id}.on`;
 export const kanjiMeaning = (id: string): ClipKey => `kc.es.k.${id}.meaning`;
 export const kanjiStory = (id: string): ClipKey => `kc.es.k.${id}.story`;
 export const pieceWord = (pieceId: string): ClipKey => `kc.ja.p.${pieceId}`;
@@ -62,7 +61,6 @@ export const sys = (key: string): ClipKey => `kc.es.sys.${key}`;
  */
 export const SYSTEM_TEXT: Record<string, string> = {
   'greeting.aki': '¡Hola! Soy Aki, del Planeta Sakura. ¡Vamos a construir un kanji!',
-  'greeting.long': '¡Hola! Soy Long, del Planeta Dragón. ¡Vamos a construir un carácter!',
   'look-ghost': 'Mira el dibujo borroso. ¿Qué piezas necesitas?',
   'which-piece': '¿Qué pieza va en cada hueco? Puedes probar.',
   'now-you': 'Ahora tú.',
@@ -71,11 +69,7 @@ export const SYSTEM_TEXT: Record<string, string> = {
   'recall-again': 'Escucha otra vez.',
   'draw-now': 'Ahora dibújalo tú.',
   'draw-empty': 'Dibuja con el dedo, aunque sea una línea.',
-  'done': '¡Lo conseguiste!',
-  'siblings': '¡Mira! Con las mismas piezas salen otros kanji.',
-  'again': '¡Otra vez!',
-  'next': 'Vamos con otro.',
-  'guide-composer': 'Pon cada pieza en su hueco.'
+  'siblings': '¡Mira! Con las mismas piezas salen otros kanji.'
 };
 
 // ============================================
@@ -122,9 +116,6 @@ function construirManifiesto(): Record<ClipKey, ClipSpec> {
     m[kanjiWord(c.id)] = { tts: c.reading, lang: 'ja-JP' };
     m[kanjiMeaning(c.id)] = { tts: c.meaningTts, lang: 'es-MX' };
     m[kanjiStory(c.id)] = { tts: c.storyTts, lang: 'es-MX' };
-    // El on'yomi solo se usa desde el nivel 5 y solo a 6 años, pero el manifiesto se
-    // construye entero: saber que falta un clip al generar es un aviso, no un silencio.
-    if (c.onyomi) m[kanjiOnyomi(c.id)] = { tts: c.onyomi.hira, lang: 'ja-JP' };
     for (const sib of c.siblings ?? []) {
       m[siblingWord(sib.kanji)] = { tts: sib.reading, lang: 'ja-JP' };
     }

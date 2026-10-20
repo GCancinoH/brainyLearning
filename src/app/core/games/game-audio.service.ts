@@ -8,6 +8,37 @@ import { AudioType, AudioAsset, DEFAULT_AUDIO_CONFIG } from './game-types';
 
 @Service()
 export class GameAudioService {
+  /**
+   * El navegador solo deja reproducir audio tras un gesto **real** de la persona, y el
+   * rechazo es silencioso: el clip no suena y no se queja nadie.
+   *
+   * Antes eso se resolvía con una pantalla-puerta en cada juego: un botón "▶" que la niña
+   * tenía que apretar solo para que el navegador le dejara oír algo. Es un paso de más
+   * para quien todavía no lee, y `logic-blocks` nunca lo necesitó.
+   *
+   * Aquí se resuelve una sola vez, para toda la app: se escucha el **primer** toque y con
+   * él se suelta lo que haya quedado bloqueado. El toque del menú, que ella da igualmente
+   * para entrar al juego, ya suele valer.
+   *
+   * La suscripción se quita sola, pero solo cuando se ha soltado algo y ya no vuelve a
+   * estar bloqueado. Si el toque llega antes de que se intente reproducir nada —caso
+   * habitual— hay que seguir escuchando: el bloqueo llegará en el primer clip.
+   */
+  constructor() {
+    if (typeof document === 'undefined') return;
+
+    const desbloquear = (): void => {
+      const habiaBloqueado = this.hasPending();
+      this.retryPendingAudio();
+      if (!habiaBloqueado || this.hasPending()) return;
+      document.removeEventListener('pointerdown', desbloquear, true);
+      document.removeEventListener('keydown', desbloquear, true);
+    };
+
+    document.addEventListener('pointerdown', desbloquear, true);
+    document.addEventListener('keydown', desbloquear, true);
+  }
+
   // Estado
   private _assets = signal<AudioAsset[]>(DEFAULT_AUDIO_CONFIG);
   private _enabled = signal<boolean>(true);

@@ -1,4 +1,4 @@
-<div class="lab" [attr.data-world]="script()">
+<div class="lab">
   <!-- ============ PANEL DE CONTROL ============ -->
   <aside class="lab-panel">
     <header class="lab-head">
@@ -7,22 +7,6 @@
       <span class="lab-tag">solo en desarrollo</span>
     </header>
 
-    <!-- MUNDO -->
-    <section class="lab-section">
-      <h2>Mundo</h2>
-      <div class="lab-buttons">
-        <button class="lab-btn" [class.on]="script() === 'japanese'" (click)="setScript('japanese')">
-          🌸 Sakura (Aki)
-        </button>
-        <button class="lab-btn" [class.on]="script() === 'chinese'" (click)="setScript('chinese')">
-          🐉 Dragón (Long)
-        </button>
-      </div>
-      <p class="lab-note">
-        Los kanji son los mismos; cambia la lectura (kana / pinyin), el audio y la estética.
-      </p>
-    </section>
-
     <!-- EDAD -->
     <section class="lab-section">
       <h2>Edad</h2>
@@ -30,19 +14,6 @@
         <button class="lab-btn" [class.on]="age() === 4" (click)="setAge(4)">4 años</button>
         <button class="lab-btn" [class.on]="age() === 6" (click)="setAge(6)">6 años</button>
       </div>
-    </section>
-
-    <section class="lab-section">
-      <h2>Audio</h2>
-      <div class="lab-buttons">
-        <button class="lab-btn" [class.on]="autoStart()" (click)="autoStart.set(!autoStart())">
-          Saltar puerta de inicio
-        </button>
-      </div>
-      <p class="lab-note">
-        Desmárcalo para ver la puerta: es la que desbloquea el audio en iOS/Safari y la que
-        hace que suene el saludo. Con el autoplay bloqueado, el primer kanji aparecería mudo.
-      </p>
     </section>
 
     <!-- NIVEL -->
@@ -118,15 +89,11 @@
 
   <!-- ============ ESCENARIO ============ -->
   <section class="lab-stage">
-    <!-- `autoStart` va en la clave del `@for` a propósito: es un `input` del juego y solo
-         se lee al construirse, así que sin esto el interruptor no cambiaría nada hasta
-         recargar la página. -->
-    @for (k of [stageKey() + ':' + autoStart()]; track k) {
+    <!-- La clave del `@for` recrea el componente de cabo a rabo cuando cambia: es la
+         única forma de que un `input` o un cambio de edad/nivel vuelvan a leerse. -->
+    @for (k of [stageKey()]; track k) {
       <div class="lab-game">
-        <!-- `autoStart` salta la puerta de inicio: en el laboratorio no hay problema de
-             autoplay y se quiere iterar sin un toque de más. Desmárcalo para probar la
-             puerta, que es la que hace sonar el saludo en un dispositivo real. -->
-        <kanji-compose [script]="script()" [autoStart]="autoStart()" />
+        <kanji-compose />
       </div>
     }
   </section>

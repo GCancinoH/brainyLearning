@@ -6,7 +6,6 @@ import {
   afterRenderEffect,
   computed,
   inject,
-  input,
   signal,
   viewChild,
   viewChildren,
@@ -23,6 +22,9 @@ import { SessionEvent } from '@core/games/game-types';
 import { Narrator } from '@core/games/narrator.service';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
+import { GhostHand } from '@shared/game-ui/ghost-hand/ghost-hand';
+import { HintLadder, configForAge, type LadderLevel } from '@core/games/hint-ladder';
+import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import {
   buildCompositionProblem,
   CompositionProblem,
@@ -30,7 +32,6 @@ import {
   MAX_LEVEL,
   pickLine,
   pieceData,
-  Script,
   SocraticMoment,
   TrayPiece,
 } from '@core/learning/kanji-composition';
@@ -44,6 +45,7 @@ import {
   SOCRATIC_LINE_COUNT,
   pieceMeaning,
   pieceWord,
+  siblingWord,
   socraticLine,
   storyCues,
   sys,
@@ -51,6 +53,7 @@ import {
   type Highlight,
   type StoryMode,
 } from '@core/learning/kanji-narration';
+import { nearestSlot } from './slot-hit';
 
 /**
  * "Construye el Kanji" — cómo se forman los caracteres compuestos.
@@ -73,6 +76,37 @@ import {
 
 type Step = 'story' | 'compose' | 'draw';
 
+/** Instrucción del paso, para quien lee y no tiene nada más que leer. */
+const STEP_PROMPT: Record<Step, string> = {
+  story: '👀 Mira cómo se forma',
+  compose: '🤔 ¿Qué pieza va en cada hueco?',
+  draw: '✏️ Ahora dibújalo tú',
+};
+
+/** Clave de "modo" para `TutorialSeen`. La Fase 2 añade `recall`; mientras solo hay una. */
+const COMPOSE_MODE = 'compose';
+
+/**
+ * La última pieza del paseo de la primera vez: el lienzo.
+ *
+ * Va aparte de `COMPOSE_MODE` y no dentro del mismo paseo a propósito. Si la niña se va
+ * a mitad de ronda, el tutorial de componer ya se vio y no se debe repetir, pero lo de
+ * dibujar todavía no le tocó: con una sola clave para el paseo entero se habría perdido.
+ */
+/** Cuánto dura la demostración de trazo antes de devolverle el pega. */
+const DRAW_DEMO_MS = 3000;
+
+const DRAW_MODE = 'draw';
+
+/** Un hueco y la pieza que le corresponde. `from` dice de dónde hay que levantarla. */
+interface Need {
+  slotIndex: number;
+  /** En el marco lleno puede ser la pieza que está ya colocada en otro hueco. */
+  piece: TrayPiece | PlacedPiece;
+  /** Índice de otro hueco del marco, o `null` si la pieza está en la bandeja. */
+  from: number | null;
+}
+
 interface PlacedPiece {
   trayId: string;
   kanji: string;
@@ -81,7 +115,7 @@ interface PlacedPiece {
 
 @Component({
   selector: 'kanji-compose',
-  imports: [CdkDrag, GameFeedbackComponent, GameRestOverlayComponent],
+  imports: [CdkDrag, GameFeedbackComponent, GameRestOverlayComponent, GhostHand],
   templateUrl: './kanji-compose.html',
   styleUrl: './kanji-compose.scss',
 })
@@ -89,9 +123,6 @@ export class KanjiCompose implements OnInit, OnDestroy {
   // ============================================
   // ENTRADAS
   // ============================================
-
-  /** Sakura 🌸 (japonés) o Dragón 🐉 (chino). Los kanji son los mismos; cambia la envoltura. */
-  readonly script = input<Script>('japanese');
 
   // ============================================
   // SERVICIOS
@@ -105,6 +136,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
   private readonly speech = inject(SpeechService);
   /** Público: la plantilla lo usa para animar mientras suena. */
   readonly narrator = inject(Narrator);
+  private readonly tutorials = inject(TutorialSeen);
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -121,15 +153,13 @@ export class KanjiCompose implements OnInit, OnDestroy {
   readonly consecutiveCorrect = this.session.consecutiveCorrect;
   readonly isTimeUp = this.session.isTimeUp;
 
-  /** Persona que guía: Aki en Sakura, Long en Dragón */
-  readonly guide = computed(() =>
-    this.script() === 'japanese'
-      ? { name: 'Aki', planet: 'Planeta Sakura', emoji: '🤖', color: '#f9a8d4' }
-      : { name: 'Long', planet: 'Planeta Dragón', emoji: '🐉', color: '#fbbf24' },
-  );
-
-  /** Mostrar el pinyin (chino) en vez de la lectura japonesa */
-  readonly showPinyin = computed(() => this.script() === 'chinese');
+  /** Persona que guía: Aki, en el Planeta Sakura */
+  readonly guide = computed(() => ({
+    name: 'Aki',
+    planet: 'Planeta Sakura',
+    emoji: '🤖',
+    color: '#f9a8d4',
+  }));
 
   // ============================================
   // ESTADO
@@ -179,6 +209,60 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   private readonly localFeedback = signal<'idle' | 'success'>('idle');
 
+  /**
+   * Estamos en el momento de descubrimiento tras componer: el kanji acaba de sonar y se
+   * están viendo los hermanos. Ese instante **no lleva banner**: enseñar un "¡Muy bien!"
+   * aleatorio mientras ella mira el kanji que ha montado le pone un texto donde no hay
+   * nada que leer todavía. Es público porque la plantilla lo usa para esconder el banner.
+   */
+  readonly celebrating = signal(false);
+
+  /**
+   * Ya se registró el resultado de **este** problema.
+   *
+   * Es la guarda que faltaba para un doble toque en ✅. `finishDrawing()` solo miraba
+   * `busy()`, y `busy` sigue en `false` durante todo el paso Dibujar — se puso en
+   * `onComposed()` y se descargó al entrar aquí—, así que dos toques seguidos llegaban a
+   * `finishProblem()` dos veces y se anotaban **dos aciertos**: racha doble y nivel
+   * saltado, que además se guardaba en `progress`.
+   *
+   * No se usa `busy` como guard por diseño: frenaría el dibujo entero, y aquí lo que se
+   * quiere es que este problema puntual sólo cuente una vez.
+   */
+  private readonly drawn = signal(false);
+
+  /**
+   * Escalera de ayuda (§5.5). Es la misma clase que en `logic-blocks`, y se traduce así
+   * al paso de componer: 1 → vuelve a sonar el kanji, 2 → se resalta la pieza que encaja,
+   * 3 → la mano fantasma la arrastra (solo a los 4 años; `LADDER_BY_AGE` pone el tope de
+   * 6 años en 2, porque a esa edad resolverlo por ella le quita el aprendizaje).
+   */
+  private readonly ladder = new HintLadder(configForAge(this.activeProfile()?.age ?? 6));
+
+  readonly ladderLevel = signal<LadderLevel>(0);
+
+  /**
+   * Tutorial de tres tiempos, la primera vez por perfil y modo: **esto es → mira cómo →
+   * ahora tú**. Solo para quien no lee: a los 6 años la instrucción hablada basta, y un
+   * adulto digital que se pone a arrastrar delante de quien ya sabe leer le quita turno.
+   */
+  readonly tutorial = signal<'off' | 'look' | 'demo' | 'your-turn'>('off');
+
+  /**
+   * Primera vez en el paso de dibujar: no se explica que se traza con el dedo, se muestra.
+   * Mismo gesto que el resto del paseo —presentar, imitar, hacer— y misma razón: a los 4
+   * años la instrucción escrita no le llega, el movimiento sí.
+   */
+  readonly drawHint = signal<'off' | 'demo' | 'your-turn'>('off');
+
+  /**
+   * La pieza que la mano fantasma está arrastrando, en coordenadas relativas a `.work-area`.
+   * Puramente visual: no toca `tray()` ni `placed()`, no cuenta como acierto ni error.
+   */
+  readonly demo = signal<{ from: { x: number; y: number }; to: { x: number; y: number }; kanji: string } | null>(
+    null,
+  );
+
   // ============================================
   // DERIVADOS
   // ============================================
@@ -187,6 +271,72 @@ export class KanjiCompose implements OnInit, OnDestroy {
   readonly showGhost = computed(
     () => this.step() === 'compose' && (this.problem()?.showGhost ?? false),
   );
+
+  /**
+   * Alfa del fantasma. Se atenúa por nivel en vez de apagarse de golpe (§3.2).
+   *
+   * Se lleva al **color** y no a `opacity`: `.ghost` ya es blanco al 9 % y multiplicarlo
+   * por 0.3 lo habría dejado en el 2.7 %, que es invisible. El valor baja con el nivel
+   * y en 0 el propio `showGhost` ya no pinta el elemento.
+   */
+  readonly ghostAlpha = computed(() => {
+    if (!this.showGhost()) return 0;
+    return 0.03 + 0.13 * (this.problem()?.ghost ?? 1);
+  });
+  /**
+   * Qué enseñar en el peldaño 3: un hueco y la pieza que le corresponde.
+   *
+   * Hay dos situaciones y **las dos importan**:
+   *
+   *  - **Marco incompleto**: el hueco vacío, y la pieza que encaja, que está en la
+   *    bandeja. Es el caso de la inactividad.
+   *  - **Marco lleno pero mal**: es el caso del error, y el único que se puede dar
+   *    cuando se registra —`evaluate()` solo cuenta el fallo con el marco lleno—. Aquí
+   *    no hay hueco vacío que señalar, así que se señala el primer hueco mal puesto y se
+   *    levanta la pieza de donde ella la puso. Es la demostración de *"la pieza está
+   *    bien, pero en otro hueco"*, que es literalmente la pregunta socrática de ese
+   *    instante. Sin esto, el peldaño 3 se quedaba en silencio justo cuando más hacía
+   *    falta.
+   *
+   * Se busca por `kanji` y no por identidad de pieza: 林 y 明 traen dos piezas iguales
+   * y cualquier 木 encaja en cualquier hueco de 木. Da igual cuál se arrastre; lo que
+   * importa es enseñar el gesto.
+   */
+  readonly nextNeed = computed<Need | null>(() => {
+    const p = this.problem();
+    if (!p) return null;
+    const pl = this.placed();
+
+    const hueco = pl.findIndex(x => x === null);
+    if (hueco >= 0) {
+      const kanji = p.slots[hueco]?.kanji;
+      const piece = kanji ? this.tray().find(t => t.kanji === kanji) : undefined;
+      return piece ? { slotIndex: hueco, piece, from: null } : null;
+    }
+
+    const mal = pl.findIndex((x, i) => x !== null && x.kanji !== p.slots[i]?.kanji);
+    if (mal < 0) return null;
+    const querido = p.slots[mal]?.kanji;
+    if (!querido) return null;
+
+    const enBandeja = this.tray().find(t => t.kanji === querido);
+    if (enBandeja) return { slotIndex: mal, piece: enBandeja, from: null };
+
+    const desde = pl.findIndex((x, i) => x !== null && i !== mal && x.kanji === querido);
+    const pieza = desde >= 0 ? pl[desde] : null;
+    return pieza ? { slotIndex: mal, piece: pieza, from: desde } : null;
+  });
+
+  /** Peldaño 2: la pieza que encaja en el hueco vacío. */
+  readonly hintedPieceId = computed(() =>
+    this.ladderLevel() >= 2 ? (this.nextNeed()?.piece.trayId ?? '') : '',
+  );
+
+  /** Peldaño 2: el hueco a que pertenece. Resaltar solo la pieza dejaba sin decir dónde. */
+  readonly hintedSlot = computed(() =>
+    this.ladderLevel() >= 2 ? (this.nextNeed()?.slotIndex ?? -1) : -1,
+  );
+
   readonly filledCount = computed(() => this.placed().filter(Boolean).length);
   readonly allFilled = computed(
     () => this.placed().length > 0 && this.placed().every(Boolean),
@@ -198,6 +348,48 @@ export class KanjiCompose implements OnInit, OnDestroy {
     return this.localFeedback();
   });
 
+  /**
+   * Instrucción del paso, o la duda socrática que acaba de oírse. **Nunca vacío**: con
+   * `line()` a `''` el componente se dibujaba como una caja hueca de 70 px.
+   *
+   * Los dos fallos que evita `localFeedback`: se quedaba en `'success'` desde
+   * `onComposed()`, con lo que la caja ignoraba `customMessage` y escogía texto aleatorio
+   * de `BASE_FEEDBACK_MESSAGES` durante **todo** el paso de dibujo. Ahora `success` solo
+   * se pone al terminar la ronda.
+   *
+   * El caso "no hay nada que decir" no vive aquí a propósito: vive en `celebrating`. Si
+   * se devolviera `''`, el `@if` de la plantilla no pintaría nada y dejaría de mostrarse
+   * el mensaje propio del componente en `success`/`game-over`, que a `customMessage` ni
+   * lo mira.
+   */
+  readonly stepPrompt = computed(() => this.line() || STEP_PROMPT[this.step()]);
+
+  /**
+   * Cara de ánimo para quien todavía no lee (Q2): sustituye al banner entero a los 4
+   * años, igual que en `logic-blocks`.
+   *
+   * Vacío cuando no hay nada que comunicar. En este juego no existe estado de error a
+   * propósito —los fallos devuelven una pregunta socrática, no un veredicto—, así que
+   * un 🤔 aparece justo cuando `line` lleva una duda hablada y ninguna cara está
+   * enseñando que lo que hizo estaba mal.
+   */
+  readonly mood = computed(() => {
+    const s = this.feedbackState();
+    if (s === 'success') return '🌟';
+    if (s === 'game-over') return '🏆';
+    if (this.celebrating()) return '✨';
+    return this.line() ? '🤔' : '';
+  });
+
+  /** Lo que lee un lector de pantalla en lugar del emoji. */
+  readonly moodText = computed(() => {
+    const s = this.feedbackState();
+    if (s === 'success') return '¡Lo conseguiste!';
+    if (s === 'game-over') return '¡Fin del juego!';
+    if (this.celebrating()) return 'Mira qué has hecho';
+    return this.line() ? 'Vamos a pensarlo' : '';
+  });
+
   /** Trazos dibujados en la fase de dibujo */
   readonly strokes = signal<{ x: number; y: number }[][]>([]);
   private drawing: { x: number; y: number }[] | null = null;
@@ -207,11 +399,21 @@ export class KanjiCompose implements OnInit, OnDestroy {
   // ============================================
 
   private readonly slotEls = viewChildren<ElementRef<HTMLElement>>('slot');
+  private readonly trayEls = viewChildren<ElementRef<HTMLElement>>('trayPiece');
+  /** Contenedor de la medición: las coordenadas del gesto son relativas a él. */
+  private readonly container = viewChild<ElementRef<HTMLElement>>('container');
+  /** 2 pasadas de 1.9 s + márgenes: igual que en `logic-blocks`. */
+  private readonly DEMO_MS = 4600;
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private unsubscribeEvents?: () => void;
   private destroyed = false;
   private lastDragEnd = 0;
+  /** Última pieza que ya tiene su nombre sonando, y cuándo. Ver `hearPiece`. */
+  private lastPieceHeard: string | null = null;
+  private lastPieceHeardAt = 0;
+  /** Disparo que borra la pregunta socrática. Se cancela si reintenta antes (B8). */
+  private clearPromptTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ============================================
   // CICLO DE VIDA
@@ -256,12 +458,12 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
     this.generateProblem();
 
-    // Empieza sola en el laboratorio: allí no hay problema de autoplay y se quiere iterar rápido.
-    if (this.autoStart()) this.later(() => this.startGame(), 200);
+    // Sin puerta de inicio: el juego arranca al entrar. El audio que el navegador llegue
+    // a bloquear lo suelta el primer toque, que ella da igualmente al entrar desde el
+    // menú (ver `GameAudioService`), así que no hace falta un botón intermedio solo para
+    // oír algo.
+    this.later(() => this.startGame(), 200);
   }
-
-  /** El laboratorio salta la puerta de inicio para probar sin toques extra. */
-  readonly autoStart = input(false, { alias: 'autoStart' });
 
   ngOnDestroy(): void {
     this.destroyed = true;
@@ -296,6 +498,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   generateProblem(): void {
     this.clearTimers();
+    this.clearPromptTimer = null;
     this.narrator.cancel();
     const age = this.activeProfile()?.age ?? 6;
     const p = buildCompositionProblem(this.currentLevel(), age);
@@ -312,8 +515,20 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.showGhostInDraw.set(true);
     this.strokes.set([]);
     this.drawing = null;
+    this.drawn.set(false);
+    this.celebrating.set(false);
     this.localFeedback.set('idle');
     this.cue.set(null);
+    // Se olvida la pieza anterior: si el siguiente problema trae la misma, debe volver a
+    // sonar aunque fuera hace un segundo.
+    this.lastPieceHeard = null;
+    // Nuevo problema, escalera nueva: lo que le costó a la niña en el anterior no debe
+    // condenarla a empezar con la ayuda ya puesta.
+    this.ladder.reset();
+    this.ladderLevel.set(0);
+    this.tutorial.set('off');
+    this.drawHint.set('off');
+    this.demo.set(null);
 
     // Precarga: los clips del problema ya se descargan en silencio, para que el primer
     // sonido llegue **justo** cuando el kanji aparece. Sin esto se oye medio segundo de
@@ -325,9 +540,9 @@ export class KanjiCompose implements OnInit, OnDestroy {
     if (this.started()) this.later(() => void this.playStory(), 500);
   }
 
-  /** Lectura de la pieza según el mundo (kana o pinyin) */
-  pieceReading(_kanji: string, reading: string, pinyin: string): string {
-    return this.showPinyin() ? pinyin : reading;
+  /** Lectura de la pieza (kana) */
+  pieceReading(_kanji: string, reading: string): string {
+    return reading;
   }
 
   /** Emoji de una pieza, para la fase de historia */
@@ -349,7 +564,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
     if (this.started()) return;
     this.started.set(true);
     this.audio.retryPendingAudio();
-    const saludo = this.script() === 'japanese' ? sys('greeting.aki') : sys('greeting.long');
+    const saludo = sys('greeting.aki');
     // ⚠️ Encadenado, no concurrente. Antes se disparaba el saludo sin esperar y la historia
     // arrancaba 400 ms después con un temporizador: como el saludo dura ~7 s, ambos
     // ficheros sonaban **a la vez**, y encima la historia empezaba por su cuenta al
@@ -428,10 +643,25 @@ export class KanjiCompose implements OnInit, OnDestroy {
     void this.narrator.say(kanjiStory(t.id));
   }
 
-  /** Oye una pieza. Se llama al tocarla, al arrastrarla y al colocarla. */
+  /**
+   * Oye una pieza. Se llama al tocarla, al arrastrarla y al colocarla.
+   *
+   * ⚠️ Un solo sonido por gesto. `onTap` suena al tocar y `place()` vuelve a sonar al
+   * meterla; `onDragStarted` suena al agarrar y `onDragEnded` al soltar. Con ~100 ms de
+   * diferencia —el caso de un toque— el clip se reinicia cortando el primero a media
+   * palabra y la niña oye un sonido roto.
+   *
+   * Solo se salta si es la **misma** pieza. Si toca otra, la debe oír aunque fuera hace
+   * un instante: no oírla significa quedarse con el nombre anterior asociado a la forma
+   * que tiene en la mano.
+   */
   hearPiece(piece: TrayPiece | PlacedPiece): void {
     const id = pieceData(piece.kanji).id;
     if (!id) return;
+    const now = Date.now();
+    if (id === this.lastPieceHeard && now - this.lastPieceHeardAt < 1500) return;
+    this.lastPieceHeard = id;
+    this.lastPieceHeardAt = now;
     void this.narrator.say(pieceWord(id));
   }
 
@@ -455,10 +685,30 @@ export class KanjiCompose implements OnInit, OnDestroy {
   // PASO 1 → 2: HISTORIA
   // ============================================
 
-  startComposing(): void {
+  /**
+   * Empieza el paso de composición.
+   *
+   * ⚠️ Encadenado. Antes se disparaba la instrucción con `say()` **sin esperar** y a los
+   * 700 ms se llamaba a `hearKanji()`, que arrancaba un segundo clip; `say()` cancela lo
+   * anterior, así que la instrucción se cortaba a los 700 ms de un texto de ~3 s. Se oía
+   * "mira el dibujo borroso" y nada más, justo lo que decía la regla.
+   */
+  async startComposing(): Promise<void> {
     this.audio.retryPendingAudio();
     this.narrator.cancel();
     this.step.set('compose');
+    this.ladder.reset();
+    this.ladderLevel.set(0);
+
+    // La primera vez por perfil y modo no se explica nada: se muestra. La instrucción
+    // escrita "arrastra la pieza a su hueco" a una pre-lectora no le dice nada, y es
+    // justamente el gesto lo que hay que enseñar sin un adulto delante.
+    if (this.isPreReader() && !this.tutorials.has(this.GAME_ID, COMPOSE_MODE)) {
+      this.startTutorial();
+      this.startIdleWatch();
+      return;
+    }
+
     // Nada de texto que cante un acierto antes de tiempo: aquí empieza la investigación.
     this.line.set(
       this.showGhost()
@@ -466,16 +716,29 @@ export class KanjiCompose implements OnInit, OnDestroy {
         : '🤔 ¿Qué pieza va en cada hueco? Puedes probarlas.',
     );
     // Y se dice en voz, no se escribe: a los 4 años ese texto no le llega.
-    void this.narrator.say(this.showGhost() ? sys('look-ghost') : sys('which-piece'));
+    await this.narrator.say(this.showGhost() ? sys('look-ghost') : sys('which-piece'));
     // El sonido del kanji justo al entrar: ancla la palabra antes de construirla.
-    this.later(() => this.hearKanji(), 700);
+    if (this.destroyed || this.step() !== 'compose') return;
+    this.hearKanji();
+    this.startIdleWatch();
   }
 
   // ============================================
   // PASO 2: COMPOSICIÓN
   // ============================================
 
+  /**
+   * Cualquier gesto reinicia el reloj de la escalera. **No** borra los errores: volver a
+   * tocar la pantalla no deshace que se fallaron tres veces seguidas.
+   */
+  onActivity(): void {
+    if (this.step() !== 'compose') return;
+    this.ladder.touch();
+    this.ladderLevel.set(this.ladder.level);
+  }
+
   onDragStarted(piece: TrayPiece): void {
+    this.onActivity();
     // Agarrar una pieza **suena**. Es lo que hace posible el emparejamiento pieza ↔ sonido:
     // antes el sonido solo ocurría al soltar, y entonces ya era demasiado tarde para
     // asociar la pieza que tenía en la mano.
@@ -483,15 +746,14 @@ export class KanjiCompose implements OnInit, OnDestroy {
   }
 
   onDragEnded(event: CdkDragEnd, piece: TrayPiece): void {
+    this.onActivity();
     this.lastDragEnd = Date.now();
     const slots = this.slotEls().map(s => s.nativeElement.getBoundingClientRect());
     const { x, y } = event.dropPoint;
 
-    // El margen permite soltar "cerca" sin ser demasiado permisivo con los dedos pequeños
-    const m = 40;
-    const hit = slots.findIndex(
-      r => x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m,
-    );
+    // Margen de 40 px para dedos pequeños; si dos huecos se solapan por el margen
+    // gana el de centro más cercano (antes ganaba siempre el primero).
+    const hit = nearestSlot(slots, x, y);
 
     if (hit >= 0) {
       this.place(hit, piece);
@@ -505,6 +767,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
   onTap(piece: TrayPiece): void {
     if (Date.now() - this.lastDragEnd < 300) return; // ignora el click que sigue al arrastre
     // Tocar en la bandeja también suena: es una de las dos formas de agarrar sin arrastrar.
+    this.onActivity();
     this.hearPiece(piece);
     const free = this.placed().findIndex(p => p === null);
     if (free < 0) return;
@@ -514,6 +777,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
   /** Devuelve a la bandeja una pieza ya colocada */
   pickBack(index: number): void {
     if (this.busy() || this.isOver()) return;
+    this.onActivity();
     const occupant = this.placed()[index];
     if (!occupant) return;
     this.hearPiece(occupant);
@@ -590,6 +854,9 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     // No se penaliza ni se rompe la racha: se devuelve una pregunta
     this.line.set(pickLine(moment));
     this.hint.set('🤔 Prueba otra vez, o muévelas y observa qué cambia');
+    // El error no es un veredicto, es el mecanismo que sube la ayuda. Se registra aquí y
+    // no antes: solo cuenta cuando la composición queda llena y no es exacta.
+    this.onWrong();
 
     // ⚠️ Aquí se quitó `audio.playFailure()`. Un zumbido de error es un **veredicto**:
     // le dice a la niña que lo que hizo está mal antes de que sepa *por qué*. El método
@@ -598,10 +865,18 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     // canal para la pregunta, así que el sonido es la pregunta, no el castigo.
     this.speakSocratic(moment);
 
-    this.later(() => {
+    // ⏱️ El id se guarda para poder cancelarlo: sin esto, si ella vuelve a intentarlo
+    // antes de los 3200 ms, el disparo viejo borra el texto del intento **nuevo** y la
+    // pregunta desaparece mientras la está leyendo.
+    if (this.clearPromptTimer !== null) clearTimeout(this.clearPromptTimer);
+    const timer = setTimeout(() => {
+      this.timers.delete(timer);
+      this.clearPromptTimer = null;
       this.line.set('');
       this.hint.set('');
     }, 3200);
+    this.clearPromptTimer = timer;
+    this.timers.add(timer);
   }
 
   /**
@@ -618,31 +893,232 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
 
   private onComposed(): void {
     this.busy.set(true);
-    this.localFeedback.set('success');
+    // Ya entendió qué pieza va en cada hueco: no hay nada que escalar.
+    this.ladder.registerCorrect();
+    this.ladderLevel.set(0);
+    // ⚠️ Aquí **no** se pone `localFeedback = 'success'`. Es el instante en que se mira
+    // lo que acaba de montarse, y con ese estado el banner dejaba de mirarse a
+    // `customMessage` y escogía un "¡Muy bien!" aleatorio que seguía apareciendo durante
+    // todo el paso de dibujo. No hay elogio todavía: hay un descubrimiento.
+    this.celebrating.set(true);
+    this.line.set('');
     this.hint.set('');
     // El kanji ya compuesto suena **antes** de nada: es el momento en que la forma que
     // ella acaba de construir y su sonido se encuentran por primera vez.
     this.hearKanji();
 
-    // Si el kanji tiene "hermanos", es el mejor momento para el descubrimiento
-    const siblings = this.target()?.siblings ?? [];
-    if (siblings.length > 0) {
+    // Si el kanji tiene "hermanos", es el mejor momento para el descubrimiento.
+    if ((this.target()?.siblings ?? []).length > 0) {
+      // 1500 ms y no 900: el clip del kanji dura ~1.2 s, y a los 900 ms se le cortaba a
+      // medio nombre justo en el momento en que acababa de completarse.
       this.later(() => {
         this.showSiblings.set(true);
         this.line.set(pickLine('sibling-discovery'));
-      }, 900);
+        // Se **dice**, no solo se escribe: a los 4 años ese `h2` no le llega, y sin este
+        // clip el descubrimiento de "estas mismas piezas forman otro kanji" pasaba en
+        // silencio.
+        this.speakSiblings();
+      }, 1500);
+      // El paso de dibujo NO se prepara a escondidas debajo del overlay: se abre al
+      // cerrarlo (ver `dismissSiblings`).
+    } else {
+      this.later(() => this.enterDraw(), 2200);
     }
+  }
+
+  /**
+   * "¡Mira! Con las mismas piezas salen otros kanji", y después cada hermano con su
+   * lectura. La pausa deja tiempo de mirar cada uno antes de oírlo.
+   */
+  private speakSiblings(): void {
+    const siblings = this.target()?.siblings ?? [];
+    void this.narrator.play([
+      { clip: sys('siblings'), pauseAfterMs: 500 },
+      ...siblings.map(sib => ({ clip: siblingWord(sib.kanji), pauseAfterMs: 900 })),
+    ]);
+  }
+
+  /** Pasa al paso de dibujo. La instrucción se oye, no solo se escribe (B9). */
+  private enterDraw(): void {
+    this.busy.set(false);
+    this.celebrating.set(false);
+    // ⚠️ Se borra lo del paso anterior. Sin esto, si el kanji tenía hermanos, la frase
+    // del overlay ("¿Cuál te gusta más?") seguía en el banner durante todo el dibujo:
+    // era la tercera cara de B2, y solo salía a la luz con un kanji con hermanos.
+    this.line.set('');
+    this.hint.set('');
+    this.step.set('draw');
+    // La ayuda solo tiene sentido mientras se compone. Con `busy` en `false` el reloj
+    // seguiría corriendo durante el dibujo y a los 8 s se oiría el kanji otra vez.
+    this.ladder.reset();
+    this.ladderLevel.set(0);
+    this.demo.set(null);
+
+    // Primera vez: la última pieza del paseo de la primera ronda.
+    if (this.isPreReader() && !this.tutorials.has(this.GAME_ID, DRAW_MODE)) {
+      this.startDrawOnboarding();
+    } else {
+      void this.narrator.say(sys('draw-now'));
+    }
+  }
+
+  /**
+   * Muestra cómo se traza y devuelve el pega a los ~4,5 s. Igual que el tutorial de
+   * componer: se corta sola, y si toca el lienzo antes, mejor todavía.
+   */
+  private startDrawOnboarding(): void {
+    // `draw-empty` es la instrucción **y** el pie del gesto: dice "con el dedo" en el
+    // instante exacto en que el dedo deja la línea.
+    this.drawHint.set('demo');
+    void this.narrator.say(sys('draw-empty'));
+
     this.later(() => {
-      // busy se suelta aquí: mientras compose está bloqueado, pero al pasar a dibujar
-      // debe volver a estar libre o finishDrawing() nunca llegaría a registrar el acierto.
-      this.busy.set(false);
-      this.step.set('draw');
-    }, 2200);
+      if (this.destroyed || this.step() !== 'draw') return;
+      this.drawHint.set('your-turn');
+      void this.narrator.say(sys('now-you'));
+    }, DRAW_DEMO_MS);
+
+    this.later(() => this.drawHint.set('off'), DRAW_DEMO_MS + 1400);
+  }
+
+  /** Si toca el lienzo, es que ya quiere dibujar: se corta y no se vuelve a ver. */
+  skipDrawOnboarding(): void {
+    if (this.drawHint() === 'off') return;
+    this.tutorials.mark(this.GAME_ID, DRAW_MODE);
+    this.drawHint.set('off');
   }
 
   dismissSiblings(): void {
+    if (!this.showSiblings()) return;
     this.showSiblings.set(false);
-    this.step.set('draw');
+    this.enterDraw();
+  }
+
+  // ============================================
+  // ESCALERA DE AYUDA (§5.5)
+  // ============================================
+
+  /**
+   * Mira periódicamente si lleva demasiado tiempo sin hacer nada. Se detiene sola: al
+   * salir del paso de componer `tickLadder` no se vuelve a agendar.
+   */
+  private startIdleWatch(): void {
+    this.later(() => this.tickLadder(), 1000);
+  }
+
+  private tickLadder(): void {
+    // `busy` cubre la ventana en que ya acertó pero todavía no se ha ido al dibujo: ahí
+    // el kanji acaba de sonar y repetirlo a los segundos sería interrumpir el momento.
+    if (this.destroyed || this.busy() || this.step() !== 'compose') return;
+    const subio = this.ladder.tick();
+    if (subio) this.onLadderRise(subio);
+    this.later(() => this.tickLadder(), 1000);
+  }
+
+  /**
+   * Un error sube la ayuda, no dice nada nuevo. La pregunta socrática ya se acaba de
+   * hablar en `evaluate()`: añadir aquí el sonido del kanji la cancelaría a mitad.
+   */
+  private onWrong(): void {
+    const subio = this.ladder.registerWrong();
+    this.ladderLevel.set(this.ladder.level);
+    if (subio === 3 && this.ladder.shouldDemo()) this.showPieceDemo();
+  }
+
+  private onLadderRise(level: LadderLevel): void {
+    this.ladderLevel.set(level);
+
+    // Peldaño 1: vuelve a sonar el kanji. Es "pulsa la 🔊" sin tener que buscar el
+    // botón: si se quedó quieta es porque ya no sabe qué suena con qué.
+    if (level === 1) {
+      this.hearKanji();
+      return;
+    }
+
+    // Peldaño 3: demostración. A los 6 años `maxLevel` es 2 y esto no llega a ocurrir.
+    if (level === 3 && this.ladder.shouldDemo()) this.showPieceDemo();
+  }
+
+  // ============================================
+  // DEMOSTRACIÓN (§5.5)
+  // ============================================
+
+  /**
+   * Enseña **un** movimiento, sobre un clon: la pieza que corresponde yendo a su hueco.
+   *
+   * No toca `tray()` ni `placed()`: no cuenta como acierto ni como error, porque no lo
+   * fue. Es el mismo contrato que en `logic-blocks`.
+   */
+  private showPieceDemo(): void {
+    const need = this.nextNeed();
+    const root = this.container()?.nativeElement.getBoundingClientRect();
+    if (!need || !root) return;
+
+    // De dónde se levanta: de la bandeja, o del hueco donde acaba de ponerla ella. Es
+    // lo único que cambia entre los dos casos de `nextNeed`.
+    const src = (
+      need.from === null
+        ? this.trayEls().find(e => e.nativeElement.dataset['tray'] === need.piece.trayId)
+        : this.slotEls()[need.from]
+    )?.nativeElement.getBoundingClientRect();
+    const dst = this.slotEls()[need.slotIndex]?.nativeElement.getBoundingClientRect();
+    if (!src || !dst) return;
+
+    // Relativas al contenedor y no a la ventana: el gesto sigue siendo correcto aunque
+    // la página se desplace mientras se reproduce.
+    const centro = (r: DOMRect) => ({
+      x: r.left + r.width / 2 - root.left,
+      y: r.top + r.height / 2 - root.top,
+    });
+    this.demo.set({ from: centro(src), to: centro(dst), kanji: need.piece.kanji });
+    this.later(() => this.demo.set(null), this.DEMO_MS);
+  }
+
+  // ============================================
+  // TUTORIAL (§5.5)
+  // ============================================
+
+  /**
+   * Tres tiempos: **esto es → mira cómo → ahora tú**. Es la lección Montessori y es la
+   * misma que en `logic-blocks`: primero se presenta, después se imita, después se hace
+   * sin ayuda. Una sola vez por perfil y modo.
+   */
+  private startTutorial(): void {
+    this.tutorial.set('look');
+
+    this.later(() => {
+      if (this.destroyed || this.step() !== 'compose') return;
+      this.tutorial.set('demo');
+      const need = this.nextNeed();
+      this.showPieceDemo();
+      // El nombre de la pieza suena mientras la mano la levanta: es el momento en que
+      // la forma y su sonido se encuentran, y sin esa voz el gesto es solo un movimiento.
+      if (need) this.hearPiece(need.piece);
+    }, 1600);
+
+    this.later(() => {
+      if (this.destroyed || this.step() !== 'compose') return;
+      this.tutorial.set('your-turn');
+      void this.narrator.say(sys('now-you'));
+    }, 1600 + this.DEMO_MS + 400);
+
+    // Se marca al terminar, no al empezar: si se va a mitad, la próxima vez vuelve a
+    // verlo. Es mejor repetir el tutorial una vez de más que quedarse sin él.
+    this.later(
+      () => {
+        this.tutorial.set('off');
+        this.tutorials.mark(this.GAME_ID, COMPOSE_MODE);
+      },
+      1600 + this.DEMO_MS + 400 + 1600,
+    );
+  }
+
+  /** Si toca algo, es que ya quiere jugar: se corta el tutorial. */
+  skipTutorial(): void {
+    if (this.tutorial() === 'off') return;
+    this.tutorials.mark(this.GAME_ID, COMPOSE_MODE);
+    this.tutorial.set('your-turn');
+    this.later(() => this.tutorial.set('off'), 900);
   }
 
   // ============================================
@@ -721,11 +1197,18 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
   }
 
   finishDrawing(): void {
-    if (this.isOver() || this.busy()) return;
+    if (this.isOver() || this.busy() || this.drawn()) return;
     if (this.strokes().length === 0) {
-      this.hint.set('👆 Dibuja con el dedo o el lápiz, aunque sea con una línea');
+      // Se **dice** (B9). Antes solo se escribía "Dibuja con el dedo…", que a los 4
+      // años no le llega: la niña pulsaba ✅ y no pasaba nada, sin que nadie le
+      // explicara que primero hay que dibujar.
+      void this.narrator.say(sys('draw-empty'));
+      if (!this.isPreReader()) {
+        this.hint.set('👆 Dibuja con el dedo o el lápiz, aunque sea con una línea');
+      }
       return;
     }
+    this.drawn.set(true);
     this.line.set(pickLine('draw-done'));
     this.finishProblem();
   }
@@ -735,6 +1218,10 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
   // ============================================
 
   private finishProblem(): void {
+    // El paseo de la primera vez acaba aquí, con la ronda completa. Se marca al llegar
+    // y no antes: si se va a mitad, lo que no le tocó se le vuelve a presentar.
+    this.tutorials.mark(this.GAME_ID, DRAW_MODE);
+    this.celebrating.set(false);
     this.localFeedback.set('success');
     const result = this.session.recordCorrect();
 
@@ -747,7 +1234,10 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     }
 
     this.audio.playPraise();
-    this.triggerConfetti();
+    // ⚠️ Sin confeti en cada kanji (Q5). Se disparaba tras **cada** ronda, con lo que
+    // dejó de significar "subiste de nivel" y el confeti del level-up —el que está
+    // debajo, en `handleSessionEvent`— pasó a no distinguirse del de siempre. El elogio
+    // sonoro se queda aquí; la lluvia de papel es solo para lo que no ocurría antes.
 
     // A los 6 años: reflexión de un toque antes del siguiente kanji
     if ((this.activeProfile()?.age ?? 6) >= 6) {

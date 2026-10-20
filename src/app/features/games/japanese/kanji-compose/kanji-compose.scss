@@ -1,23 +1,28 @@
 // ============================================
 // Construye el Kanji - estilos
-// Dos mundos bien separados a propósito (método Zvonkin §3): evitar que se
-// confundan japonés y chino. Sakura 🌸 en rosa, Dragón 🐉 en dorado.
+// Un solo mundo: Sakura 🌸 (japonés), en rosa. El mundo chino (Dragón) se retiró
+// para no mezclar lenguas a los 4-6 años (método Zvonkin §3).
 // ============================================
 
 $sakura: #f9a8d4;
 $sakura-dark: #db2777;
-$dragon: #fbbf24;
-$dragon-dark: #d97706;
 $ink: #1b1b3a;
+
+// Fuente escolar japonesa (Klee One, SIL OFL), recortada a los caracteres del catálogo.
+// Se regenera con `python scripts/build-kanji-font.py`.
+@font-face {
+  font-family: 'Klee One Kanji';
+  src: url('/fonts/KleeOne-kanji.woff2') format('woff2');
+  font-display: swap;
+}
+
+[lang='ja'] {
+  font-family: 'Klee One Kanji', 'Noto Sans JP', 'Hiragino Kaku Gothic Pro', 'Yu Gothic', sans-serif;
+}
 
 .compose-container {
   --accent: #{$sakura};
   --accent-dark: #{$sakura-dark};
-
-  &[data-world='chinese'] {
-    --accent: #{$dragon};
-    --accent-dark: #{$dragon-dark};
-  }
 
   min-height: 100vh;
   padding: 1.5rem;
@@ -82,14 +87,16 @@ $ink: #1b1b3a;
   padding: 0.5rem 0.9rem;
   margin-bottom: 1rem;
   font-size: 0.9rem;
+}
 
-  &-emoji {
-    font-size: 1.4rem;
-  }
+// Anidadas antes dentro de `.guide-bar` como `&-emoji`, que compilan a
+// `.guide-bar-emoji` mientras la plantilla escribe `.guide-emoji`: nunca se aplicaban.
+.guide-emoji {
+  font-size: 1.4rem;
+}
 
-  &-text {
-    opacity: 0.9;
-  }
+.guide-text {
+  opacity: 0.9;
 }
 
 // ---------- TABLERO ----------
@@ -199,10 +206,119 @@ $ink: #1b1b3a;
 // ============================================
 .work-area {
   width: 100%;
+  // Es el contenedor de la demostración: `ghost-hand` se posiciona contra él y las
+  // coordenadas que recibe están medidas contra este mismo rectángulo.
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.2rem;
+}
+
+// ============================================================
+// ESCALERA DE AYUDA (§5.5)
+//
+// Peldaño 2: se resalta la pieza que encaja en el hueco vacío **y el hueco**. Resaltar
+// solo la pieza dejaba sin decir adónde va, que es justo la mitad que no sabe.
+// ============================================================
+
+.tray-piece--hint,
+.slot--hint {
+  outline: 4px solid #fde047;
+  outline-offset: 3px;
+  animation: hint-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  50% {
+    outline-color: rgba(253, 224, 71, 0.3);
+  }
+}
+
+// ============================================================
+// PRIMERA VEZ EN EL LIENZO (§5.5)
+//
+// Dos trazos que se dibujan solos, uno tras otro. Es el equivalente a la mano fantasma
+// del paso de componer, pero para el gesto de dibujar: el orden y la dirección se ven,
+// no se leen.
+// ============================================================
+
+.draw-onboard {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.draw-onboard-svg {
+  width: 58%;
+  max-width: 210px;
+  aspect-ratio: 1;
+}
+
+.draw-onboard-stroke {
+  fill: none;
+  stroke: #fde047;
+  stroke-width: 11;
+  stroke-linecap: round;
+  // Más largo que cada trazo, para que con `dashoffset` completo no se vea nada.
+  stroke-dasharray: 90;
+  stroke-dashoffset: 90;
+  animation: draw-trace 1.3s ease-in-out forwards;
+}
+
+// El segundo empieza cuando termina el primero: que los dos no vayan a la vez es
+// justamente lo que hay que enseñar.
+.draw-onboard-stroke--2 {
+  animation-delay: 1.45s;
+}
+
+@keyframes draw-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.draw-onboard-hint {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0.8rem 1.6rem;
+  border-radius: 999px;
+}
+
+// ============================================================
+// TUTORIAL (§5.5)
+//
+// La mano fantasma va por encima del velo (z-index 40 frente a 35): si el velo la
+// tapara, no habría nada que imitar.
+// ============================================================
+
+.tutorial-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3rem;
+}
+
+.tutorial-hint {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0.8rem 1.6rem;
+  border-radius: 999px;
 }
 
 .frame {
@@ -227,7 +343,10 @@ $ink: #1b1b3a;
   place-items: center;
   font-size: 11rem;
   line-height: 1;
-  color: rgba(255, 255, 255, 0.09);
+  // El 0.12 es solo el respaldo: quien pone el valor real es `ghostAlpha()`, porque la
+  // intensidad depende del nivel. Dos orígenes distintos para lo mismo es justo cómo
+  // acaban apareciendo clases que no hacen nada, así que aquí queda por escrito.
+  color: rgba(255, 255, 255, var(--ghost-alpha, 0.12));
   pointer-events: none;
   user-select: none;
 }
@@ -331,11 +450,9 @@ $ink: #1b1b3a;
   opacity: 0.7;
 }
 
-// Arrastrando: el hueco se magnifica (preview del CDK)
-.cdk-drag-preview {
-  border-radius: 18px;
-  opacity: 0.9;
-}
+// Antes había aquí un `.cdk-drag-preview`. La vista previa del CDK se inserta en
+// `<body>`, fuera del encapsulado del componente, así que esas reglas nunca llegaban:
+// estaban muertas y daban la impresión de que la pieza arrastrada sí se estilizaba.
 
 .cdk-drag-placeholder {
   opacity: 0.3;
@@ -360,11 +477,6 @@ $ink: #1b1b3a;
   margin: 0;
   flex-wrap: wrap;
   justify-content: center;
-
-  strong {
-    color: var(--accent);
-    font-size: 1.6rem;
-  }
 }
 
 .ghost-toggle {
@@ -549,31 +661,18 @@ $ink: #1b1b3a;
   &:active {
     transform: scale(0.97);
   }
+}
 
-  &-emoji {
-    font-size: 1.5rem;
-  }
+// Igual que arriba: `&-emoji` dentro de `.reflection-btn` daba
+// `.reflection-btn-emoji`, y la plantilla escribe `.reflection-emoji`.
+.reflection-emoji {
+  font-size: 1.5rem;
 }
 
 // ============================================
 // KEYFRAMES
 // Clases que aplica `animate.enter`
 // ============================================
-
-.piece-enter {
-  animation: piece-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes piece-in {
-  from {
-    transform: translateY(24px) scale(0.5);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
 
 @keyframes reveal-pop {
   0% {
@@ -611,79 +710,36 @@ $ink: #1b1b3a;
 // ACCESIBILIDAD
 // ============================================
 @media (prefers-reduced-motion: reduce) {
-  .piece-enter,
   .slot--filled,
   .reveal-kanji,
   .overlay {
     animation: none !important;
   }
+  // El latido del peldaño 2 solo llama la atención: quien pide movimiento reducido ya la
+  // tiene. Un resaltado fijo sigue resaltando.
+  .tray-piece--hint,
+  .slot--hint {
+    animation: none !important;
+  }
+  // La demostración de trazo no se anima, pero **se ve**: los dos trazos aparecen
+  // completos. Quitársela entera sería dejar a la niña sin saber qué se hace aquí.
+  .draw-onboard-stroke {
+    animation: none !important;
+    stroke-dashoffset: 0;
+  }
 }
 /* ============================================================
-   PUERTA DE INICIO (§5.5)
-   Existe por el autoplay de iOS/Safari, no por gusto. El botón es enorme y sin texto
-   porque es un niño de 4 años el que lo tiene que encontrar solo.
+   LA PUERTA DE INICIO YA NO EXISTE
+   Antes había un botón "▶" que la niña tenía que apretar solo para que iOS y Safari le
+   dejaran oír algo. Es un paso de más para quien todavía no lee, y `logic-blocks` nunca
+   lo necesitó: el desbloqueo del audio lo hace ahora `GameAudioService` con el **primer
+   toque**, que ella da igualmente al entrar desde el menú.
    ============================================================ */
-.start-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(160deg, #2a1a3d 0%, #1a1030 100%);
-}
 
-// Columna con `gap` y sin márgenes sueltos: el robot, el nombre del planeta y el botón
-// formaban una pila con alturas dispares y el texto se colaba debajo del robot.
-.start-gate-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.6rem;
-  text-align: center;
-}
-
-.start-gate-emoji {
-  font-size: 5rem;
-  line-height: 1;          // sin esto, la altura de la línea deja hueco y el texto sube
-  animation: guide-bob 2.4s ease-in-out infinite;
-
-  &[data-world='chinese'] { animation-duration: 3s; }
-}
-
+// Se queda la animación: la usa el guía hablando, en `.guide-emoji.talking`.
 @keyframes guide-bob {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-14px); }
-}
-
-.start-gate-title {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-// 104 px, no 148: grande de sobra para el dedo de una niña de 4 años, sin dejar de ser un
-// botón y no un elemento que se come la pantalla.
-.start-gate-btn {
-  width: 104px;
-  height: 104px;
-  display: grid;
-  place-items: center;
-  font-size: 2.4rem;
-  line-height: 1;
-  border: none;
-  border-radius: 50%;
-  background: #fff;
-  color: #7c3aed;
-  cursor: pointer;
-  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-
-  &:active {
-    transform: translateY(5px);
-    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
-  }
 }
 
 /* Lectura + botón en una fila, con el botón pegado a la derecha del hiragana.
@@ -796,6 +852,46 @@ $ink: #1b1b3a;
   .story-piece.speaking,
   .reveal.speaking,
   .draw-kanji-btn.speaking,
-  .guide-emoji.talking,
-  .start-gate-emoji { animation: none; }
+  .guide-emoji.talking { animation: none; }
+}
+
+/* ============================================================
+   CARA DE ÁNIMO (Q2) — sustituye al banner a los 4 años
+   En este juego no hay estado de error a propósito: los fallos devuelven una pregunta
+   socrática hablada, así que el 🤔 aparece cuando hay una duda y jamás dice que lo que
+   hizo esté mal.
+   ============================================================ */
+.mood {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 74px;
+  margin-bottom: 0.5rem;
+
+  .mood-emoji {
+    font-size: 3rem;
+    animation: mood-pop 0.35s ease-out;
+  }
+
+  &[data-state='success'] .mood-emoji { animation: mood-star 0.8s ease-in-out 2; }
+}
+
+@keyframes mood-pop { from { transform: scale(0.5); } to { transform: scale(1); } }
+@keyframes mood-star {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.25); }
+}
+
+/* Texto solo para quien lo lea: el emoji es el mensaje, la frase la escucha un lector
+   de pantalla. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }

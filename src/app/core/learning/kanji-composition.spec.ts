@@ -3,12 +3,15 @@ import {
   buildCompositionProblem,
   clampLevel,
   compositionsForAge,
+  difficultyFor,
   getComposition,
   KANJI_COMPOSITIONS,
   MAX_LEVEL,
   pieceData,
   pickComposition,
   pickLine,
+  poolFor,
+  poolSplit,
   SocraticMoment,
   SOCRATIC_LINES,
   TrayPiece,
@@ -162,34 +165,64 @@ describe('buildCompositionProblem', () => {
     }
   });
 
-  it('4 años y niveles bajos: sin distractores y con guía fantasma', () => {
+  it('4 años: progresión escrita a mano y bandeja que siempre cuadra', () => {
+    // nivel → [ ¿fantasma?, distractores ]. Es la progresión que se escogió, no lo que
+    // el código decida hoy: si alguien mueve una perilla, este test se queja.
+    const esperado: Record<number, [boolean, number]> = {
+      1: [true, 0], 2: [true, 0], 3: [true, 0], 4: [true, 0],
+      5: [true, 0], 6: [true, 0], 7: [true, 1], 8: [true, 1],
+      9: [false, 1], 10: [false, 1],
+    };
+
     const rng = mulberry32(4321);
     for (let level = 1; level <= MAX_LEVEL; level++) {
       for (let i = 0; i < ITER; i++) {
         const p4 = buildCompositionProblem(level, 4, rng);
-        expect(p4.distractors).toBe(0);
-        expect(p4.showGhost).toBe(true);
-        expect(p4.tray.length).toBe(p4.slots.length);
+        expect(p4.showGhost, `nivel ${level} fantasma`).toBe(esperado[level]![0]);
+        expect(p4.distractors, `nivel ${level} distractores`).toBe(esperado[level]![1]);
+        expect(p4.tray.length).toBe(p4.slots.length + p4.distractors);
+
+        const needed = p4.slots.map(s => s.kanji);
+        for (const d of p4.tray.filter((t: TrayPiece) => !t.correct)) {
+          expect(needed, `nivel ${level}`).not.toContain(d.kanji);
+        }
       }
-    }
-    for (let level = 1; level <= 4; level++) {
-      const p6 = buildCompositionProblem(level, 6, rng);
-      expect(p6.distractors).toBe(0);
-      expect(p6.showGhost).toBe(true);
     }
   });
 
-  it('6 años desde el nivel 5: con distractores y sin guía', () => {
+  it('4 años nunca es más exigente que 6 en el mismo nivel', () => {
+    const rng = mulberry32(9911);
+    for (let level = 1; level <= MAX_LEVEL; level++) {
+      const p4 = buildCompositionProblem(level, 4, rng);
+      const p6 = buildCompositionProblem(level, 6, rng);
+      // Menos piezas raras, y la ayuda visual igual de fuerte o más —que es la que a
+      // los 4 años es la única que tiene para saber qué construir.
+      expect(p4.distractors, `nivel ${level} distractores`).toBeLessThanOrEqual(p6.distractors);
+      expect(p4.ghost, `nivel ${level} fantasma`).toBeGreaterThanOrEqual(p6.ghost);
+    }
+  });
+
+  it('6 años: progresión escrita a mano y distractores nunca ambiguos', () => {
+    // nivel → [ ¿fantasma?, distractores ]. El fantasma se retira en el 3 y se acaba en
+    // el 7; los distractores llegan en el 5 y llegan a 2 en el 9. Antes todo esto se
+    // decidía con `lvl < 5` y caía entero en el nivel 5 de golpe.
+    const esperado: Record<number, [boolean, number]> = {
+      1: [true, 0], 2: [true, 0], 3: [true, 0], 4: [true, 0],
+      5: [true, 1], 6: [true, 1], 7: [false, 1], 8: [false, 1],
+      9: [false, 2], 10: [false, 2],
+    };
+
     const rng = mulberry32(8765);
-    for (let level = 5; level <= MAX_LEVEL; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       for (let i = 0; i < ITER; i++) {
         const p = buildCompositionProblem(level, 6, rng);
-        expect(p.distractors, `nivel ${level} sin distractores`).toBeGreaterThanOrEqual(2);
-        expect(p.showGhost).toBe(false);
+        expect(p.showGhost, `nivel ${level} fantasma`).toBe(esperado[level]![0]);
+        expect(p.distractors, `nivel ${level} distractores`).toBe(esperado[level]![1]);
+
         // Ningún distractor puede ser una pieza del objetivo: sería ambiguo
         const needed = p.slots.map(s => s.kanji);
         for (const d of p.tray.filter((t: TrayPiece) => !t.correct)) {
-          expect(needed).not.toContain(d.kanji);
+          expect(needed, `nivel ${level}`).not.toContain(d.kanji);
         }
       }
     }
@@ -204,6 +237,98 @@ describe('buildCompositionProblem', () => {
         for (const t of p.tray) {
           if (!t.correct) expect(okKanji.has(t.kanji)).toBe(false);
         }
+      }
+    }
+  });
+});
+
+describe('§3.2 progresión y niveles', () => {
+  it('los pools son acumulativos: nada de lo aprendido desaparece al subir', () => {
+    for (const edad of [4, 6]) {
+      for (let nivel = 2; nivel <= MAX_LEVEL; nivel++) {
+        const anterior = poolFor(edad, nivel - 1);
+        const actual = poolFor(edad, nivel);
+        for (const id of anterior) {
+          expect(actual, `edad ${edad} nivel ${nivel} perdió ${id}`).toContain(id);
+        }
+      }
+    }
+  });
+
+  it('a los 4 años los 10 niveles ya no son todos el mismo', () => {
+    const nivel1 = poolFor(4, 1);
+    const nivel5 = poolFor(4, 5);
+    expect(nivel1.length).toBe(2);
+    expect(nivel5.length).toBe(6);
+    expect(nivel5).toContain('koi');
+    // Agotado el catálogo, del 7 al 10 es repaso puro — y ahí lo que cambia es la ayuda
+    expect(poolFor(4, 10)).toEqual(nivel5);
+    expect(difficultyFor(4, 10)).not.toEqual(difficultyFor(4, 5));
+  });
+
+  it('好 (koi) sale también a los 6 años, y pronto', () => {
+    expect(poolFor(6, 10)).toContain('koi');
+    expect(poolFor(6, 3)).toContain('koi');
+  });
+
+  it('60 % de lo nuevo y 40 % de repaso: la escalada manda, nada se olvida', () => {
+    const TOTAL = 3000;
+    const cuenta = new Map<string, number>();
+    const rng = mulberry32(4242);
+    for (let i = 0; i < TOTAL; i++) {
+      const id = pickComposition(9, 6, rng).id;
+      cuenta.set(id, (cuenta.get(id) ?? 0) + 1);
+    }
+
+    // Lo nuevo del nivel 9 son los dos de 3 piezas: tienen que dominar. Repartidos en
+    // pieles iguales entre 13 kanji habrían salido 1 de cada 13 y nunca se habría
+    // llegado a sentir la dificultad que abre el nivel.
+    const nuevos = (cuenta.get('mori') ?? 0) + (cuenta.get('go') ?? 0);
+    expect(nuevos).toBeGreaterThan(TOTAL * 0.5);
+
+    // ...pero el kanji del nivel 1 sigue saliendo, que era justamente lo que faltaba
+    const viejos = (cuenta.get('mei') ?? 0) + (cuenta.get('kyuu') ?? 0);
+    expect(viejos).toBeGreaterThan(0);
+  });
+
+  it('cada salto de nivel cambia UNA sola perilla de dificultad', () => {
+    for (const edad of [4, 6]) {
+      let anterior = difficultyFor(edad, 1);
+      expect(anterior.ghost).toBeGreaterThan(0);
+      expect(anterior.distractors).toBe(0);
+
+      for (let nivel = 2; nivel <= MAX_LEVEL; nivel++) {
+        const actual = difficultyFor(edad, nivel);
+        const etiqueta = `edad ${edad} nivel ${nivel}`;
+
+        // Ni el fantasma se enciende de nuevo ni los distractores retroceden
+        expect(actual.ghost, `${etiqueta}: el fantasma vuelve`).toBeLessThanOrEqual(anterior.ghost);
+        expect(actual.distractors, `${etiqueta}: menos distractores`).toBeGreaterThanOrEqual(
+          anterior.distractors,
+        );
+
+        if (actual.ghost === anterior.ghost && actual.distractors === anterior.distractors) {
+          anterior = actual;
+          continue;
+        }
+
+        // El acantilado del nivel 5 era exactamente esto: dos perillas a la vez
+        const cambios =
+          Number(actual.ghost !== anterior.ghost) +
+          Number(actual.distractors !== anterior.distractors);
+        expect(cambios, `${etiqueta}: dos cambios de golpe`).toBe(1);
+        anterior = actual;
+      }
+    }
+  });
+
+  it('poolSplit reparte el nivel en lo que acaba de llegar y lo que ya se ha visto', () => {
+    for (const edad of [4, 6]) {
+      for (let nivel = 1; nivel <= MAX_LEVEL; nivel++) {
+        const { nuevos, repaso } = poolSplit(edad, nivel);
+        const todos = poolFor(edad, nivel);
+        expect(nuevos.length + repaso.length, `edad ${edad} nivel ${nivel}`).toBe(todos.length);
+        for (const id of nuevos) expect(repaso, `edad ${edad} nivel ${nivel}`).not.toContain(id);
       }
     }
   });
