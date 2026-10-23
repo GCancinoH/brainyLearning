@@ -247,6 +247,32 @@ Hoy los hermanos son un overlay estático. Convertirlo en el **modo estrella**: 
 
 Mecánica: un reconocedor sencillo por *tabla de posiciones* (los `slots` ya están normalizados) con tolerancia. Es **isomorfismo + multi-solución + hipótesis** puros (Zvonkin) y reutiliza los datos existentes. Lo que la niña descubre ("la posición cambia el significado") es lo más valioso del juego.
 
+**Pendiente. Antes de escribirlo, dos preguntas que los datos plantean (23 oct):**
+
+1. **末 y 未 no están en el catálogo.** Solo existen como `siblings` de 本, es decir, con
+   kanji, lectura y significado pero **sin `slots`**. El reconocedor no puede encontrarlos
+   porque no hay posiciones que comparar. Se puede añadirlos como composiciones, pero eso
+   los metería en el pool y en el SRS —otra ronda de aprendizaje—, cuando lo valioso aquí
+   es que la niña los **descubra**, no que los estudie. La salida parece ser una tabla
+   aparte de "descubrimientos", con posiciones autoradas, que el reconocedor consulta
+   **después** del catálogo y que no alimenta ni el SRS ni el progreso.
+2. **末 y 未 solo se distinguen por la LONGITUD del trazo**, no por la posición: la一 de
+   末 es más larga que la de 未. Un tablero por posiciones no puede expresarlo. Hay que
+   decidir si el laboratorio se queda en lo que el tablero sí puede decir —木+一 abajo →
+   本, arriba → "punta de la reconocía"— o si se añade otra dimensión.
+
+Y una decisión de mecánica ya tomada: **arrastre libre que hace *snap* a posiciones
+candidatas con tolerancia**, no un puntero libre. Es lo que el informe dice
+("reconocedor con tolerancia"), es más fácil para una mano de 4 años, y es lo que ya hace
+el paso de componer —`nearestSlot`—, así que se reutiliza la maquinaria de puntero.
+
+**Q10 relacionado.** `ki-hayashi-mori` en `nature-engine` **no** tiene ids rotos: los
+datos están intactos. Es **duplicación** —nature-engine enseña 木 → 林 → 森 por
+*reconocimiento* (elige cuál), kanji-compose por *composición* (móntalo)—, y solo aparece
+para perfiles que pueden leer kanji. Es otra habilidad, así que no hay que borrar nada por
+la razón que daba el informe; la decisión (dejar los dos, o enlazar el de naturaleza con
+este laboratorio) la tomará §5.1 cuando exista.
+
 ### 5.2 "Adivina el significado" — descubrimiento antes de la revelación (impacto ALTO · M) — **Hecho (23 oct)**
 Antes de mostrar la historia: se dan las piezas con su emoji y voz (☀️ + 🌙) y se pregunta *"¿qué crees que quiere decir?"* con 3-4 opciones por emoji, **varias válidas**. Después se revela el kanji y su significado real. Cumple el §B.6 del documento (deducir significado) y convierte el paso 1 de espectáculo en indagación. A los 4 años: solo emoji + voz; a los 6: también puede escribir/ordenar la idea.
 
