@@ -247,8 +247,33 @@ Hoy los hermanos son un overlay estático. Convertirlo en el **modo estrella**: 
 
 Mecánica: un reconocedor sencillo por *tabla de posiciones* (los `slots` ya están normalizados) con tolerancia. Es **isomorfismo + multi-solución + hipótesis** puros (Zvonkin) y reutiliza los datos existentes. Lo que la niña descubre ("la posición cambia el significado") es lo más valioso del juego.
 
-### 5.2 "Adivina el significado" — descubrimiento antes de la revelación (impacto ALTO · M)
+### 5.2 "Adivina el significado" — descubrimiento antes de la revelación (impacto ALTO · M) — **Hecho (23 oct)**
 Antes de mostrar la historia: se dan las piezas con su emoji y voz (☀️ + 🌙) y se pregunta *"¿qué crees que quiere decir?"* con 3-4 opciones por emoji, **varias válidas**. Después se revela el kanji y su significado real. Cumple el §B.6 del documento (deducir significado) y convierte el paso 1 de espectáculo en indagación. A los 4 años: solo emoji + voz; a los 6: también puede escribir/ordenar la idea.
+
+**Hecho** como el paso 0 de la ronda (`buildGuessProblem` + paso `adivina`), solo para
+kanji **nuevos**: el repaso va derecho a la historia, porque volver a preguntar lo que ya
+sabe es un examen disfrazado de indagación.
+
+Las opciones son el significado **real** del kanji más los de sus propias piezas,
+deduplicadas por emoji. Para 日+🌙 caben "claro", "sol" y "luna", y las tres son hipótesis
+con las que la historia puede trabajar —de ahí que haya varias válidas y no una—. Tres
+decisiones:
+
+- **No se puntúa.** Ninguna opción es incorrecta, porque una hipótesis no lo es. Elegir
+  ☀️ "sol" no es un error: la historia dirá "sol y luna a la vez: claro" y su idea habrá
+  crecido. Un "no, es claro" rompería justo lo que el paso busca. Tampoco se anota en el
+  SRS: acertar al azar entre dos no dice nada.
+- **Se oyen los significados en español, a cualquier edad.** Sin oír que son "sol" y
+  "luna" no hay hipótesis que formar; "ひ" y "つき" no dicen nada ni a los 4 ni a los 6, y
+  eso es lo que la historia enseña después.
+- **2-3 opciones, no 3-4** como preveía el documento. Una opción que no tiene nada que ver
+  con las piezas (un 🐟 para sol y luna) se descarta de un vistazo y no haría más que
+  fingir que hay elección donde no la hay. Para los kanji de piezas repetidas —森 es
+  🌳+🌳+🌳— hace falta un emoji extra en la tabla `GUESS_EXTRA`, porque deduplicando no
+  quedaría nada que elegir.
+
+La revelación es la propia historia: no hay clip nuevo para ella, y la única pieza de audio
+añadida es la pregunta (`guess-question`, 1,8 s).
 
 ### 5.3 Trazo guiado con orden de trazos (impacto ALTO · L)
 - Usar **KanjiVG** (CC BY-SA 3.0, requiere atribución) para los 13 kanji + 20 piezas, empaquetado como SVG pequeño.
@@ -291,8 +316,23 @@ Cero código nuevo de infraestructura: copiar el patrón de `logic-blocks`.
 - Nivel 1: pulsa la 🔊; nivel 2: resalta la pieza correcta; nivel 3 (4 años): mano fantasma arrastra la pieza al hueco. Para 6 años, tope en nivel 2 (como ya define `LADDER_BY_AGE`).
 - Fantasma de **arrastre** (`GhostHand`) con la pieza real.
 
-### 5.6 Modo "Reconocer" (tres tiempos, 2.º y 3.er periodo) (impacto MEDIO · S-M)
-Aprovecha los clips `recall-hear`/`recall-see` que ya existen: oye "あかるい" → elige 明 entre 2-3 (y viceversa). Es la pieza que falta para completar la lección de tres tiempos y alimenta el SRS con recuerdo "frío" (sin construir).
+### 5.6 Modo "Reconocer" (tres tiempos, 2.º y 3.er periodo) (impacto MEDIO · S-M) — **Hecho (23 oct)**
+Aprovecha los clips `recall-hear`/`recall-see` que ya existen: oye "あかるい" → elige 明 entre 2-3. Es la pieza que falta para completar la lección de tres tiempos y alimenta el SRS con recuerdo "frío" (sin construir).
+
+**Hecho** como calentamiento de dos aciertos que abre la sesión (`buildRecallProblem` +
+paso `reconocer`). Cuatro decisiones, todas en el código con su porqué:
+
+- **Solo la dirección "escuchar"** (oye la lectura, elige el kanji). La inversa —ver el
+  kanji y elegir su lectura en hiragana— es un examen de *kana*, que es otra asignatura y
+  otra edad; la de significado es §5.2 y va por emoji, no por kana.
+- **Los distractores comparten pieza** cuando hay de donde elegir (§B.5): un distractor
+  que no se parece a nada se elimina de un vistazo y no prueba nada.
+- **No cuenta el kanji que va a componer ahora**, para que el recuerdo sea frío de verdad.
+- **Solo la primera tirada cuenta** en el SRS: con dos opciones, si contasen todas se
+  subiría de caja por descarte.
+
+Un error no zumba: se atenúa la que no es y se vuelve a oír la lectura. Si ya ha descartado
+todo lo demás, el kanji se levanta —el peldaño 2 de la escalera, aquí donde no hay hueco—.
 
 ### 5.7 Modo pareja asimétrico (§4 del documento) (impacto MEDIO · M)
 Como `space-rescue-mission`:
@@ -304,8 +344,20 @@ Como `space-rescue-mission`:
 - Cada kanji construido y dibujado = una **carta/sticker** (el perfil ya tiene `stickers` y el dashboard muestra el álbum, pero nadie las añade desde juegos).
 - Vista de **familias de piezas**: la ficha 木 conecta 休·林·森·本; 日 conecta 明·星. Refuerza reconocimiento de componentes (§B.5) y da objetivo de coleccionar sin presión de tiempo.
 
-### 5.9 Ritual "Flash" de 60 s (Doman + Plantilla 7) (impacto MEDIO · S)
+### 5.9 Ritual "Flash" de 60 s (Doman + Plantilla 7) (impacto MEDIO · S) — **Hecho (23 oct)**
 Calentamiento antes de jugar: 5 kanji ya vistos, **mostrar–decir–retirar** a 1 s cada uno, sin pregunta. Es el ritual de inicio que propone el documento y la forma más barata de repasar.
+
+**Hecho** (paso `flash`, 5 kanji × 1 s ≈ 6 s, no 60). Dos desviaciones, ambas a propósito:
+
+- **Va DESPUÉS de §5.6, no antes.** El Flash enseña los kanji, y en cuanto se enseñan el
+  recuerdo deja de ser frío, que es lo único que el Reconocer puede medir. Al revés,
+  "¿cuál suena?" se respondería con lo visto hace cinco segundos y el SRS recibiría una
+  señal sin significado. La sesión es: examinar → enseñar → jugar.
+- **Una sola tarjeta en pantalla**, no una pila de cinco: el ritual es *retirar*, y cinco
+  juntas serían un álbum, que es otra cosa.
+
+Es además el único calentamiento que funciona desde la primera sesión: se puede enseñar un
+kanji conocido desde que se conoce uno, mientras que reconocer exige tres.
 
 ### 5.10 Transferencia entre juegos (impacto MEDIO · S)
 Los componentes ya existen en otros juegos: 日 月 火 水 木 金 土 son los días del calendario; 木/林/森 están en Naturaleza. Añadir *"¡Ya conoces este! 木 está en 木曜日"* y puentes de entrada (si domina el calendario, desbloquear las piezas correspondientes).
@@ -355,8 +407,9 @@ Sprint 3 y 4, y de Sprint 2 el sprite/Web Audio.*
 
 ### Sprint 3 — Descubrimiento (el salto de calidad)
 - [ ] **Laboratorio de posición** (§5.1)
-- [ ] **Adivina el significado** (§5.2)
-- [ ] Modo **Reconocer** (§5.6) · ritual **Flash** (§5.9)
+- [x] **Adivina el significado** (§5.2) — solo en kanji nuevos; la historia es la respuesta
+- [x] Modo **Reconocer** (§5.6) — calentamiento de 2 aciertos con recuerdo frío
+- [x] Ritual **Flash** (§5.9) — mostrar–decir–retirar; va **después** de examinar, no antes
 - [ ] Resolver solape con `nature-engine` (Q10)
 
 ### Sprint 4 — Motivación y familia

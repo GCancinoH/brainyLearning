@@ -64,6 +64,7 @@ export const SYSTEM_TEXT: Record<string, string> = {
   'look-ghost': 'Mira el dibujo borroso. ¿Qué piezas necesitas?',
   'which-piece': '¿Qué pieza va en cada hueco? Puedes probar.',
   'now-you': 'Ahora tú.',
+  'guess-question': '¿Qué crees que quiere decir?',
   'recall-hear': 'Escucha. ¿Cuál es?',
   'recall-see': 'Mira. ¿Cómo suena?',
   'recall-again': 'Escucha otra vez.',

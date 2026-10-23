@@ -216,6 +216,110 @@ $ink: #1b1b3a;
 }
 
 // ============================================================
+// ADIVINA EL SIGNIFICADO (§5.2)
+//
+// Las piezas se enseñan **juntas y todavía sueltas**: el "+" entre ellas es toda la
+// pregunta hecha forma. Los botones llevan el significado escrito además del emoji —quien
+// ya lee se lo encuentra ahí, y quien no, se queda con el emoji, que es lo mismo que le
+// contarán después—.
+// ============================================================
+
+.adivina {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.adivina-piezas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+}
+
+.adivina-pieza {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.adivina-pieza-emoji {
+  font-size: 3.4rem;
+  line-height: 1;
+}
+
+.adivina-pieza-kanji {
+  font-size: 1.7rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.adivina-junta {
+  font-size: 2.4rem;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0 0.2rem;
+}
+
+.adivina-pregunta {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.adivina-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.adivina-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 7rem;
+  min-height: 7.5rem;
+  padding: 0.8rem 1rem;
+  border-radius: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  cursor: pointer;
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.adivina-opcion-emoji {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.adivina-opcion-texto {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+// La que ha dicho. Se enciende y ya está: aquí no hay "bien" ni "mal", y un color de
+// acierto y otro de error dirían que sí lo hay.
+.adivina-opcion--dicha {
+  border-color: $sakura;
+  background: rgba(249, 168, 212, 0.18);
+}
+
+// ============================================================
 // RITUAL FLASH (§5.9)
 //
 // Mostrar–decir–retirar, un segundo por kanji. El kanji es enorme porque no hay nada más

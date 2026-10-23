@@ -45,6 +45,48 @@
     }
 
     <!-- ======================================================= -->
+    <!-- ADIVINA EL SIGNIFICADO (§5.2): la hipótesis antes de la  -->
+    <!-- revelación. Las piezas sueltas y la pregunta; la        -->
+    <!-- historia que viene después **es** la respuesta.         -->
+    <!-- No se puntúa: una hipótesis no es un examen.            -->
+    <!-- ======================================================= -->
+    @if (step() === 'adivina' && guess(); as g) {
+      <div class="adivina">
+        <div class="adivina-piezas">
+          @for (p of g.piezas; track p.kanji) {
+            <span class="adivina-pieza">
+              <span class="adivina-pieza-emoji" aria-hidden="true">{{ p.emoji }}</span>
+              <span class="adivina-pieza-kanji" lang="ja">{{ p.kanji }}</span>
+            </span>
+          }
+          <span class="adivina-junta" aria-hidden="true">+</span>
+        </div>
+
+        <p class="adivina-pregunta">
+          <span aria-hidden="true">🤔</span>
+          ¿Qué crees que quiere decir?
+        </p>
+
+        <div class="adivina-opciones">
+          @for (o of g.opciones; track o.emoji + o.significado; let i = $index) {
+            <!-- Se enciende la que eligió y ya está: no hay "bien" ni "mal" aquí, y un
+                 zumbido ahora sería justamente lo que el paso está tratando de evitar. -->
+            <button
+              class="adivina-opcion"
+              [class.adivina-opcion--dicha]="adivinada() === i"
+              [disabled]="adivinada() !== null"
+              [attr.aria-label]="o.significado"
+              (click)="adivinar(i)"
+            >
+              <span class="adivina-opcion-emoji" aria-hidden="true">{{ o.emoji }}</span>
+              <span class="adivina-opcion-texto">{{ o.significado }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ======================================================= -->
     <!-- RITUAL FLASH (§5.9): mostrar–decir–retirar              -->
     <!-- Un segundo por kanji y sin pregunta. Es exposición, no  -->
     <!-- examen: no se le pide nada porque el ritual de Doman no -->

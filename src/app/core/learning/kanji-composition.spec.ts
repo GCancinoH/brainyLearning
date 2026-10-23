@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildCompositionProblem,
+  buildGuessProblem,
   buildRecallProblem,
   clampLevel,
   compositionsForAge,
@@ -495,5 +496,65 @@ describe('§5.6 buildRecallProblem', () => {
       posiciones.add(p.opciones.findIndex(o => o.id === p.objetivo.id));
     }
     expect(posiciones.size, 'siempre en el mismo hueco no habría que mirar').toBeGreaterThan(1);
+  });
+});
+
+// ============================================
+// §5.2 · ADIVINA EL SIGNIFICADO
+// ============================================
+
+describe('§5.2 buildGuessProblem', () => {
+  it('ofrece el significado real y el de las piezas, todavía sueltas', () => {
+    // 明 = 日 ☀️ + 月 🌙 y significa "luminoso, claro" 💡: tres hipótesis y las tres
+    // plausibles sobre "¿qué pueden querer decir juntos el sol y la luna?".
+    const p = buildGuessProblem(getComposition('mei')!, mulberry32(3));
+    expect(p.piezas.map(x => x.emoji), 'las piezas, sin formar el kanji').toEqual(['☀️', '🌙']);
+    expect(p.opciones.map(o => o.emoji).sort()).toEqual(['☀️', '💡', '🌙'].sort());
+  });
+
+  it('una pieza repetida no se ofrece tres veces: 森 lleva tres veces 木', () => {
+    const p = buildGuessProblem(getComposition('mori')!, mulberry32(4));
+    expect(p.piezas, '木 aparece una sola vez en pantalla').toHaveLength(1);
+    // Deduplicando por emoji quedaría **una** opción, que no es elegir. El extra 🌲 es el
+    // de 林 y además es una hipótesis de verdad: "¿es un bosque profundo o una arboleda?".
+    expect(p.opciones).toHaveLength(2);
+    expect(p.opciones.map(o => o.emoji).sort()).toEqual(['🌳', '🌲'].sort());
+  });
+
+  it('deduplica por emoji y no por significado: 岩 es montaña + piedra y significa roca', () => {
+    // 🪨 se escribe igual que la piedra. Tres veces 🪨 en fila no sería una elección.
+    const p = buildGuessProblem(getComposition('iwa')!, mulberry32(5));
+    expect(p.opciones).toHaveLength(2);
+    expect(p.opciones.map(o => o.emoji).sort()).toEqual(['⛰️', '🪨'].sort());
+  });
+
+  it('炎, lo mismo con fuego: 🔥+🔥 = 🔥 no deja nada que elegir', () => {
+    const p = buildGuessProblem(getComposition('en')!, mulberry32(6));
+    expect(p.opciones).toHaveLength(2);
+    expect(p.opciones.map(o => o.emoji).sort()).toEqual(['💡', '🔥'].sort());
+  });
+
+  it('el significado real siempre está entre las opciones, y se baraja', () => {
+    const posiciones = new Set<number>();
+    for (const id of ['mei', 'kyuu', 'otoko', 'koi', 'hoshi', 'go']) {
+      const c = getComposition(id)!;
+      for (let i = 0; i < 30; i++) {
+        const p = buildGuessProblem(c, mulberry32(i));
+        expect(p.opciones.map(o => o.significado), `${id} incluye lo que significa`).toContain(
+          c.meaning,
+        );
+        posiciones.add(p.opciones.findIndex(o => o.significado === c.meaning));
+      }
+    }
+    expect(posiciones.size, 'siempre en el mismo sitio no habría que elegir').toBeGreaterThan(1);
+  });
+
+  it('ningún kanji se queda con menos de dos opciones: una no es elegir', () => {
+    for (const c of KANJI_COMPOSITIONS) {
+      expect(
+        buildGuessProblem(c, mulberry32(7)).opciones.length,
+        `${c.id} se queda sin elección`,
+      ).toBeGreaterThanOrEqual(2);
+    }
   });
 });

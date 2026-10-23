@@ -493,7 +493,10 @@ describe('KanjiCompose (integración)', () => {
   it('REGRESIÓN B2: el banner nunca está vacío y siempre habla del paso en el que está', async () => {
     mount(6);
     expect(component.stepPrompt()).not.toBe('');
-    expect(component.stepPrompt()).toContain('se forma');
+    // Un kanji recién llegado se pregunta antes de explicarse (§5.2), así que el paso
+    // inicial ya no es la historia y el banner tiene que hablar de **ese** paso.
+    expect(component.step()).toBe('adivina');
+    expect(component.stepPrompt()).toContain('crees');
 
     await composeCorrectly();
     // En dibujo no debe seguir la instrucción de componer, que era el texto que se
@@ -548,7 +551,7 @@ describe('KanjiCompose (integración)', () => {
     // Ronda 2: si `drawn` no se reiniciara en `generateProblem()`, esta ronda jamás
     // podría registrarse y el juego se quedaría mudo de progreso.
     await advance(3000); // `generateProblem()` a los 2800 ms
-    expect(component.step()).toBe('story');
+    expect(['story', 'adivina'], 'ha pasado a la ronda siguiente').toContain(component.step());
 
     await composeCorrectly();
     drawSomething();
@@ -1056,7 +1059,9 @@ describe('KanjiCompose (integración)', () => {
       await advance(700);
 
       expect(component.recall()).toBeNull();
-      expect(component.step(), 'la sesión sigue siendo la de siempre').toBe('story');
+      expect(component.flashKanji(), 'ni Flash, que tampoco hay nada que enseñar').toBeNull();
+      expect(component.step(), 'la sesión sigue en su ronda').not.toBe('reconocer');
+      expect(component.step(), 'y sin quedarse a medias en el Flash').not.toBe('flash');
     });
 
     it('ofrece tres opciones, y ninguna es el kanji que va a componer ahora', async () => {
@@ -1179,16 +1184,22 @@ describe('KanjiCompose (integración)', () => {
       ).toBe(true);
     });
 
-    it('sin kanji conocidos no hay Flash: sería una pantalla en blanco con una voz', async () => {
+    it('sin kanji conocidos no hay Flash, y la ronda se narra igual', async () => {
+      // Un guard mal puesto existió un rato aquí: exigía `step === 'flash'` para seguir,
+      // así que sin Flash se abortaba **antes** de narrar y la ronda quedaba muda. Este
+      // test es lo que lo pilla.
       mount(4, 1);
       vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
-      vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      const play = vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
       component.startGame();
       fixture.detectChanges();
-      await advance(700);
+      await advance(900);
 
       expect(component.flashKanji()).toBeNull();
-      expect(component.step()).toBe('story');
+      expect(component.step(), 'el kanji del nivel 1 es nuevo, así que se pregunta').toBe(
+        'adivina',
+      );
+      expect(play.mock.calls.length, 'y suena lo que toca en ese paso').toBeGreaterThan(0);
     });
 
     it('el Flash va DESPUÉS de examinar, no antes', async () => {
@@ -1209,7 +1220,105 @@ describe('KanjiCompose (integración)', () => {
       expect(pasos, 'primero examina').toContain('reconocer');
       expect(pasos, 'y enseña después').toContain('flash');
       expect(pasos.indexOf('flash')).toBeGreaterThan(pasos.indexOf('reconocer'));
-      expect(component.step(), 'y acaba jugando').toBe('story');
+      // La siguiente ronda puede empezar por la historia o por la pregunta que la
+      // precede, según sea repaso o kanji nuevo; lo que no puede es seguir en el
+      // calentamiento.
+      expect(['story', 'adivina'], 'y acaba en la siguiente ronda').toContain(component.step());
+    });
+  });
+
+  // ============================================
+  // §5.2 · ADIVINA EL SIGNIFICADO
+  // ============================================
+
+  describe('§5.2 adivina el significado', () => {
+    it('un kanji nuevo se pregunta antes de explicarse', () => {
+      mount(4, 1); // nivel 1: 明 y 休 acaban de llegar, y sale una de las dos
+
+      expect(component.step(), 'la historia ya no empieza sola').toBe('adivina');
+      const g = component.guess()!;
+      // 明 son 日 y 月; 休 son 亻 y 木. Se enseñan las piezas **del kanji que toca**,
+      // todavía sueltas y sin repetir las que son la misma.
+      expect(g.piezas.map(p => p.kanji), 'las piezas, todavía sueltas').toEqual(
+        [...new Set(g.objetivo.slots.map(s => s.kanji))],
+      );
+      expect(g.opciones.length, 'y hay algo que elegir').toBeGreaterThanOrEqual(2);
+      expect(g.opciones.map(o => o.significado), 'incluye lo que el kanji significa').toContain(
+        g.objetivo.meaning,
+      );
+    });
+
+    it('el repaso no se pregunta: ya sabe lo que significa', () => {
+      // Nivel 3 añade 林 y 岩; 明 y 休 pasan a ser repaso.
+      mount(4, 3);
+      let p = component.problem()!;
+      for (let i = 0; i < 40 && !['mei', 'kyuu'].includes(p.target.id); i++) {
+        component.generateProblem();
+        p = component.problem()!;
+      }
+      expect(['mei', 'kyuu'], 'ha salido alguno de repaso').toContain(p.target.id);
+      expect(component.step(), 'el repaso va derecho a la historia').toBe('story');
+      expect(component.guess(), 'sin pregunta que hacer').toBeNull();
+    });
+
+    it('toca una opción y se va a la historia: ninguna es incorrecta', async () => {
+      mount(4, 1);
+      const g = component.guess()!;
+      const anotar = vi.spyOn(TestBed.inject(SpacedRepetition), 'review');
+      const noReal = g.opciones.findIndex(o => o.significado !== g.objetivo.meaning);
+
+      // La que NO es el significado real tampoco es un error: es una hipótesis, y lo que
+      // la corrige —o la completa— es la historia, no un veredicto.
+      component.adivinar(noReal);
+      expect(component.adivinada(), 'queda dicha').toBe(noReal);
+      expect(anotar, 'no se anota nada: no es un examen').not.toHaveBeenCalled();
+
+      // Un toque más no la cambia: ya ha dicho la suya.
+      component.adivinar(0);
+      expect(component.adivinada(), 'la primera es la que vale').toBe(noReal);
+
+      await advance(1600); // la revelación está a los 1400 ms
+      expect(component.guess(), 'se ha ido').toBeNull();
+      expect(component.step(), 'y viene la historia, que es la respuesta').toBe('story');
+    });
+
+    it('las piezas se oyen en español: sin oír "sol" no hay hipótesis que formar', async () => {
+      mount(4, 1);
+      vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+      const play = vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      component.startGame();
+      fixture.detectChanges();
+      await advance(900);
+
+      const clips = play.mock.calls.flatMap(c =>
+        (c[0] as Array<{ clip: string }>).map(x => x.clip),
+      );
+      expect(clips.some(c => c.startsWith('kc.es.p.')), 'los significados de las piezas').toBe(
+        true,
+      );
+      expect(clips, 'y la pregunta').toContain('kc.es.sys.guess-question');
+      // `kc.ja.p.*` sería "ひ" y "つき": no dicen nada ni a los 4 ni a los 6, y es
+      // justo lo que la historia enseña después.
+      expect(clips.some(c => c.startsWith('kc.ja.p.')), 'sin lectura japonesa').toBe(false);
+    });
+
+    it('las tarjetas se ven: sin clases, el paso sería invisible', () => {
+      mount(4, 1);
+      fixture.detectChanges();
+      const g = component.guess()!;
+      const opciones = Array.from(fixture.nativeElement.querySelectorAll('.adivina-opcion'));
+      expect(opciones, 'una por opción').toHaveLength(g.opciones.length);
+      expect(
+        Array.from(fixture.nativeElement.querySelectorAll('.adivina-opcion--dicha')),
+        'todavía no ha dicho nada',
+      ).toHaveLength(0);
+
+      component.adivinar(0);
+      fixture.detectChanges();
+      expect(
+        Array.from(fixture.nativeElement.querySelectorAll('.adivina-opcion--dicha')).length,
+        'la que eligió se enciende sola',
+      ).toBe(1);
     });
   });
 });

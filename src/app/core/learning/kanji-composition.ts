@@ -718,6 +718,81 @@ function distractoresFor(
   return [...shuffle(comparten, rng), ...shuffle(ajenas, rng)].slice(0, cantidad);
 }
 
+// ============================================
+// PASO "ADIVINA EL SIGNIFICADO" (§5.2)
+// ============================================
+
+/** Una opción del paso "adivina": un emoji y lo que dice. No es una pieza ni un kanji. */
+export interface GuessOption {
+  emoji: string;
+  significado: string;
+}
+
+/**
+ * Un problema del paso "Adivina el significado": las piezas todavía sueltas y varias
+ * hipótesis entre las que elegir.
+ *
+ * Convierte el paso de la historia de espectáculo en indagación. Sin él, la niña ve 明
+ * aparecer y oye por qué; con él, primero se le pide una hipótesis —"¿qué crees que
+ * quiere decir sol y luna?"— y la historia responde **a su pregunta**. Son dos juegos
+ * distintos: en uno se mira, en el otro se acierta antes de que se explique (§B.6).
+ *
+ * **No se puntúa.** Ninguna opción es incorrecta aquí, porque una hipótesis no lo es: si
+ * elige ☀️ "sol", la historia dirá "sol y luna a la vez: claro" y su idea habrá crecido;
+ * si elige 🌙 "luna", igual. Lo que rompería un "no, es claro" es exactamente lo que el
+ * paso está buscando.
+ */
+export interface GuessProblem {
+  objetivo: KanjiComposition;
+  /** Las piezas del kanji, todavía sueltas, sin repetir las que son la misma. */
+  piezas: KanjiPiece[];
+  /** Las opciones ofrecidas, ya barajadas. */
+  opciones: GuessOption[];
+}
+
+/**
+ * Un emoji más para los kanji cuyas piezas repetidas no dejan nada que elegir.
+ *
+ * 森 es 木+木+木 y su significado es 🌳: las tres piezas y el kanji dicen lo mismo, y
+ * "elige entre uno" no es un paso. Este 🌲 es el de 林 —el otro kanji de árboles— y es
+ * además una hipótesis de verdad: "¿es un bosque profundo o una arboleda?". Ídem 炎
+ * (🔥+🔥 = 🔥): 💡 la saca del "qué es" al "para qué sirve", que es donde la historia
+ * entra después.
+ */
+const GUESS_EXTRA: Record<string, readonly GuessOption[]> = {
+  mori: [{ emoji: '🌲', significado: 'arboleda' }],
+  en: [{ emoji: '💡', significado: 'luminoso' }],
+};
+
+/**
+ * Monta el paso "adivina el significado" de un kanji.
+ *
+ * Las opciones son el significado **real** del kanji más los de sus propias piezas,
+ * deduplicadas. De ahí que haya varias válidas y no una: para 日 + 🌙 caben "claro",
+ * "sol" y "luna", y las tres son hipótesis con las que la historia puede trabajar.
+ *
+ * Hay menos opciones de las que preveía el documento (2-3, no 3-4) y es a propósito. Una
+ * opción que no tiene nada que ver con las piezas —un 🐟 para sol y luna— se descarta de
+ * un vistazo y no haría más que fingir que hay elección donde no la hay.
+ */
+export function buildGuessProblem(target: KanjiComposition, rng: Rng = Math.random): GuessProblem {
+  // Sin repetir: 森 lleva tres veces 木 y no debe ofrecer "árbol" tres veces.
+  const piezas = target.slots
+    .map(s => pieceData(s.kanji))
+    .filter((p, i, todas) => todas.findIndex(q => q.kanji === p.kanji) === i);
+
+  // Deduplicadas **por emoji**, no por significado: 岩 es montaña + piedra y su propio
+  // significado es "roca", que se escribe 🪨 igual que la piedra. Tres veces 🪨 en fila
+  // no es una elección, es el mismo botón.
+  const opciones: GuessOption[] = [
+    { emoji: target.emoji, significado: target.meaning },
+    ...piezas.map(p => ({ emoji: p.emoji, significado: p.meaning })),
+    ...(GUESS_EXTRA[target.id] ?? []),
+  ].filter((o, i, todas) => todas.findIndex(q => q.emoji === o.emoji) === i);
+
+  return { objetivo: target, piezas, opciones: shuffle(opciones, rng) };
+}
+
 const PIECE_TABLE: Record<string, KanjiPiece> = Object.values(P).reduce<Record<string, KanjiPiece>>(
   (acc, piece) => {
     acc[piece.kanji] = piece;

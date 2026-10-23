@@ -267,6 +267,10 @@
     "tts": "¡Hola! Soy Aki, del Planeta Sakura. ¡Vamos a construir un kanji!",
     "lang": "es-MX"
   },
+  "kc.es.sys.guess-question": {
+    "tts": "¿Qué crees que quiere decir?",
+    "lang": "es-MX"
+  },
   "kc.es.sys.look-ghost": {
     "tts": "Mira el dibujo borroso. ¿Qué piezas necesitas?",
     "lang": "es-MX"

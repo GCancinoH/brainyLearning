@@ -30,14 +30,17 @@ import { KANJI_TRAZOS, type KanjiTrazos } from '@core/learning/kanji-strokes';
 import { evaluarTrazo, type Punto } from './stroke-check';
 import {
   buildCompositionProblem,
+  buildGuessProblem,
   buildRecallProblem,
   CompositionProblem,
+  GuessProblem,
   KanjiComposition,
   KANJI_COMPOSITIONS,
   MAX_LEVEL,
   pickLine,
   pieceData,
   poolFor,
+  poolSplit,
   RecallProblem,
   shuffle,
   SocraticMoment,
@@ -70,17 +73,22 @@ import { nearestSlot } from './slot-hit';
  * "Construye el Kanji" — cómo se forman los caracteres compuestos.
  *
  * Inspirado en §B.6 (Robot Aki: radicompuestos) y §C.4 (Construye el carácter) del
- * método Zvonkin. Tres pasos por kanji, en este orden:
+ * método Zvonkin. Un kanji recién llegado pasa por cuatro pasos, en este orden:
  *
- *   1. HISTORIA   → el kanji completo y por qué se forma así
- *   2. COMPONER   → arrastra las piezas sueltas a sus huecos
- *   3. DIBUJAR    → con el lienzo vacío, dibújalo tú
+ *   0. ADIVINA  → las piezas sueltas y la pregunta "¿qué crees que quiere decir?" (§5.2)
+ *   1. HISTORIA → el kanji completo y por qué se forma así: la respuesta a su pregunta
+ *   2. COMPONER → arrastra las piezas sueltas a sus huecos
+ *   3. DIBUJAR  → con el lienzo vacío, dibújalo tú
  *
- * Y un paso 0 que no es de este kanji sino de los que ya conoce: **RECONOCER** (§5.6),
- * un calentamiento de dos aciertos al empezar la sesión. Cierra la lección de tres
- * tiempos —"¿qué es esto?" la daban los pasos 1-3, "muéstrame X" es este— y le pide el
- * recuerdo **frío**, sin la escalera de ayuda a mano, que es la única señal que el paso
- * de componer no puede dar.
+ * El repaso se salta el paso 0. Ya sabe lo que significa, y volver a preguntarlo sería un
+ * examen disfrazado de indagación.
+ *
+ * Y dos pasos más que no son de este kanji sino de los que ya conoce, al empezar la
+ * sesión. **RECONOCER** (§5.6) cierra la lección de tres tiempos —"¿qué es esto?" lo dan
+ * los pasos 1-3, "muéstrame X" es este— y le pide el recuerdo **frío**, sin la escalera de
+ * ayuda a mano, que es la única señal que componer no puede dar. **FLASH** (§5.9) va
+ * después: mostrar–decir–retirar sin preguntar, porque enseñar los kanji antes del examen
+ * lo dejaría sin frío.
  *
  * Dos decisiones que no son obvias:
  *
@@ -91,11 +99,12 @@ import { nearestSlot } from './slot-hit';
  *    material de investigación (regla 5 del método).
  */
 
-type Step = 'story' | 'compose' | 'draw' | 'reconocer' | 'flash';
+type Step = 'story' | 'compose' | 'draw' | 'reconocer' | 'flash' | 'adivina';
 
 /** Instrucción del paso, para quien lee y no tiene nada más que leer. */
 const STEP_PROMPT: Record<Step, string> = {
   flash: '👀 Mira y escucha',
+  adivina: '🤔 ¿Qué crees que quiere decir?',
   reconocer: '👂 ¿Cuál suena?',
   story: '👀 Mira cómo se forma',
   compose: '🤔 ¿Qué pieza va en cada hueco?',
@@ -260,6 +269,17 @@ export class KanjiCompose implements OnInit, OnDestroy {
    * otra cosa.
    */
   readonly flashKanji = signal<KanjiComposition | null>(null);
+
+  /**
+   * El problema de "adivina el significado" (§5.2), o `null` si el kanji no es nuevo.
+   *
+   * Va antes de la historia y no en su lugar: la historia **es** la respuesta a la
+   * pregunta que este paso hace. Sin este paso la niña ve 明 aparecer y oye por qué; con
+   * él, primero arriesga una idea y después se le cuenta por qué tiene sentido.
+   */
+  readonly guess = signal<GuessProblem | null>(null);
+  /** La hipótesis que ya ha elegido, por índice, o `null` si todavía no ha dicho nada. */
+  readonly adivinada = signal<number | null>(null);
 
   /** En la fase de dibujo, el kanji se muestra al trasluz */
   readonly showGhostInDraw = signal(true);
@@ -754,8 +774,11 @@ export class KanjiCompose implements OnInit, OnDestroy {
       this.recall.set(null);
       this.recallFallados.set(new Set());
       this.recallAcertado.set(null);
+      // El paso 'reconocer' no se queda colgado: se cierra antes de mirar si hay Flash, o
+      // `terminarCalentamiento` daría por terminado un calentamiento que ya se acabó.
+      this.step.set('story');
       await this.empezarFlash();
-      if (this.destroyed || this.step() !== 'flash') return;
+      if (!this.terminarCalentamiento()) return;
       this.generateProblem();
       return;
     }
@@ -765,6 +788,54 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.recallAcertado.set(null);
     this.recallTirado = false;
     this.later(() => void this.hablarRecall(), 400);
+  }
+
+  // ============================================
+  // ADIVINA EL SIGNIFICADO (§5.2)
+  // ============================================
+
+  /**
+   * Suena lo que hay que adivinar: las piezas, en español, y después la pregunta.
+   *
+   * El significado y no la lectura, a cualquier edad: para formar una hipótesis sobre lo
+   * que "sol y luna" pueden querer decir hace falta oír que son sol y luna. "ひ" y "つき"
+   * no dicen nada ni a los 4 ni a los 6 —eso lo aprende la historia, y solo a los 6—.
+   */
+  private async hablarAdivinanza(): Promise<void> {
+    const g = this.guess();
+    if (!g || this.destroyed || this.step() !== 'adivina') return;
+    await this.narrator.play([
+      ...g.piezas.map(p => ({ clip: pieceMeaning(p.id), pauseAfterMs: 250 })),
+      { clip: sys('guess-question'), pauseAfterMs: 300 },
+    ]);
+  }
+
+  /**
+   * Ella dice la suya.
+   *
+   * Se acepta cualquier cosa, porque una hipótesis no es un examen: lo que responde a su
+   * pregunta es la historia, y esa viene justo después. No se anota en el SRS tampoco —
+   * acertar al azar entre dos no dice nada sobre si sabe el kanji.
+   */
+  adivinar(indice: number): void {
+    const g = this.guess();
+    if (!g || this.adivinada() !== null) return;
+    this.onActivity();
+    this.audio.retryPendingAudio();
+    // Se corta la pregunta en curso: ya ha respondido, y si la secuencia siguiera sonando
+    // la historia empezaría por la mitad de una frase.
+    this.narrator.cancel();
+    this.adivinada.set(indice);
+    this.later(() => this.revelar(), 1400);
+  }
+
+  /** Ya ha dicho la suya: ahora se cuenta. */
+  private revelar(): void {
+    if (!this.guess()) return;
+    this.guess.set(null);
+    this.adivinada.set(null);
+    this.step.set('story');
+    this.later(() => void this.playStory(), 350);
   }
 
   // ============================================
@@ -789,13 +860,21 @@ export class KanjiCompose implements OnInit, OnDestroy {
     // La mano empieza vacía: con la pieza de la ronda anterior todavía seleccionada, el
     // primer toque en un hueco la colocaría sin que ella lo decidiera.
     this.seleccionada.set(null);
-    this.step.set('story');
     // El calentamiento no sobrevive a un problema nuevo: si lo dejara, el primer toque en
     // un hueco iría a un kanji que ya no está en pantalla.
     this.recall.set(null);
     this.recallFallados.set(new Set());
     this.recallAcertado.set(null);
     this.flashKanji.set(null);
+
+    // §5.2. Un kanji que acaba de llegar se pregunta antes de explicarse: la historia deja
+    // de ser un espectáculo y pasa a responder a algo que ella misma dijo. El repaso no
+    // pasa por aquí —ya sabe lo que significa, y volver a preguntarlo sería un examen
+    // disfrazado de indagación—.
+    const nuevo = poolSplit(age, this.currentLevel()).nuevos.includes(p.target.id);
+    this.step.set(nuevo ? 'adivina' : 'story');
+    this.guess.set(nuevo ? buildGuessProblem(p.target, Math.random) : null);
+    this.adivinada.set(null);
     this.line.set('');
     this.hint.set('');
     this.busy.set(false);
@@ -827,7 +906,16 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
     // La historia solo se cuenta sola si ya hubo un gesto: si no, el navegador la rechazará
     // y el paso quedaría mudo, que es exactamente el fallo que se quería arreglar.
-    if (this.started()) this.later(() => void this.playStory(), 500);
+    // En el paso "adivina" lo que suena no es la historia sino la pregunta, y la historia
+    // espera a que ella diga la suya —`revelar()` es quien la lanza—.
+    if (!this.started()) return;
+    const g = this.guess();
+    if (g && this.step() === 'adivina') {
+      this.narrator.preload([...g.piezas.map(p => pieceMeaning(p.id)), sys('guess-question')]);
+      this.later(() => void this.hablarAdivinanza(), 500);
+    } else {
+      this.later(() => void this.playStory(), 500);
+    }
   }
 
   /** Lectura de la pieza (kana) */
@@ -861,15 +949,26 @@ export class KanjiCompose implements OnInit, OnDestroy {
     // generarse el problema. Aquí se espera a que el saludo termine.
     void (async () => {
       await this.narrator.say(saludo);
-      if (this.destroyed || this.step() !== 'story') return;
+      // La ronda puede estar en la historia o en la pregunta que la precede (§5.2): las
+      // dos son "lo que suena al empezar". Si ya está en otra cosa, no se interrumpe.
+      if (this.destroyed || !this.enRonda()) return;
       // El orden del calentamiento no es un capricho. El Flash **enseña** los kanji, y en
       // cuanto se enseñan el recuerdo del Reconocer deja de ser frío, que es lo único que
       // ese paso puede medir. Así que primero se examina y después se enseña.
       if (this.empezarRecall()) return;
       await this.empezarFlash();
-      if (this.destroyed || this.step() !== 'flash') return;
+      if (!this.terminarCalentamiento()) return;
+      if (this.step() === 'adivina') {
+        await this.hablarAdivinanza();
+        return;
+      }
       await this.playStory();
     })();
+  }
+
+  /** Si la ronda está en un paso del que todavía queda algo por narrar. */
+  private enRonda(): boolean {
+    return this.step() === 'story' || this.step() === 'adivina';
   }
 
   /**
@@ -902,6 +1001,23 @@ export class KanjiCompose implements OnInit, OnDestroy {
       await this.narrator.play([{ clip: kanjiWord(k.id), pauseAfterMs: 250 }]);
     }
     this.flashKanji.set(null);
+  }
+
+  /**
+   * Cierra el calentamiento y devuelve `false` si ya no hay nada que narrar.
+   *
+   * El Flash deja el paso en `'flash'` y no lo restaura, así que hay que volver al de la
+   * ronda: la historia, o la pregunta que la precede (§5.2). El `false` es para cuando ya
+   * no se está en el calentamiento —se salió, o la sesión avanzó por otro lado—.
+   *
+   * Existía este guard y no lo sabía: sin el Flash, el paso seguía siendo `'story'` y la
+   * condición `step !== 'flash'` abortaba **antes** de narrar la historia, que quedaba
+   * muda. El test no lo pillaba porque en esas pruebas siempre había Flash.
+   */
+  private terminarCalentamiento(): boolean {
+    if (this.destroyed) return false;
+    if (this.step() === 'flash') this.step.set('story');
+    return this.step() === 'story' || this.step() === 'adivina';
   }
 
   // ============================================
