@@ -45,6 +45,46 @@
     }
 
     <!-- ======================================================= -->
+    <!-- PASO 0 · RECONOCER (§5.6): ¿cuál suena?                  -->
+    <!-- La lección de tres tiempos que faltaba. El paso de       -->
+    <!-- componer era "¿qué es esto?"; este es "muéstrame X".     -->
+    <!-- Sin bandeja y sin huecos: solo mirar y elegir, sin la    -->
+    <!-- escalera de ayuda a mano.                                -->
+    <!-- ======================================================= -->
+    @if (step() === 'reconocer' && recall(); as r) {
+      <div class="recall">
+        <p class="recall-instruction">
+          <span aria-hidden="true">👂</span>
+          Escucha. ¿Cuál es?
+        </p>
+
+        <div class="recall-options">
+          @for (o of r.opciones; track o.id) {
+            <!-- El resaltado de la última oportunidad es el equivalente, aquí, al peldaño
+                 2 de la escalera: cuando ya ha descartado todo lo demás, el kanji se
+                 levanta. No se le dice la respuesta, se le quita lo que estorba. -->
+            <button
+              class="recall-option"
+              [class.recall-option--ok]="recallAcertado() === o.id"
+              [class.recall-option--no]="recallFallados().has(o.id)"
+              [class.recall-option--hint]="
+                recallAcertado() === null &&
+                recallFallados().size === r.opciones.length - 1 &&
+                o.id === r.objetivo.id
+              "
+              [disabled]="!!recallAcertado()"
+              [attr.aria-label]="o.meaning || o.kanji"
+              (click)="responderRecall(o.id)"
+            >
+              <span class="recall-kanji" lang="ja">{{ o.kanji }}</span>
+              <span class="recall-emoji" aria-hidden="true">{{ o.emoji }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ======================================================= -->
     <!-- PASO 1 · HISTORIA: el kanji completo y por qué se forma -->
     <!-- Es un "cine": suena solo, y cada elemento se ilumina mientras es su turno. -->
     <!-- ======================================================= -->

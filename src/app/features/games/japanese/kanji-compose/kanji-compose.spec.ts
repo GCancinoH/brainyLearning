@@ -1016,4 +1016,135 @@ describe('KanjiCompose (integración)', () => {
     avisoResize!();
     expect(canvas.width, 'la tinta se repinta a la escala nueva').toBeGreaterThan(antes);
   });
+
+  // ============================================
+  // §5.6 · RECONOCER — el paso 0
+  //
+  // 日 está en 明 y en 星;山 y 石 solo en 岩. Ese es el material de estas pruebas: lo que
+  // comparte pieza y lo que no.
+  // ============================================
+
+  describe('§5.6 reconocer', () => {
+    /**
+     * Abre la sesión con kanji ya conocidos y deja el calentamiento montado.
+     *
+     * El narrador se mockea: `Narrator._sleep` compara `Date.now()` **real** contra
+     * temporizadores de falsos reloj, así que sin el mock la promesa del saludo no termina
+     * nunca y `empezarRecall()` no se llega a llamar.
+     */
+    async function empezarConCalentamiento(
+      edad: 4 | 6,
+      nivel: number,
+      conocidos: string[],
+    ): Promise<void> {
+      mount(edad, nivel);
+      TestBed.inject(SpacedRepetition).markIntroduced(KANJI_COMPOSITION_DECK, conocidos);
+      vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+      vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      component.startGame();
+      fixture.detectChanges();
+      await advance(700); // el calentamiento se monta a los 400 ms
+      expect(component.step(), 'debe estar reconociendo').toBe('reconocer');
+    }
+
+    it('sin kanji conocidos no hay calentamiento: no se reconoce lo que no se ha visto', async () => {
+      mount(4, 1);
+      vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+      vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      component.startGame();
+      fixture.detectChanges();
+      await advance(700);
+
+      expect(component.recall()).toBeNull();
+      expect(component.step(), 'la sesión sigue siendo la de siempre').toBe('story');
+    });
+
+    it('ofrece tres opciones, y ninguna es el kanji que va a componer ahora', async () => {
+      await empezarConCalentamiento(4, 3, ['mei', 'kyuu', 'rin', 'iwa']);
+      const r = component.recall()!;
+
+      expect(r.opciones).toHaveLength(3);
+      expect(r.opciones.map(o => o.id), 'el objetivo está entre ellas').toContain(r.objetivo.id);
+      // Reconocer el que acaba de ver hace un rato no prueba nada, y le quitaría a la
+      // primera ronda lo que la hace nueva.
+      expect(r.objetivo.id, 'no es el del problema actual').not.toBe(
+        component.problem()!.target.id,
+      );
+    });
+
+    it('un error no zumba y le deja seguir: solo la primera tirada cuenta', async () => {
+      await empezarConCalentamiento(4, 3, ['mei', 'kyuu', 'rin', 'iwa']);
+      const anotar = vi.spyOn(TestBed.inject(SpacedRepetition), 'review');
+      const r = component.recall()!;
+      const mala = r.opciones.find(o => o.id !== r.objetivo.id)!;
+
+      component.responderRecall(mala.id);
+      expect(anotar, 'un error no se anota: sigue intentándolo').not.toHaveBeenCalled();
+      expect(component.recallFallados().has(mala.id), 'se atenúa y se queda quieta').toBe(true);
+      expect(component.recallAcertado(), 'sigue sin acertar').toBeNull();
+
+      component.responderRecall(r.objetivo.id);
+      expect(anotar, 'la primera tirada que acierta es la que cuenta').toHaveBeenCalledTimes(1);
+      expect(anotar.mock.calls[0]![1], 'sobre el kanji acertado').toBe(r.objetivo.id);
+      expect(anotar.mock.calls[0]![2]).toMatchObject({ correct: true });
+
+      // Un toque más tras el acierto no vuelve a anotar.
+      component.responderRecall(r.objetivo.id);
+      expect(anotar, 'el acierto no se repite').toHaveBeenCalledTimes(1);
+    });
+
+    it('el recuerdo frío pospone el kanji, que es la señal que componer no puede dar', async () => {
+      await empezarConCalentamiento(4, 3, ['mei', 'kyuu', 'rin', 'iwa']);
+      const srs = TestBed.inject(SpacedRepetition);
+      const r = component.recall()!;
+      const antes = srs.dueAt(KANJI_COMPOSITION_DECK, r.objetivo.id);
+
+      component.responderRecall(r.objetivo.id);
+
+      expect(srs.isIntroduced(KANJI_COMPOSITION_DECK, r.objetivo.id)).toBe(true);
+      expect(srs.dueAt(KANJI_COMPOSITION_DECK, r.objetivo.id), 'se pospuso').not.toBe(antes);
+    });
+
+    it('tras dos aciertos se va a jugar: el calentamiento no se alarga', async () => {
+      await empezarConCalentamiento(4, 3, ['mei', 'kyuu', 'rin', 'iwa']);
+
+      for (let i = 0; i < 2; i++) {
+        component.responderRecall(component.recall()!.objetivo.id);
+        await advance(2000); // el pase al siguiente acierto está a los 1800 ms
+      }
+
+      expect(component.recall(), 'no queda tanda').toBeNull();
+      expect(component.step(), 'y empieza la historia del problema').toBe('story');
+      expect(component.problem(), 'con problema y todo').toBeTruthy();
+    });
+
+    it('las tarjetas se ven: sin clases, el modo sería invisible', async () => {
+      mount(4, 3);
+      TestBed.inject(SpacedRepetition).markIntroduced(KANJI_COMPOSITION_DECK, [
+        'mei',
+        'kyuu',
+        'rin',
+        'iwa',
+      ]);
+      vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+      vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      component.startGame();
+      await advance(700);
+
+      const r = component.recall()!;
+      const tarjetas = Array.from(fixture.nativeElement.querySelectorAll('.recall-option'));
+      expect(tarjetas, 'una por opción').toHaveLength(r.opciones.length);
+      expect(
+        Array.from(fixture.nativeElement.querySelectorAll('.recall-option--ok')),
+        'todavía no se enciende nada',
+      ).toHaveLength(0);
+
+      component.responderRecall(r.objetivo.id);
+      fixture.detectChanges();
+      expect(
+        Array.from(fixture.nativeElement.querySelectorAll('.recall-option--ok')).length,
+        'la acertada se enciende sola',
+      ).toBe(1);
+    });
+  });
 });

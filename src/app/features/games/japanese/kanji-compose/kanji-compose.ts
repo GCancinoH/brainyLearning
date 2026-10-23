@@ -30,11 +30,14 @@ import { KANJI_TRAZOS, type KanjiTrazos } from '@core/learning/kanji-strokes';
 import { evaluarTrazo, type Punto } from './stroke-check';
 import {
   buildCompositionProblem,
+  buildRecallProblem,
   CompositionProblem,
   KanjiComposition,
   MAX_LEVEL,
   pickLine,
   pieceData,
+  poolFor,
+  RecallProblem,
   SocraticMoment,
   TrayPiece,
 } from '@core/learning/kanji-composition';
@@ -71,6 +74,12 @@ import { nearestSlot } from './slot-hit';
  *   2. COMPONER   → arrastra las piezas sueltas a sus huecos
  *   3. DIBUJAR    → con el lienzo vacío, dibújalo tú
  *
+ * Y un paso 0 que no es de este kanji sino de los que ya conoce: **RECONOCER** (§5.6),
+ * un calentamiento de dos aciertos al empezar la sesión. Cierra la lección de tres
+ * tiempos —"¿qué es esto?" la daban los pasos 1-3, "muéstrame X" es este— y le pide el
+ * recuerdo **frío**, sin la escalera de ayuda a mano, que es la única señal que el paso
+ * de componer no puede dar.
+ *
  * Dos decisiones que no son obvias:
  *
  *  - NUNCA se dice "está mal". Cuando algo no encaja se plantea una duda o se propone
@@ -80,16 +89,17 @@ import { nearestSlot } from './slot-hit';
  *    material de investigación (regla 5 del método).
  */
 
-type Step = 'story' | 'compose' | 'draw';
+type Step = 'story' | 'compose' | 'draw' | 'reconocer';
 
 /** Instrucción del paso, para quien lee y no tiene nada más que leer. */
 const STEP_PROMPT: Record<Step, string> = {
+  reconocer: '👂 ¿Cuál suena?',
   story: '👀 Mira cómo se forma',
   compose: '🤔 ¿Qué pieza va en cada hueco?',
   draw: '✏️ Ahora dibújalo tú',
 };
 
-/** Clave de "modo" para `TutorialSeen`. La Fase 2 añade `recall`; mientras solo hay una. */
+/** Clave de "modo" para `TutorialSeen`. */
 const COMPOSE_MODE = 'compose';
 
 /**
@@ -214,6 +224,22 @@ export class KanjiCompose implements OnInit, OnDestroy {
    * un rato.
    */
   private readonly desdeReflexion = signal(false);
+
+  // ============================================
+  // RECONOCER (§5.6) — el paso 0
+  // ============================================
+
+  /** El problema de reconocimiento que está en pantalla, o `null` si no hay calentamiento. */
+  readonly recall = signal<RecallProblem | null>(null);
+  /** Kanjis que ya ha descartado en **este** problema, para atenuarlos y dejarlos quietos. */
+  readonly recallFallados = signal<ReadonlySet<string>>(new Set());
+  /** El kanji acertado, si ya acertó. */
+  readonly recallAcertado = signal<string | null>(null);
+  /** Aciertos que faltan antes de pasar a jugar. */
+  private recallRestantes = 2;
+  /** Si ya ha tirado en el problema actual: solo la primera tirada cuenta para el SRS. */
+  private recallTirado = false;
+
   /** En la fase de dibujo, el kanji se muestra al trasluz */
   readonly showGhostInDraw = signal(true);
 
@@ -614,6 +640,110 @@ export class KanjiCompose implements OnInit, OnDestroy {
   }
 
   // ============================================
+  // RECONOCER (§5.6) — EL PASO 0
+  // ============================================
+
+  /**
+   * El calentamiento de dos aciertos que abre la sesión.
+   *
+   * Se ofrece solo si conoce al menos dos kanji. Y **no** cuenta el que va a componer
+   * ahora: reconocer el que acaba de ver hace un rato no prueba nada, y le quitaría a la
+   * primera ronda lo que la hace nueva.
+   *
+   * Devuelve `true` si empezó, para que quien llama se salte la historia.
+   */
+  private empezarRecall(): boolean {
+    const p = this.siguienteRecall();
+    if (!p) return false;
+    this.recall.set(p);
+    this.step.set('reconocer');
+    this.later(() => void this.hablarRecall(), 400);
+    return true;
+  }
+
+  /**
+   * Monta el siguiente problema de reconocimiento, o `null` si ya no hay material.
+   *
+   * Se queda fuera el kanji del problema actual **y** los ya ofrecidos en esta tanda: sin
+   * eso, con dos kanji conocidos las dos tiradas serían el mismo.
+   */
+  private siguienteRecall(): RecallProblem | null {
+    const edad = this.activeProfile()?.age ?? 6;
+    const fuera = [
+      this.target()?.id,
+      this.recall()?.objetivo.id,
+    ].filter((id): id is string => !!id);
+    const conocidos = poolFor(edad, this.currentLevel()).filter(
+      id => this.srs.isIntroduced(KANJI_COMPOSITION_DECK, id) && !fuera.includes(id),
+    );
+    if (conocidos.length < 2) return null;
+    return buildRecallProblem(conocidos, conocidos.length >= 3 ? 3 : 2, Math.random);
+  }
+
+  /** Suena la instrucción y la lectura que hay que reconocer. */
+  private async hablarRecall(): Promise<void> {
+    const r = this.recall();
+    if (!r || this.destroyed || this.step() !== 'reconocer') return;
+    await this.narrator.play([
+      { clip: sys('recall-hear'), pauseAfterMs: 250 },
+      { clip: kanjiWord(r.objetivo.id), pauseAfterMs: 300 },
+    ]);
+  }
+
+  /** Toca una de las opciones. */
+  responderRecall(id: string): void {
+    const r = this.recall();
+    if (!r || this.recallAcertado()) return;
+    this.onActivity();
+    this.audio.retryPendingAudio();
+
+    if (id !== r.objetivo.id) {
+      // Sin zumbido y sin "mal". Se atenúa la que no es y se vuelve a oír la lectura, que
+      // es lo que hace falta para poder compararla con las otras. Error de exploración.
+      this.recallFallados.update(prev => new Set(prev).add(id));
+      void this.narrator.play([
+        { clip: sys('recall-again'), pauseAfterMs: 200 },
+        { clip: kanjiWord(r.objetivo.id) },
+      ]);
+      return;
+    }
+
+    // Solo la primera tirada cuenta para el SRS. Si contasen todas, con dos opciones
+    // acabaría subiendo de caja por descarte y no por acordarse.
+    if (!this.recallTirado) this.srs.review(KANJI_COMPOSITION_DECK, id, { correct: true });
+    this.recallTirado = true;
+    this.recallAcertado.set(id);
+    this.audio.playPraise();
+    void this.narrator.play([{ clip: kanjiWord(id), pauseAfterMs: 500 }]);
+    this.later(() => this.pasarDeRecall(), 1800);
+  }
+
+  /**
+   * Cuenta el acierto y pasa de tanda o de paso.
+   *
+   * Si no queda material para otro acierto se va igual: un calentamiento que se alarga
+   * hasta el aburrimiento deja de ser calentamiento.
+   */
+  private pasarDeRecall(): void {
+    this.recallRestantes -= 1;
+    const siguiente = this.recallRestantes > 0 ? this.siguienteRecall() : null;
+
+    if (!siguiente) {
+      this.recall.set(null);
+      this.recallFallados.set(new Set());
+      this.recallAcertado.set(null);
+      this.generateProblem();
+      return;
+    }
+
+    this.recall.set(siguiente);
+    this.recallFallados.set(new Set());
+    this.recallAcertado.set(null);
+    this.recallTirado = false;
+    this.later(() => void this.hablarRecall(), 400);
+  }
+
+  // ============================================
   // PROBLEMA
   // ============================================
 
@@ -636,6 +766,11 @@ export class KanjiCompose implements OnInit, OnDestroy {
     // primer toque en un hueco la colocaría sin que ella lo decidiera.
     this.seleccionada.set(null);
     this.step.set('story');
+    // El calentamiento no sobrevive a un problema nuevo: si lo dejara, el primer toque en
+    // un hueco iría a un kanji que ya no está en pantalla.
+    this.recall.set(null);
+    this.recallFallados.set(new Set());
+    this.recallAcertado.set(null);
     this.line.set('');
     this.hint.set('');
     this.busy.set(false);
@@ -702,6 +837,10 @@ export class KanjiCompose implements OnInit, OnDestroy {
     void (async () => {
       await this.narrator.say(saludo);
       if (this.destroyed || this.step() !== 'story') return;
+      // Si ya conoce kanji, empieza por reconocerlos: recuerdo frío, sin la escalera de
+      // ayuda a mano (§5.6). Si no hay material, la sesión sigue siendo la misma de
+      // siempre —no se le enseña a reconocer algo que aún no ha visto ni una vez—.
+      if (this.empezarRecall()) return;
       await this.playStory();
     })();
   }

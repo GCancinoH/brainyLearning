@@ -216,6 +216,98 @@ $ink: #1b1b3a;
 }
 
 // ============================================================
+// RECONOCER (§5.6) — el paso 0
+//
+// Una fila de tarjetas grandes. No hay bandeja ni huecos: lo único que se le pide es
+// mirar y elegir, que es lo que no podía hacer mientras las piezas estaban sueltas. Sin
+// bandeja no hay tampoco dónde equivocarse al arrastrar, así que el gesto es un toque y
+// nada más.
+// ============================================================
+
+.recall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+}
+
+.recall-instruction {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.recall-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.1rem;
+  width: 100%;
+}
+
+.recall-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  // Por encima del umbral de palma (90 px) del lienzo, y sin nada alrededor con lo que
+  // competir: aquí la tarjeta entera es el objetivo.
+  min-width: 7.5rem;
+  min-height: 9rem;
+  padding: 1rem 1.4rem;
+  border-radius: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  cursor: pointer;
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.recall-kanji {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.recall-emoji {
+  font-size: 1.8rem;
+}
+
+// La descartada. Se atenúa y se queda quieta: no se le dice que estuvo mal, se le quita
+// lo que ya ha descartado para que quede mirando lo que queda.
+.recall-option--no {
+  opacity: 0.32;
+}
+
+// La acertada. Crecer y encenderse la distingue de las demás sin una frase encima.
+.recall-option--ok {
+  border-color: #fde047;
+  background: rgba(253, 224, 71, 0.16);
+  animation: recall-ok 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes recall-ok {
+  to {
+    transform: scale(1.06);
+  }
+}
+
+// Ya ha descartado todo lo demás: el kanji se levanta. Es el peldaño 2 de la escalera de
+// ayuda, aquí donde no hay hueco al que apuntar.
+.recall-option--hint {
+  outline: 4px solid #fde047;
+  outline-offset: 3px;
+}
+
+// ============================================================
 // ESCALERA DE AYUDA (§5.5)
 //
 // Peldaño 2: se resalta la pieza que encaja en el hueco vacío **y el hueco**. Resaltar
@@ -800,7 +892,9 @@ $ink: #1b1b3a;
 @media (prefers-reduced-motion: reduce) {
   .slot--filled,
   .reveal-kanji,
-  .overlay {
+  .overlay,
+  // El crecimiento de la acertada es solo refuerzo: el borde amarillo ya la distingue.
+  .recall-option--ok {
     animation: none !important;
   }
   // El latido del peldaño 2 solo llama la atención: quien pide movimiento reducido ya la

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildCompositionProblem,
+  buildRecallProblem,
   clampLevel,
   compositionsForAge,
   difficultyFor,
@@ -441,5 +442,58 @@ describe('getComposition', () => {
     expect(getComposition('mei')?.kanji).toBe('明');
     expect(getComposition('mori')?.kanji).toBe('森');
     expect(getComposition('no-existe')).toBeUndefined();
+  });
+});
+
+// ============================================
+// §5.6 · MODO "RECONOCER"
+//
+// 日 está en 明 y en 星;山 y 石 solo en 岩. Ese es el material de estas pruebas: lo que
+// comparte pieza y lo que no.
+// ============================================
+
+describe('§5.6 buildRecallProblem', () => {
+  it('sin dos kanji no hay problema: un "elige entre uno" es mirar, no reconocer', () => {
+    expect(buildRecallProblem([], 3, mulberry32(1))).toBeNull();
+    expect(buildRecallProblem(['mei'], 3, mulberry32(1))).toBeNull();
+    // Los ids que no están en el catálogo no cuentan como kanji conocidos.
+    expect(buildRecallProblem(['mei', 'no-existe'], 3, mulberry32(1))).toBeNull();
+  });
+
+  it('el objetivo sale del pool y las opciones lo incluyen siempre', () => {
+    const pool = ['mei', 'kyuu', 'rin', 'iwa'];
+    for (let i = 0; i < ITER; i++) {
+      const p = buildRecallProblem(pool, 3, mulberry32(i));
+      expect(p).not.toBeNull();
+      expect(pool).toContain(p!.objetivo.id);
+      expect(p!.opciones.map(o => o.id)).toContain(p!.objetivo.id);
+      expect(new Set(p!.opciones.map(o => o.id)).size, 'sin repetir').toBe(p!.opciones.length);
+    }
+  });
+
+  it('ofrece lo que pide, y nunca más de lo que hay', () => {
+    expect(buildRecallProblem(['mei', 'kyuu'], 3, mulberry32(2))!.opciones).toHaveLength(2);
+    expect(buildRecallProblem(['mei', 'kyuu', 'rin'], 3, mulberry32(2))!.opciones).toHaveLength(3);
+    expect(buildRecallProblem(['mei', 'kyuu', 'rin'], 2, mulberry32(2))!.opciones).toHaveLength(2);
+  });
+
+  it('prefiere distractores que comparten pieza: sin eso no hay que mirar el kanji', () => {
+    // 明 y 星 comparten 日; 明 y 岩 no comparten nada. Un distractor que no se parece a
+    // nada se descarta de un vistazo, así que 星 nunca se descarta mientras haya hueco.
+    for (let i = 0; i < ITER; i++) {
+      const p = buildRecallProblem(['mei', 'hoshi', 'iwa', 'kyuu', 'koi'], 3, mulberry32(i))!;
+      if (p.objetivo.id === 'mei') {
+        expect(p.opciones.map(o => o.id), 'el que comparte 日 no se descarta').toContain('hoshi');
+      }
+    }
+  });
+
+  it('las opciones se barajan: el correcto no puede estar siempre en el mismo sitio', () => {
+    const posiciones = new Set<number>();
+    for (let i = 0; i < ITER; i++) {
+      const p = buildRecallProblem(['mei', 'kyuu', 'rin', 'iwa'], 3, mulberry32(i))!;
+      posiciones.add(p.opciones.findIndex(o => o.id === p.objetivo.id));
+    }
+    expect(posiciones.size, 'siempre en el mismo hueco no habría que mirar').toBeGreaterThan(1);
   });
 });

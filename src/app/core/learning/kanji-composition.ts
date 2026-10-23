@@ -641,6 +641,83 @@ export function buildCompositionProblem(
   };
 }
 
+// ============================================
+// MODO "RECONOCER" (§5.6)
+// ============================================
+
+/**
+ * Un problema del modo "Reconocer": un kanji que hay que encontrar entre varias opciones.
+ *
+ * Es la lección de tres tiempos que faltaba. El paso de componer es el primer periodo
+ * —"¿qué esto?"—, pero se quedaba ahí: no había ni "muéstrame X" ni "¿cómo se llama?".
+ * Sin los otros dos no hay forma de saber si lo **reconoce** o solo si sabe
+ * **construirlo**, y son cosas distintas: se puede encajar 日 y月 sin reconocer 明 al
+ * revés, que es justo lo que se le pide cuando lo ve en un cartel.
+ *
+ * Alimenta el SRS con recuerdo **frío** —sin construir—, que es la señal que el paso de
+ * componer no puede dar: allí la escalera de ayuda está disponible, aquí no.
+ */
+export interface RecallProblem {
+  objetivo: KanjiComposition;
+  /** Las opciones ofrecidas, ya barajadas. Siempre incluyen al objetivo. */
+  opciones: KanjiComposition[];
+}
+
+/**
+ * Monta un problema de "Reconocer".
+ *
+ * Los distractores comparten **pieza** con el objetivo cuando hay de donde elegir (§B.5,
+ * clasificación por radical). Un distractor que no se parece a nada se elimina de un
+ * vistazo y no prueba nada: la niña no mira el kanji, solo descarta lo obvio. Uno que
+ * comparte 日 con 明 sí la obliga a mirar el kanji entero, que es lo que hay que
+ * reconocer.
+ *
+ * Devuelve `null` si `pool` no llega a dos kanji. Un "elige entre uno" no es un
+ * reconocimiento, es mirar; y el modo se ofrece solo cuando hay material.
+ *
+ * El pool lo decide quien llama y no aquí: aquí dentro no hay niveles ni sesiones, solo
+ * kanjis que ya ha visto y que ya están barajados.
+ */
+export function buildRecallProblem(
+  pool: readonly string[],
+  opciones: 2 | 3,
+  rng: Rng = Math.random,
+): RecallProblem | null {
+  const disponibles = pool.filter(id => !!KANJI_COMPOSITIONS.find(c => c.id === id));
+  if (disponibles.length < 2) return null;
+
+  const objetivoId = disponibles[Math.floor(rng() * disponibles.length)]!;
+  const objetivo = KANJI_COMPOSITIONS.find(c => c.id === objetivoId)!;
+  const distractores = distractoresFor(objetivo, disponibles, Math.min(opciones, disponibles.length) - 1, rng);
+  if (distractores.length < 1) return null;
+
+  // Se barajan los objetos, no los ids: el `map` estaba rebuscando cada kanji otra vez
+  // en el catálogo con un objeto en lugar de un id, y TS lo veía en la comparación.
+  return { objetivo, opciones: shuffle([objetivo, ...distractores], rng) };
+}
+
+/** Distractores de un problema de reconocimiento: los que comparten pieza van primero. */
+function distractoresFor(
+  objetivo: KanjiComposition,
+  pool: readonly string[],
+  cantidad: number,
+  rng: Rng,
+): KanjiComposition[] {
+  const propias = new Set(objetivo.slots.map(s => s.kanji));
+  const comparten: KanjiComposition[] = [];
+  const ajenas: KanjiComposition[] = [];
+  for (const id of pool) {
+    const k = KANJI_COMPOSITIONS.find(c => c.id === id);
+    if (!k || k.id === objetivo.id) continue;
+    // Se compara por la **pieza**, no por el kanji: 明 y 星 no son el mismo kanji pero
+    // los dos llevan 日, y es lo que hace que haya que mirar el entero.
+    (k.slots.some(s => propias.has(s.kanji)) ? comparten : ajenas).push(k);
+  }
+  // Se barajan dentro de cada grupo, no entre los dos: que comparta pieza es el criterio
+  // pedagógico, el orden ya no lo es.
+  return [...shuffle(comparten, rng), ...shuffle(ajenas, rng)].slice(0, cantidad);
+}
+
 const PIECE_TABLE: Record<string, KanjiPiece> = Object.values(P).reduce<Record<string, KanjiPiece>>(
   (acc, piece) => {
     acc[piece.kanji] = piece;
