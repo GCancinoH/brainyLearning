@@ -144,7 +144,7 @@ export const KANJI_COMPOSITIONS: readonly KanjiComposition[] = [
     meaning: 'luminoso, claro',
     meaningTts: 'claro, luminoso',
     emoji: '💡',
-    story: 'Cuando sale el sol ☀️ y está la luna 🌙 a la vez, se ve clarísimo. Los japoneses escribieron 明 para decir "claro".',
+    story: 'Cuando sale el sol ☀️ y está la luna 🌙 a la vez, se ve clarísimo. Así dibujamos 明 para decir "claro".',
     storyTts: 'Cuando sale el sol y también está la luna, todo se ve clarísimo. Sol y luna juntos quieren decir: claro, luminoso.',
     strokeCount: 8,
     layout: 'left-right',

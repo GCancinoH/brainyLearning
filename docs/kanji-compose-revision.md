@@ -223,14 +223,14 @@ Hoy hay muy buena cobertura de **datos** (`kanji-composition.spec`, `kanji-narra
 | Q1 | **Mundo Dragón / `script` input** en la ruta de producción | Solo es alcanzable desde el laboratorio; hoy pinyin + audio japonés = contradictorio; falta audio `zh-CN`; `語` sería traditional. Mantenerlo en el lab, no en el juego público. | Ya |
 | Q2 | **Banner `game-feedback` a los 4 años** | Es texto que no lee y compite con la cara/voz. Sustituir por `mood` (como `logic-blocks`). | Sprint 0 |
 | Q3 | **`onyomi` y clips `kc.ja.k.*.on`** | Se generan y se mantienen, pero **ninguna pantalla los muestra ni reproduce**. Reintroducir solo cuando exista el paso "lectura erudita" (6 años, nivel 7+). | Sprint 0 |
-| Q4 | **Reflexión de un toque tal como está** | Los tres botones hacen lo mismo y no guardan nada: parece metacognición y no lo es. | Sprint 1 |
+| Q4 | ~~**Reflexión de un toque tal como está**~~ ✅ | Los tres botones llamaban a `chooseReflection()` **sin argumento** y solo servían para pasar de página. Ahora cada uno hace lo que dice: 🧩 el recuento en vivo hueco por hueco, 💡 la historia, 🔎 el panel de hermanos. Las dos primeras se oyen y **después** sigue la siguiente ronda —si no, ella tocaría y se quedaría mirando el mismo diálogo—. "Probé otra posición" es un `computed` y se va cuando el kanji no tiene hermanos: un panel vacío es peor que una opción menos. Sin guardar todavía cuál eligió (eso es §5.11). | Sprint 1 ✅ |
 | Q5 | **Confeti por cada kanji** | Devalúa el *level-up*. Dejar solo en subida de nivel/fin de juego. | Sprint 0 |
-| Q6 | **Historia pasiva larga de 4 años (modo `full`)** | ~20-25 s sin interacción; incumple "breve y brillante". Partirla en micro-momentos o recortarla a ≤ 10 s. | Sprint 1 |
-| Q7 | **Afirmar etimología histórica** en historias mnemotécnicas | Contradice la propia nota de honestidad del documento. Reencuadrar. | Sprint 1 |
+| Q6 | ~~**Historia pasiva larga de 4 años (modo `full`)**~~ ✅ **medido, no hacía falta tocar nada** | El informe estimaba ~20-25 s. Medido sobre los clips reales: la secuencia `full` completa (palabra → historia → piezas con significado → palabra → "ahora tú") son **14,5 s** en 明 y **~15,5 s** en 休, que es la historia más larga a la que llega una niña de 4 en modo `full` (143 caracteres). La historia sola dura **8,9 s** y **9,63 s**: ya cumple el "≤ 10 s" que pedía el propio informe. Y el paso no es pasivo —cada pieza se puede tocar para oírla otra vez, y hay botón de salto—. No se reescriben historias que ya se han escuchado y verificado. | Sprint 1 ✅ |
+| Q7 | ~~**Afirmar etimología histórica** en historias mnemotécnicas~~ ✅ | Revisadas las 13 historias: **solo una** afirmaba un acto de escritura — 明 decía "Los japoneses escribieron 明 para decir *claro*". Cambiada por "Así dibujamos 明 para decir *claro*", que es honestamente una mnemotécnica y no una atribución histórica. Las otras 12 ya describían la lógica de las piezas sin reclamar origen. Se regeneró el único clip afectado (`kc.es.k.mei.story`, 8,9 s) con `generate.py`, que salta los que ya existen, así que los otros 109 clips quedan intactos y verificados. | Sprint 1 ✅ |
 | Q8 | **Código muerto**: `.piece-enter`, `@keyframes piece-in`, `.draw-hint strong`, `.cdk-drag-preview` encapsulado, `strokeCount` si no se usa, textos de sistema sin uso (`again`, `next`, `guide-composer`, `recall-*` mientras no exista el modo) | Ruido y clips que se generan sin usarse. | Sprint 0 |
 | Q9 | **Texto residual en pantalla para pre-lectoras** (`hint`, `tray-empty`, `story-equals`, `h2` de hermanos) | Sustituir por icono + voz. | Sprint 1 |
 | Q10 | **`ki-hayashi-mori` en `nature-engine`** (o dejarlo como enlace al nuevo laboratorio de posición) | Contenido duplicado con ids rotos. | Sprint 3 |
-| Q11 | **Tap que rellena "el primer hueco libre"** | Convierte el juego en azar con 2 piezas. | Sprint 1 |
+| Q11 | ~~**Tap que rellena "el primer hueco libre"**~~ ✅ | `onTap` rellenaba `findIndex(p => p === null)`: el primer hueco libre, sin mirar la pieza. No era azar puro —con dos piezas el orden de toques decidía el resultado— pero era peor: **ella no podía hacer nada para influir**, mientras que con el arrastre sí podía elegir hueco. Ahora el tap es coger: la pieza se queda en la mano, suena y se levanta, los huecos vacíos se ofrecen, y el hueco lo toca ella. Tocar otra pieza la sustituye; tocar la misma la suelta; tocar un hueco vacío con la mano vacía no hace nada, que también es parte del arreglo. | Sprint 1 ✅ |
 
 ---
 
@@ -342,9 +342,10 @@ Sprint 3 y 4, y de Sprint 2 el sprite/Web Audio.*
       por kanji habría que decidir si la caja alta borra la historia, y eso se prueba en
       tablet con las niñas, no en un test
 - [x] `HintLadder` + `GhostHand` + `TutorialSeen` (§5.5)
-- [ ] Tap/selección coherente (Q11) + imán en arrastre
-- [ ] Recortar historia de 4 años (Q6) y reencuadrar mnemotecnias (Q7)
-- [ ] Reflexión útil o fuera (Q4)
+- [x] Tap/selección coherente (Q11) — el hueco lo elige ella
+- [ ] Imán en arrastre (la pieza se "engancha" al hueco más cercano al soltarla cerca)
+- [x] Historia de 4 años: medida, ya cumple ≤ 10 s (Q6) · mnemotecnias reencuadradas (Q7)
+- [x] Reflexión útil: cada respuesta hace lo que dice (Q4)
 
 ### Sprint 2 — Trazo y tipografía
 - [x] KanjiVG + trazo guiado + validación suave (§5.3)
