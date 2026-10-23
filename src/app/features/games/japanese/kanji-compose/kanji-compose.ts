@@ -186,6 +186,18 @@ export class KanjiCompose implements OnInit, OnDestroy {
   readonly tray = signal<TrayPiece[]>([]);
   /** Qué hay en cada hueco (null = vacío) */
   readonly placed = signal<(PlacedPiece | null)[]>([]);
+  /**
+   * Pieza "en la mano" tras tocarla, aún sin decidir a qué hueco va.
+   *
+   * Existe porque el tap no podía elegir hueco: rellenaba el primero libre sin mirar la
+   * pieza (Q11), así que con dos piezas el orden en que las tocaba decidía el resultado
+   * y ella no podía hacer nada. No era azar exacto, era adivinar, que es peor.
+   *
+   * Con esto el tap da el mismo control que el arrastre —que ya elegía hueco con
+   * `nearestSlot`—: toca la pieza, se queda en la mano y suena, y luego toca el hueco
+   * donde **cree** que va. La hipótesis vuelve a ser suya.
+   */
+  readonly seleccionada = signal<TrayPiece | null>(null);
 
   readonly line = signal('');
   readonly hint = signal('');
@@ -611,6 +623,9 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.problem.set(p);
     this.tray.set([...p.tray]);
     this.placed.set(p.slots.map(() => null));
+    // La mano empieza vacía: con la pieza de la ronda anterior todavía seleccionada, el
+    // primer toque en un hueco la colocaría sin que ella lo decidiera.
+    this.seleccionada.set(null);
     this.step.set('story');
     this.line.set('');
     this.hint.set('');
@@ -868,15 +883,36 @@ export class KanjiCompose implements OnInit, OnDestroy {
     }
   }
 
-  /** Tap como alternativa al arrastre: coloca en el primer hueco libre */
+  /**
+   * Toca la pieza: **se queda en la mano**, no va sola a ningún hueco.
+   *
+   * Tocar otra la sustituye; tocar la misma la devuelve a la bandeja. A dónde va la
+   * decide ella después, tocando el hueco (`tapSlot`).
+   */
   onTap(piece: TrayPiece): void {
     if (Date.now() - this.lastDragEnd < 300) return; // ignora el click que sigue al arrastre
     // Tocar en la bandeja también suena: es una de las dos formas de agarrar sin arrastrar.
     this.onActivity();
     this.hearPiece(piece);
-    const free = this.placed().findIndex(p => p === null);
-    if (free < 0) return;
-    this.place(free, piece);
+    this.seleccionada.update(actual => (actual?.trayId === piece.trayId ? null : piece));
+  }
+
+  /**
+   * Toca un hueco.
+   *
+   * Lleno → vuelve a la bandeja, que es lo que ya hacía. Vacío con pieza en la mano →
+   * ahí va. Vacío sin nada en la mano → no hace nada, y eso también es parte del
+   * arreglo: si un toque a ciegas pudiera colocar algo, seguiríamos eligiendo por ella.
+   */
+  onSlotTap(index: number): void {
+    if (this.placed()[index]) {
+      this.pickBack(index);
+      return;
+    }
+    const pieza = this.seleccionada();
+    if (!pieza) return;
+    this.seleccionada.set(null);
+    this.place(index, pieza);
   }
 
   /** Devuelve a la bandeja una pieza ya colocada */
@@ -917,6 +953,9 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     if (this.busy() || this.isOver()) return;
     this.audio.retryPendingAudio();
     this.hearPiece(piece);
+    // Siempre se limpia la mano, aunque venga de un arrastre: si la dejara llena, el
+    // siguiente toque en un hueco colocaría otra vez la pieza que ya está puesta.
+    this.seleccionada.set(null);
 
     // Si el hueco ya tenía algo, esa vuelve a la bandeja
     this.placed.update(list => {

@@ -236,6 +236,31 @@ $ink: #1b1b3a;
 }
 
 // ============================================================
+// PIEZA EN LA MANO (Q11)
+//
+// El tap ya no rellena el primer hueco libre: la pieza se queda en la mano y el hueco lo
+// decide ella. Estas dos clases son la mitad visible de ese cambio —cuál está cogida y
+// adónde puede soltarla—, y sin ellas la mecánica nueva sería invisible: una niña de 4
+// tocaría la pieza y vería que no se va a ningún sitio.
+//
+// El resaltado de "libre" es deliberadamente más flojo que el del peldaño 2
+// (`.slot--hint`): cuando la escalera de ayuda está diciendo cuál es, eso manda.
+// ============================================================
+
+.tray-piece--seleccionada {
+  position: relative;
+  z-index: 2;
+  outline: 4px solid #fde047;
+  outline-offset: 3px;
+  transform: translateY(-6px) scale(1.04);
+}
+
+.slot--libre {
+  outline: 3px dashed rgba(253, 224, 71, 0.75);
+  outline-offset: 3px;
+}
+
+// ============================================================
 // PRIMERA VEZ EN EL LIENZO (§5.5)
 //
 // Dos trazos que se dibujan solos, uno tras otro. Es el equivalente a la mano fantasma

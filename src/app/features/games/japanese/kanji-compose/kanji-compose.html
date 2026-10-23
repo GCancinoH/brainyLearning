@@ -145,10 +145,11 @@
               class="slot"
               [class.slot--filled]="placed()[$index]"
               [class.slot--hint]="hintedSlot() === $index"
+              [class.slot--libre]="!!seleccionada() && !placed()[$index]"
               [style.left.%]="slot.x * 100"
               [style.top.%]="slot.y * 100"
               [attr.aria-label]="'Hueco ' + ($index + 1)"
-              (click)="pickBack($index)"
+              (click)="onSlotTap($index)"
             >
               @if (placed()[$index]; as piece) {
                 <span class="slot-kanji" lang="ja">{{ piece.kanji }}</span>
@@ -168,6 +169,7 @@
               #trayPiece
               [attr.data-tray]="piece.trayId"
               [class.tray-piece--hint]="hintedPieceId() === piece.trayId"
+              [class.tray-piece--seleccionada]="seleccionada()?.trayId === piece.trayId"
               cdkDrag
               [cdkDragData]="piece"
               (cdkDragStarted)="onDragStarted(piece)"

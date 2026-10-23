@@ -97,7 +97,7 @@ describe('KanjiCompose (integración)', () => {
     fixture.detectChanges();
   }
 
-  /** Toca la pieza indicada en la bandeja, como lo haría la niña. */
+  /** Toca la pieza indicada en la bandeja: **se queda en la mano**, no se coloca sola. */
   function tapPiece(kanji: string): void {
     const pieces = Array.from(
       fixture.nativeElement.querySelectorAll('.tray-piece'),
@@ -110,10 +110,28 @@ describe('KanjiCompose (integración)', () => {
     fixture.detectChanges();
   }
 
+  /** Toca un hueco con la pieza que tiene en la mano. */
+  function tapSlot(index: number): void {
+    const slots = Array.from(
+      fixture.nativeElement.querySelectorAll('.slot'),
+    ) as HTMLElement[];
+    slots[index]!.click();
+    fixture.detectChanges();
+  }
+
+  /** Los dos toques que hace la niña: coger la pieza y elegir adónde va. */
+  function tapInto(kanji: string, slotIndex: number): void {
+    tapPiece(kanji);
+    tapSlot(slotIndex);
+  }
+
   /**
-   * Recorre el paso de composición colocando las piezas **en el orden de los huecos**:
-   * `onTap` rellena el primer hueco libre, así que si se entregan en ese orden la
-   * composición sale exacta y `evaluate()` dispara `onComposed()`.
+   * Recorre el paso de composición colocando cada pieza **en el hueco que le toca**: se
+   * coge y se elige adónde va, que es lo que hace la niña.
+   *
+   * Antes bastaba con tocar las piezas en orden de hueco porque `onTap` rellenaba el
+   * primero libre (Q11). Ahora el hueco lo decide ella, así que el helper tiene que
+   * decirlo.
    *
    * Los kanji con hermanos abren el overlay y **no** pasan solos al dibujo: hay que
    * cerrarlo. Ese es el comportamiento que se quiere probar, así que el helper lo
@@ -122,7 +140,7 @@ describe('KanjiCompose (integración)', () => {
   async function composeCorrectly(): Promise<void> {
     component.startComposing();
     fixture.detectChanges();
-    for (const slot of component.problem()!.slots) tapPiece(slot.kanji);
+    component.problem()!.slots.forEach((slot, i) => tapInto(slot.kanji, i));
     await advance(2500); // hermanos a los 1500 ms, o dibujo directo a los 2200 ms
     if (component.showSiblings()) component.dismissSiblings();
     fixture.detectChanges();
@@ -212,6 +230,90 @@ describe('KanjiCompose (integración)', () => {
     // Antes se quedaba sin historia **y** sin ningún botón con el que pedirla.
     mount(4, 7);
     expect(component.historiaAPeticion()).toBe(true);
+  });
+
+  // ============================================
+  // Q11 · EL HUECO LO ELIGE ELLA
+  // ============================================
+
+  it('Q11 tocar la pieza no la coloca: se queda en la mano', () => {
+    mount(4, 1);
+    asegurarPiezasDistintas();
+    component.startComposing();
+    fixture.detectChanges();
+    const huecos = component.problem()!.slots;
+
+    tapPiece(huecos[0]!.kanji);
+    expect(component.filledCount(), 'tocar no es colocar').toBe(0);
+    expect(component.seleccionada(), 'se queda en la mano').toBeTruthy();
+
+    // Y ahora sí, donde ella quiera. Aquí, en el segundo hueco, no en el primero.
+    tapSlot(1);
+    expect(component.placed()[1]?.kanji).toBe(huecos[0]!.kanji);
+    expect(component.placed()[0], 'y el primero sigue vacío').toBeNull();
+    expect(component.seleccionada(), 'la mano queda vacía').toBeNull();
+  });
+
+  it('Q11 el orden de colocación lo decide ella, y puede empezar por el final', () => {
+    mount(4, 1);
+    asegurarPiezasDistintas();
+    component.startComposing();
+    fixture.detectChanges();
+    const huecos = component.problem()!.slots;
+
+    // Antes el primer toque iba siempre al primer hueco libre: empezar por el final era
+    // imposible y el resultado dependía del orden de toques, no de lo que ella sabía.
+    huecos.forEach((_, i) => tapInto(huecos[huecos.length - 1 - i]!.kanji, i));
+
+    expect(component.filledCount(), 'el marco debe quedar lleno').toBe(huecos.length);
+    expect(
+      huecos.every((s, i) => component.placed()[i]?.kanji === s.kanji),
+      'y al revés, que es el error que ahora sí se puede cometer',
+    ).toBe(false);
+  });
+
+  it('Q11 un toque a ciegas en un hueco vacío no puede decidir nada por ella', () => {
+    mount(4, 1);
+    component.startComposing();
+    fixture.detectChanges();
+
+    tapSlot(0);
+    expect(component.filledCount()).toBe(0);
+    expect(component.seleccionada()).toBeNull();
+  });
+
+  it('Q11 tocar dos veces la misma pieza la suelta', () => {
+    mount(4, 1);
+    const kanji = component.problem()!.slots[0]!.kanji;
+    component.startComposing();
+    fixture.detectChanges();
+
+    tapPiece(kanji);
+    expect(component.seleccionada(), 'cogida').toBeTruthy();
+    tapPiece(kanji);
+    expect(component.seleccionada(), 'suelta otra vez').toBeNull();
+  });
+
+  it('Q11 la pieza cogida y los huecos libres se ven: si no, es invisible', () => {
+    mount(4, 1);
+    asegurarPiezasDistintas();
+    component.startComposing();
+    fixture.detectChanges();
+    const huecos = component.problem()!.slots;
+
+    tapPiece(huecos[0]!.kanji);
+    const marcada = Array.from(
+      fixture.nativeElement.querySelectorAll('.tray-piece--seleccionada'),
+    );
+    expect(marcada.length, 'la que está en la mano se levanta').toBe(1);
+
+    const libres = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.slot--libre')).length;
+    expect(libres(), 'los huecos vacíos se ofrecen').toBe(huecos.length);
+
+    tapInto(huecos[0]!.kanji, 0);
+    // Con la mano vacía no se ofrece nada: no hay a dónde ir.
+    expect(libres(), 'nada que ofrecer sin pieza en la mano').toBe(0);
   });
 
   it('REGRESIÓN B1: doble toque en ✅ solo suma UN acierto', async () => {
@@ -398,7 +500,8 @@ describe('KanjiCompose (integración)', () => {
    */
   function componerAlReves(): void {
     const huecos = component.problem()!.slots;
-    for (const k of [...huecos].reverse().map(s => s.kanji)) tapPiece(k);
+    // La del último hueco va al primero, y así sucesivamente: mismas piezas, otro orden.
+    huecos.forEach((_, i) => tapInto(huecos[huecos.length - 1 - i]!.kanji, i));
     fixture.detectChanges();
     expect(component.filledCount(), 'el marco debe quedar lleno').toBe(huecos.length);
 
@@ -471,7 +574,7 @@ describe('KanjiCompose (integración)', () => {
     for (let i = 0; i < 3; i++) componerAlReves();
     expect(component.ladderLevel()).toBe(3);
 
-    for (const s of component.problem()!.slots) tapPiece(s.kanji);
+    component.problem()!.slots.forEach((s, i) => tapInto(s.kanji, i));
     fixture.detectChanges();
 
     expect(component.ladderLevel()).toBe(0);
