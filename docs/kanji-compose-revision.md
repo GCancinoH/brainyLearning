@@ -257,7 +257,21 @@ Antes de mostrar la historia: se dan las piezas con su emoji y voz (☀️ + �
 - Equivalente digital de las letras de lija Montessori. Valorar la librería *Hanzi Writer* si encaja con datos japoneses, o un validador propio sobre las rutas KanjiVG.
 
 ### 5.4 Spaced Repetition por kanji y pieza (impacto ALTO · M)
-El proyecto ya tiene `SpacedRepetition` (cajas Leitner) y `SkillProgressService`. Falta cablearlos:
+**Hecho (23 oct)** — `review()`, `due()` y `dueAt()` en `SpacedRepetition`, cableados en
+`finishProblem`/`generateProblem` y probados. Dos desviaciones respecto a la idea de
+abajo, ambas a propósito:
+
+- `review` recibe `{ correct, ayuda }` y no `{ correct, ms }`. El tiempo de respuesta en
+  este juego está dominado por la motricidad de dibujar, no por la dificultad del kanji,
+  así que `ms` sería ruido. `ayuda` sí que importa: sin él, la escalera de ayuda llevaría
+  un kanji que nunca sale sola a la caja 5 en una sesión.
+- `storyMode` es por **nivel** y no por kanji (≥ 7 deja de contarse sola en cualquier
+  edad, y el 🔊 aparece para pedirla). Ver §6.
+
+Queda sin hacer de §5.4: "Mis kanji más difíciles" para el panel parental.
+
+El proyecto ya tenía `SpacedRepetition` (cajas Leitner) y `SkillProgressService`, pero solo
+para saber qué se había presentado. La idea de integración original era esta:
 
 ```ts
 // idea de integración
@@ -312,24 +326,31 @@ Ver §3.8. Además, botones en el lab para saltar a **Dibujar**, **Siblings** o 
 
 ## 6. Hoja de ruta propuesta
 
+*Estado al 23 de octubre: Sprints 0–2 cerrados (salvo lo anotado), incluido §5.4. Queda
+Sprint 3 y 4, y de Sprint 2 el sprite/Web Audio.*
+
 ### Sprint 0 — Correcciones (≈ 1 día)
-- [ ] B1 doble toque, B2 banner/estado, B3 instrucción cortada, B4 clases CSS
-- [ ] Q2 banner → cara de ánimo a 4 años · Q5 confeti solo en level-up
-- [ ] Q3/Q8 limpiar `onyomi` y código muerto · B9 audio de los pasos mudos
-- [ ] Test de integración mínimo (B1, B2, `busy`)
+- [x] B1 doble toque, B2 banner/estado, B3 instrucción cortada, B4 clases CSS
+- [x] Q2 banner → cara de ánimo a 4 años · Q5 confeti solo en level-up
+- [x] Q3/Q8 limpiar `onyomi` y código muerto · B9 audio de los pasos mudos
+- [x] Test de integración mínimo (B1, B2, `busy`)
 
 ### Sprint 1 — Progresión que enseña
-- [ ] Pools **acumulativos** + tabla de niveles de §3.2 (4 años deja de ser plano)
-- [ ] SRS por kanji (§5.4) + `storyMode` por kanji
-- [ ] `HintLadder` + `GhostHand` + `TutorialSeen` (§5.5)
+- [x] Pools **acumulativos** + tabla de niveles de §3.2 (4 años deja de ser plano)
+- [x] SRS por kanji (§5.4) + `storyMode` — este último por **nivel** (≥ 7 se la cuenta
+      sola a cualquier edad, y el 🔊 aparece para pedirla), no por kanji: para que fuera
+      por kanji habría que decidir si la caja alta borra la historia, y eso se prueba en
+      tablet con las niñas, no en un test
+- [x] `HintLadder` + `GhostHand` + `TutorialSeen` (§5.5)
 - [ ] Tap/selección coherente (Q11) + imán en arrastre
 - [ ] Recortar historia de 4 años (Q6) y reencuadrar mnemotecnias (Q7)
 - [ ] Reflexión útil o fuera (Q4)
 
 ### Sprint 2 — Trazo y tipografía
-- [ ] KanjiVG + trazo guiado + validación suave (§5.3)
-- [ ] Fuente subconjunto embebida · filtrado de palma · resize
-- [ ] Audio comprimido + sprite/Web Audio + prefetch offline
+- [x] KanjiVG + trazo guiado + validación suave (§5.3)
+- [x] Fuente subconjunto embebida · filtrado de palma · resize
+- [x] Audio comprimido + prefetch offline
+- [ ] Sprite / Web Audio (el m4a ya está; el sprite es optimización, no requisito)
 
 ### Sprint 3 — Descubrimiento (el salto de calidad)
 - [ ] **Laboratorio de posición** (§5.1)
