@@ -2,7 +2,26 @@ import { Service, inject, signal } from '@angular/core';
 import { ProfileStateService } from '../services/profile-state';
 
 export const JAPANESE_VOCAB_DECK = 'japanese-vocab';
+/** Mazo de kanji-compose. El nombre es el fichero de los recuerdos de cada kanji. */
+export const KANJI_COMPOSITION_DECK = 'kanji-composition';
 const STORAGE_KEY = 'brainyLearning_srs';
+
+/**
+ * Cuánto dura cada caja, en días.
+ *
+ * `[1, 2, 4, 7, 14]`: la curva clásica de Leitner. Es deliberadamente corta por arriba.
+ * Con 13 kanji y niñas que juegan a ratos, un fallo vuelve a la caja 1, y el peor caso
+ * posible de eso es "sale mañana": la consecuencia de equivocarse es que el kanji se
+ * repita pronto, nunca que desaparezca.
+ */
+export const INTERVALOS: Readonly<Record<number, number>> = { 1: 1, 2: 2, 3: 4, 4: 7, 5: 14 };
+export const CAJA_MAX = 5;
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+function venceEnDias(box: number): number {
+  return (INTERVALOS[box] ?? INTERVALOS[1]!) * DIA_MS;
+}
 
 export interface ItemMemory {
   box: number;            // 1..5 (Leitner, siguiente paso)
@@ -34,6 +53,64 @@ export class SpacedRepetition {
       return next;
     });
     this.save();
+  }
+
+  /**
+   * Registra un repaso y programa el siguiente.
+   *
+   * Leitner clásico: el acierto sube una caja, el fallo vuelve a la 1 (§5.4).
+   *
+   * No recibe cuánto tardó ella. Es una decisión: en este juego el tiempo de respuesta
+   * está dominado por la motricidad de dibujar —un kanji de 6 trazos se compone a ritmo
+   * distinto según la mano que lo haga— y no por la dificultad del kanji, así que ese
+   * dato sería ruido y no señal.
+   *
+   * Un kanji nunca presentado se puede registrar igual: entra en la caja 0 y un acierto
+   * lo pone en la 1, que es exactamente "se ha visto una vez".
+   */
+  review(deck: string, itemId: string, resultado: { correct: boolean }): void {
+    const key = this.key(deck, itemId);
+    if (!key) return;
+    const ahora = Date.now();
+    this._memory.update(mem => {
+      const previa = mem[key] ?? { box: 0, introducedAt: ahora, lastSeenAt: ahora, dueAt: ahora };
+      const box = resultado.correct
+        ? Math.min(previa.box + 1, CAJA_MAX)
+        : 1;
+      return { ...mem, [key]: { ...previa, box, lastSeenAt: ahora, dueAt: ahora + venceEnDias(box) } };
+    });
+    this.save();
+  }
+
+  /**
+   * Cuándo vence un item, o `null` si no hay registro.
+   *
+   * Existe en público porque la alternativa es que las pruebas pinchen en `_memory`, y
+   * ese cable se rompe en cuanto se renombra una cosa.
+   */
+  dueAt(deck: string, itemId: string): number | null {
+    const key = this.key(deck, itemId);
+    return key ? this._memory()[key]?.dueAt ?? null : null;
+  }
+
+  /**
+   * Kanjis de este mazo que toca repasar ahora, **el más atrasado primero**.
+   *
+   * El orden es parte del contrato y no un detalle: `pickComposition` se queda con el
+   * primero, así que sin ordenar saldría el mismo kanji mientras los demás se apilasen
+   * sin repasar — que sería justo lo contrario de espaciado.
+   *
+   * El desempate por clave es para que dos kanji que venzan el mismo día no cambien de
+   * orden entre partidas, y un test pueda fijar cuál sale.
+   */
+  due(deck: string, ahora = Date.now()): string[] {
+    const profileId = this.profileState.activeProfile()?.id;
+    if (!profileId) return [];
+    const prefix = `${profileId}:${deck}:`;
+    return Object.entries(this._memory())
+      .filter(([k, m]) => k.startsWith(prefix) && m.dueAt <= ahora)
+      .sort((a, b) => a[1].dueAt - b[1].dueAt || a[0].localeCompare(b[0]))
+      .map(([k]) => k.slice(prefix.length));
   }
 
   /** Reparte el lote alternando categorías (contraste) */

@@ -6,6 +6,7 @@ import { CoinShopGallery } from './coin-shop-gallery.service';
 import { ProfileStateService } from '@core/services/profile-state';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { GameSessionService } from '@core/games/game-session.service';
+import { installMemoryStorage } from '@core/testing/memory-storage';
 
 /**
  * TEST DE INTEGRACIÓN DEL COMPONENTE.
@@ -46,32 +47,6 @@ class ProgressStub {
   };
 }
 
-/**
- * El entorno de test no trae `localStorage`. Se instala uno en memoria para poder
- * comprobar que la galería persiste; en producción sí existe de verdad.
- */
-function installMemoryStorage(): void {
-  const g = globalThis as unknown as { localStorage?: Storage };
-  if (g.localStorage?.getItem) return;
-  const store = new Map<string, string>();
-  const fake: Storage = {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, String(v)),
-    removeItem: (k: string) => void store.delete(k),
-    clear: () => store.clear(),
-    key: (i: number) => [...store.keys()][i] ?? null,
-    get length() {
-      return store.size;
-    },
-  };
-  // defineProperty y no asignación: en algunos entornos `localStorage` existe como
-  // propiedad de solo lectura y la asignación silenciosa no hace nada.
-  Object.defineProperty(globalThis, 'localStorage', {
-    value: fake,
-    configurable: true,
-    writable: true,
-  });
-}
 
 describe('CoinShop (integración)', () => {
   let fixture: ComponentFixture<CoinShop>;

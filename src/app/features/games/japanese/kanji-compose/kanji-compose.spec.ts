@@ -4,6 +4,7 @@ import { KanjiCompose } from './kanji-compose';
 import { ProfileStateService } from '@core/services/profile-state';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { GameAudioService } from '@core/games/game-audio.service';
+import { installMemoryStorage } from '@core/testing/memory-storage';
 
 /**
  * El confeti no se prueba aquí, y en jsdom su animación revienta: llama a `clearRect`
@@ -49,30 +50,6 @@ class ProgressStub {
   };
 }
 
-/**
- * El entorno de test no trae `localStorage` fiable; se instala uno en memoria para que
- * `ProfileStateService` no reviente en su inicializador. En producción sí existe de verdad.
- */
-function installMemoryStorage(): void {
-  const g = globalThis as unknown as { localStorage?: Storage };
-  if (g.localStorage?.getItem) return;
-  const store = new Map<string, string>();
-  const fake: Storage = {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, String(v)),
-    removeItem: (k: string) => void store.delete(k),
-    clear: () => store.clear(),
-    key: (i: number) => [...store.keys()][i] ?? null,
-    get length() {
-      return store.size;
-    },
-  };
-  Object.defineProperty(globalThis, 'localStorage', {
-    value: fake,
-    configurable: true,
-    writable: true,
-  });
-}
 
 describe('KanjiCompose (integración)', () => {
   let fixture: ComponentFixture<KanjiCompose>;
