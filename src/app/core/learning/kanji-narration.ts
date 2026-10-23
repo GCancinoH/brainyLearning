@@ -226,6 +226,31 @@ export function storyCues(
   return [word, ...historia, ...piezas, word, ...cierre];
 }
 
+/**
+ * El recuento: la palabra y luego cada pieza con su significado, hueco por hueco.
+ *
+ * Es lo que le pasa a "conté los huecos" de la reflexión (Q4). El botón no lo dice, lo
+ * **hace** —tres botones que hacían lo mismo no son metacognición, son decoración—, y
+ * sale del mismo `c.slots` que todo lo demás, así que no hay una segunda lista de
+ * nombres que pueda desincronizarse.
+ *
+ * Va con significado en español siempre, a diferencia de `storyCues`, que se lo añade
+ * solo a los 4 en `full`: aquí ya ha jugado, y oír "ひ" sin "sol" no le cuenta nada nuevo.
+ */
+export function recountCues(c: KanjiComposition): Cue<Highlight>[] {
+  const word: Cue<Highlight> = { clip: kanjiWord(c.id), tag: { kind: 'kanji' }, pauseAfterMs: 300 };
+  const piezas = c.slots.flatMap((slot, index): Cue<Highlight>[] => {
+    const id = pieceData(slot.kanji).id;
+    if (!id) return [];
+    const tag: Highlight = { kind: 'piece', index };
+    return [
+      { clip: pieceWord(id), tag, pauseAfterMs: 600 },
+      { clip: pieceMeaning(id), tag, pauseAfterMs: 300 },
+    ];
+  });
+  return [word, ...piezas];
+}
+
 /** Claves que hacen falta para un compuesto: sirve para la precarga (§5.5 del spec). */
 export function clipsForProblem(c: KanjiComposition): ClipKey[] {
   const piezas = c.slots.map(s => {

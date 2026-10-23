@@ -7,6 +7,8 @@ import { GameAudioService } from '@core/games/game-audio.service';
 import { installMemoryStorage } from '@core/testing/memory-storage';
 import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { KANJI_COMPOSITION_DECK, SpacedRepetition } from '@core/learning/spaced-repetition';
+import { pieceData, KANJI_COMPOSITIONS } from '@core/learning/kanji-composition';
+import { kanjiStory, kanjiWord, pieceMeaning, pieceWord } from '@core/learning/kanji-narration';
 
 /**
  * El confeti no se prueba aquí, y en jsdom su animación revienta: llama a `clearRect`
@@ -314,6 +316,101 @@ describe('KanjiCompose (integración)', () => {
     tapInto(huecos[0]!.kanji, 0);
     // Con la mano vacía no se ofrece nada: no hay a dónde ir.
     expect(libres(), 'nada que ofrecer sin pieza en la mano').toBe(0);
+  });
+
+  // ============================================
+  // Q4 · LA REFLEXIÓN YA NO ES DECORACIÓN
+  // ============================================
+
+  /**
+   * Lleva una ronda hasta la reflexión de 6 años.
+   *
+   * La narración se mockea en cada prueba, no se espera: `Narrator._sleep` compara
+   * `Date.now()` real contra temporizadores de falsos reloj, así que con el reloj
+   * adelantado de golpe su bucle no termina. Lo que aquí se prueba es qué hace cada
+   * botón, no cómo espera el narrador.
+   */
+  async function hastaReflexion(): Promise<void> {
+    mount(6, 1);
+    asegurarPiezasDistintas();
+    await composeCorrectly();
+    drawSomething();
+    component.finishDrawing();
+    await advance(2200); // la reflexión se abre a los 1600 ms
+    expect(component.reflecting(), 'debe estar la reflexión').toBe(true);
+  }
+
+  it('Q4 "conté los huecos" suena el recuento, hueco por hueco', async () => {
+    await hastaReflexion();
+    const p = component.problem()!;
+    const play = vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+
+    await component.chooseReflection('huecos');
+
+    const cues = play.mock.calls[0]![0] as Array<{ clip: string }>;
+    expect(cues[0]!.clip, 'empieza por la palabra').toBe(kanjiWord(p.target.id));
+    expect(cues.length, 'la palabra, y pieza + significado por hueco').toBe(
+      1 + p.slots.length * 2,
+    );
+    // El recuento lleva significado siempre: a estas alturas ya ha jugado, y oír "ひ"
+    // sin "sol" no le cuenta nada nuevo.
+    expect(cues[1]!.clip, 'la primera pieza').toBe(
+      pieceWord(pieceData(p.slots[0]!.kanji).id),
+    );
+    expect(cues[2]!.clip, 'y su significado').toBe(
+      pieceMeaning(pieceData(p.slots[0]!.kanji).id),
+    );
+  });
+
+  it('Q4 "probé otra posición" abre los hermanos, y cerrarlos va al siguiente kanji', async () => {
+    await hastaReflexion();
+    expect(component.step(), 'el dibujo ya pasó').toBe('draw');
+
+    await component.chooseReflection('posicion');
+    fixture.detectChanges();
+    expect(component.showSiblings(), 'se abre el panel').toBe(true);
+    expect(component.reflecting(), 'y el de reflexión se cierra: ocupan lo mismo').toBe(false);
+
+    component.dismissSiblings();
+    fixture.detectChanges();
+
+    // Aquí está el arreglo: `dismissSiblings` mandaba siempre a `enterDraw()`, que ya
+    // había pasado, y ella se habría quedado dibujando otra vez el kanji hecho.
+    expect(component.showSiblings()).toBe(false);
+    expect(component.step(), 'no vuelve al dibujo').not.toBe('draw');
+    expect(component.problem(), 'y hay un problema nuevo').toBeTruthy();
+  });
+
+  it('Q4 "pensé en la historia" se oye y después sigue la siguiente ronda', async () => {
+    await hastaReflexion();
+    const p = component.problem()!;
+    const play = vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+
+    await component.chooseReflection('historia');
+
+    const cues = play.mock.calls[0]![0] as Array<{ clip: string }>;
+    expect(cues.map(c => c.clip), 'es la historia y nada más').toEqual([
+      kanjiStory(p.target.id),
+    ]);
+    expect(component.showSiblings(), 'esta no abre hermanos').toBe(false);
+    expect(component.reflecting(), 'y la reflexión ya no está').toBe(false);
+  });
+
+  it('Q4 las respuestas ya no son el mismo botón, y solo se ofrece la que se puede dar', () => {
+    // Sin hermanos no hay "otra posición" que probar: la tercera respuesta se va.
+    expect(component.reflections().map(r => r.que)).toEqual(['huecos', 'historia']);
+
+    // Se sustituye el objetivo por uno con hermanos (本 → 末/未) para no depender de que
+    // el azar del nivel acierte en él.
+    component.problem.set({
+      ...component.problem()!,
+      target: KANJI_COMPOSITIONS.find(k => k.id === 'hon')!,
+    });
+    expect(component.reflections().map(r => r.que)).toEqual([
+      'huecos',
+      'historia',
+      'posicion',
+    ]);
   });
 
   it('REGRESIÓN B1: doble toque en ✅ solo suma UN acierto', async () => {

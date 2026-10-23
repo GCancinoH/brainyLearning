@@ -356,8 +356,8 @@
     <div class="overlay-card">
       <h2>¿Cómo supiste qué pieza iba en cada hueco? 🤔</h2>
       <div class="reflection-options">
-        @for (r of reflections; track r.text) {
-          <button class="reflection-btn" (click)="chooseReflection()">
+        @for (r of reflections(); track r.que) {
+          <button class="reflection-btn" (click)="chooseReflection(r.que)">
             <span class="reflection-emoji">{{ r.emoji }}</span>
             <span>{{ r.text }}</span>
           </button>

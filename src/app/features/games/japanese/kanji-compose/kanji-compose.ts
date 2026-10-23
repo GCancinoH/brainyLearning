@@ -50,6 +50,7 @@ import {
   SOCRATIC_LINE_COUNT,
   pieceMeaning,
   pieceWord,
+  recountCues,
   siblingWord,
   socraticLine,
   storyCues,
@@ -205,6 +206,14 @@ export class KanjiCompose implements OnInit, OnDestroy {
   readonly reflecting = signal(false);
   /** Muestra los kanji hermanos: "con las mismas piezas salen otros" */
   readonly showSiblings = signal(false);
+  /**
+   * El panel de hermanos se abrió desde la reflexión ("probé otra posición", Q4).
+   *
+   * Va aparte de `reflecting` porque al abrirlo ese se apaga —los dos overlays ocupan lo
+   * mismo—, y sin esta marca `dismissSiblings` mandaría a `enterDraw()`, que ya pasó hace
+   * un rato.
+   */
+  private readonly desdeReflexion = signal(false);
   /** En la fase de dibujo, el kanji se muestra al trasluz */
   readonly showGhostInDraw = signal(true);
 
@@ -632,6 +641,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.busy.set(false);
     this.reflecting.set(false);
     this.showSiblings.set(false);
+    this.desdeReflexion.set(false);
     this.showGhostInDraw.set(true);
     this.strokes.set([]);
     this.drawing = null;
@@ -1136,6 +1146,12 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
   dismissSiblings(): void {
     if (!this.showSiblings()) return;
     this.showSiblings.set(false);
+    // Si vino de la reflexión (Q4), el dibujo ya pasó: lo que sigue es el siguiente kanji.
+    if (this.desdeReflexion()) {
+      this.desdeReflexion.set(false);
+      this.generateProblem();
+      return;
+    }
     this.enterDraw();
   }
 
@@ -1580,16 +1596,62 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     }
   }
 
-  readonly reflections = [
-    { emoji: '🧩', text: 'Conté los huecos' },
-    { emoji: '💡', text: 'Pensé en la historia' },
-    { emoji: '🔎', text: 'Probé otra posición' },
-  ];
+  /**
+   * Las respuestas posibles a "¿cómo supiste qué pieza iba en cada hueco?".
+   *
+   * Van como `computed` y no como array fijo porque la tercera no siempre puede
+   * cumplirse: "probé otra posición" abre el panel de hermanos, que se llena con los
+   * kanji hechos con las mismas piezas, y un kanji sin hermanos —que son casi todos—
+   * abriría un panel vacío con una frase que no viene a cuento. Ofrecer una respuesta que
+   * no se puede dar es peor que no ofrecerla.
+   */
+  readonly reflections = computed(() => {
+    const base = [
+      { emoji: '🧩', text: 'Conté los huecos', que: 'huecos' as const },
+      { emoji: '💡', text: 'Pensé en la historia', que: 'historia' as const },
+    ];
+    return (this.target()?.siblings ?? []).length > 0
+      ? [...base, { emoji: '🔎', text: 'Probé otra posición', que: 'posicion' as const }]
+      : base;
+  });
 
-  chooseReflection(): void {
+  /**
+   * Lo que ella contesta a "¿cómo supiste?".
+   *
+   * Q4: los tres botones hacían exactamente lo mismo —llamaban a `chooseReflection()` sin
+   * argumento— y solo servían para pasar de página, así que la pregunta era decorativa:
+   * parecía metacognición y no pedía nada. Ahora cada uno hace lo que dice, que es lo
+   * único que convierte una pregunta en pregunta.
+   *
+   * Las dos primeras se oyen y **después** sigue la siguiente ronda: si no, ella toca y
+   * se queda mirando el mismo diálogo, que es la forma más segura de que no vuelva a tocar
+   * nada. La tercera abre el panel de hermanos —que es "otra posición" de verdad— y el
+   * paso siguiente lo da ella al cerrarlo.
+   *
+   * No se guarda todavía cuál eligió: eso es §5.11 (panel parental) y tiene sitio propio.
+   * Lo que aquí importa es que la respuesta **cambia algo**.
+   */
+  async chooseReflection(que: 'huecos' | 'historia' | 'posicion'): Promise<void> {
     if (this.isOver()) return;
     this.audio.retryPendingAudio();
-    this.generateProblem();
+
+    if (que === 'posicion') {
+      this.reflecting.set(false);
+      this.desdeReflexion.set(true);
+      this.showSiblings.set(true);
+      void this.speakSiblings();
+      return;
+    }
+
+    const t = this.target();
+    if (t) {
+      const cues: Cue<Highlight>[] =
+        que === 'historia'
+          ? [{ clip: kanjiStory(t.id), pauseAfterMs: 350 }]
+          : recountCues(t);
+      await this.narrator.play(cues, c => this.cue.set(c));
+    }
+    if (!this.isOver()) this.generateProblem();
   }
 
   goBack(): void {
