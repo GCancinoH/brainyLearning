@@ -80,7 +80,17 @@ describe('KanjiCompose (integración)', () => {
     fixture.detectChanges();
   }
 
-  /** Avanza los temporizadores que usa el juego (`setTimeout` encadenados). */
+  /**
+   * Avanza los temporizadores que usa el juego (`setTimeout` encadenados).
+   *
+   * El orden de dentro importa: **primero** `advanceTimersByTime`, después
+   * `whenStable`. Si se invierte —o si se llama a `whenStable()` a secas tras cerrar una
+   * ronda— no se cuelga el juego, se cuelga la prueba: `finishProblem` deja un
+   * `later(…, 2800)` pendiente en el reloj falso, la zona nunca queda estable porque ese
+   * temporizador no se va a ejecutar solo, y el `whenStable` se queda esperando. Se
+   * comprobó moviendo el reloj: con los temporizadores avanzados resuelve en milisegundos;
+   * sin avanzarlos, 6 s y el test se va de tiempo.
+   */
   async function advance(ms: number): Promise<void> {
     vi.advanceTimersByTime(ms);
     await fixture.whenStable();
