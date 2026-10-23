@@ -1024,29 +1024,29 @@ describe('KanjiCompose (integración)', () => {
   // comparte pieza y lo que no.
   // ============================================
 
-  describe('§5.6 reconocer', () => {
-    /**
-     * Abre la sesión con kanji ya conocidos y deja el calentamiento montado.
-     *
-     * El narrador se mockea: `Narrator._sleep` compara `Date.now()` **real** contra
-     * temporizadores de falsos reloj, así que sin el mock la promesa del saludo no termina
-     * nunca y `empezarRecall()` no se llega a llamar.
-     */
-    async function empezarConCalentamiento(
-      edad: 4 | 6,
-      nivel: number,
-      conocidos: string[],
-    ): Promise<void> {
-      mount(edad, nivel);
-      TestBed.inject(SpacedRepetition).markIntroduced(KANJI_COMPOSITION_DECK, conocidos);
-      vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
-      vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
-      component.startGame();
-      fixture.detectChanges();
-      await advance(700); // el calentamiento se monta a los 400 ms
-      expect(component.step(), 'debe estar reconociendo').toBe('reconocer');
-    }
+  /**
+   * Abre la sesión con kanji ya conocidos y deja el calentamiento montado.
+   *
+   * El narrador se mockea: `Narrator._sleep` compara `Date.now()` **real** contra
+   * temporizadores de falsos reloj, así que sin el mock la promesa del saludo no termina
+   * nunca y `empezarRecall()` no se llega a llamar.
+   */
+  async function empezarConCalentamiento(
+    edad: 4 | 6,
+    nivel: number,
+    conocidos: string[],
+  ): Promise<void> {
+    mount(edad, nivel);
+    TestBed.inject(SpacedRepetition).markIntroduced(KANJI_COMPOSITION_DECK, conocidos);
+    vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+    vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+    component.startGame();
+    fixture.detectChanges();
+    await advance(700); // el calentamiento se monta a los 400 ms
+    expect(component.step(), 'debe estar reconociendo').toBe('reconocer');
+  }
 
+  describe('§5.6 reconocer', () => {
     it('sin kanji conocidos no hay calentamiento: no se reconoce lo que no se ha visto', async () => {
       mount(4, 1);
       vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
@@ -1145,6 +1145,71 @@ describe('KanjiCompose (integración)', () => {
         Array.from(fixture.nativeElement.querySelectorAll('.recall-option--ok')).length,
         'la acertada se enciende sola',
       ).toBe(1);
+    });
+  });
+
+  // ============================================
+  // §5.9 · RITUAL FLASH
+  // ============================================
+
+  describe('§5.9 ritual Flash', () => {
+    it('con kanji conocidos pero menos de tres, corre el Flash, que no examina', async () => {
+      // Dos kanji no dan para reconocer —excluir el del problema deja uno—, pero sí para
+      // enseñarlos: es el único calentamiento que funciona desde la primera sesión.
+      mount(4, 1);
+      TestBed.inject(SpacedRepetition).markIntroduced(KANJI_COMPOSITION_DECK, ['mei', 'kyuu']);
+      vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+      const play = vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      component.startGame();
+      await advance(700);
+
+      expect(component.recall(), 'no hay material para examinar').toBeNull();
+      expect(component.step(), 'pero sí para enseñar').toBe('flash');
+      expect(component.flashKanji(), 'y enseña uno cada vez').toBeTruthy();
+      expect(
+        Array.from(fixture.nativeElement.querySelectorAll('.flash-kanji')),
+        'una sola tarjeta en pantalla',
+      ).toHaveLength(1);
+
+      const tanda = play.mock.calls.map(c => (c[0] as Array<{ clip: string }>)[0]!.clip);
+      expect(tanda, 'los dos conocidos, ni uno más').toHaveLength(2);
+      expect(
+        tanda.every(c => c.startsWith('kc.ja.k.')),
+        'solo suena la palabra de cada kanji: no hay pregunta que responder',
+      ).toBe(true);
+    });
+
+    it('sin kanji conocidos no hay Flash: sería una pantalla en blanco con una voz', async () => {
+      mount(4, 1);
+      vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+      vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      component.startGame();
+      fixture.detectChanges();
+      await advance(700);
+
+      expect(component.flashKanji()).toBeNull();
+      expect(component.step()).toBe('story');
+    });
+
+    it('el Flash va DESPUÉS de examinar, no antes', async () => {
+      // El Flash enseña los kanji, y en cuanto se enseñan el recuerdo deja de ser frío: si
+      // fuera antes, "¿cuál suena?" se respondería con lo visto hace cinco segundos.
+      await empezarConCalentamiento(4, 3, ['mei', 'kyuu', 'rin', 'iwa']);
+      const pasos: string[] = [];
+      vi.spyOn(component.narrator, 'play').mockImplementation(async () => {
+        pasos.push(component.step());
+        return true;
+      });
+
+      for (let i = 0; i < 2; i++) {
+        component.responderRecall(component.recall()!.objetivo.id);
+        await advance(2000);
+      }
+
+      expect(pasos, 'primero examina').toContain('reconocer');
+      expect(pasos, 'y enseña después').toContain('flash');
+      expect(pasos.indexOf('flash')).toBeGreaterThan(pasos.indexOf('reconocer'));
+      expect(component.step(), 'y acaba jugando').toBe('story');
     });
   });
 });

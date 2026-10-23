@@ -216,6 +216,41 @@ $ink: #1b1b3a;
 }
 
 // ============================================================
+// RITUAL FLASH (§5.9)
+//
+// Mostrar–decir–retirar, un segundo por kanji. El kanji es enorme porque no hay nada más
+// en pantalla con lo que competir, y entra con un fundido porque "retirar" también se ve:
+// si el siguiente kanji apareciera seco, parecería que el anterior se hubiera quedado
+// enseñando en vez de haberse ido.
+// ============================================================
+
+.flash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 16rem;
+  animation: flash-in 0.22s ease-out;
+}
+
+.flash-kanji {
+  font-size: 8rem;
+  line-height: 1;
+}
+
+.flash-emoji {
+  font-size: 3rem;
+}
+
+@keyframes flash-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+// ============================================================
 // RECONOCER (§5.6) — el paso 0
 //
 // Una fila de tarjetas grandes. No hay bandeja ni huecos: lo único que se le pide es
@@ -894,7 +929,9 @@ $ink: #1b1b3a;
   .reveal-kanji,
   .overlay,
   // El crecimiento de la acertada es solo refuerzo: el borde amarillo ya la distingue.
-  .recall-option--ok {
+  .recall-option--ok,
+  // El fundido del Flash no lo es: el kanji se ve igual de grande y de negro.
+  .flash {
     animation: none !important;
   }
   // El latido del peldaño 2 solo llama la atención: quien pide movimiento reducido ya la

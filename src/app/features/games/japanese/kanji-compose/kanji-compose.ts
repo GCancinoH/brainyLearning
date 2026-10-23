@@ -33,11 +33,13 @@ import {
   buildRecallProblem,
   CompositionProblem,
   KanjiComposition,
+  KANJI_COMPOSITIONS,
   MAX_LEVEL,
   pickLine,
   pieceData,
   poolFor,
   RecallProblem,
+  shuffle,
   SocraticMoment,
   TrayPiece,
 } from '@core/learning/kanji-composition';
@@ -89,10 +91,11 @@ import { nearestSlot } from './slot-hit';
  *    material de investigación (regla 5 del método).
  */
 
-type Step = 'story' | 'compose' | 'draw' | 'reconocer';
+type Step = 'story' | 'compose' | 'draw' | 'reconocer' | 'flash';
 
 /** Instrucción del paso, para quien lee y no tiene nada más que leer. */
 const STEP_PROMPT: Record<Step, string> = {
+  flash: '👀 Mira y escucha',
   reconocer: '👂 ¿Cuál suena?',
   story: '👀 Mira cómo se forma',
   compose: '🤔 ¿Qué pieza va en cada hueco?',
@@ -101,6 +104,15 @@ const STEP_PROMPT: Record<Step, string> = {
 
 /** Clave de "modo" para `TutorialSeen`. */
 const COMPOSE_MODE = 'compose';
+
+/**
+ * Cuántos kanji pasan por el ritual Flash (§5.9).
+ *
+ * Cinco es el número que pide el ritual y el que cabe en unos cinco segundos: a un
+ * segundo por kanji, más la pausa que hace que se note la retirada. Más de cinco deja de
+ * ser calentamiento y empieza a ser repaso.
+ */
+const FLASH_COUNT = 5;
 
 /**
  * La última pieza del paseo de la primera vez: el lienzo.
@@ -239,6 +251,15 @@ export class KanjiCompose implements OnInit, OnDestroy {
   private recallRestantes = 2;
   /** Si ya ha tirado en el problema actual: solo la primera tirada cuenta para el SRS. */
   private recallTirado = false;
+
+  /**
+   * El kanji que está en pantalla en el ritual Flash (§5.9), o `null` si no hay.
+   *
+   * Va uno solo y no una lista porque el ritual es **mostrar–decir–retirar**: no hay nada
+   * que mirar a la vez, y una pila de cinco tarjetas en pantalla sería un álbum, que es
+   * otra cosa.
+   */
+  readonly flashKanji = signal<KanjiComposition | null>(null);
 
   /** En la fase de dibujo, el kanji se muestra al trasluz */
   readonly showGhostInDraw = signal(true);
@@ -722,9 +743,10 @@ export class KanjiCompose implements OnInit, OnDestroy {
    * Cuenta el acierto y pasa de tanda o de paso.
    *
    * Si no queda material para otro acierto se va igual: un calentamiento que se alarga
-   * hasta el aburrimiento deja de ser calentamiento.
+   * hasta el aburrimiento deja de ser calentamiento. El ritual Flash cierra la tanda
+   * también cuando venía del Reconocer —es el mismo orden que al empezar—.
    */
-  private pasarDeRecall(): void {
+  private async pasarDeRecall(): Promise<void> {
     this.recallRestantes -= 1;
     const siguiente = this.recallRestantes > 0 ? this.siguienteRecall() : null;
 
@@ -732,6 +754,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
       this.recall.set(null);
       this.recallFallados.set(new Set());
       this.recallAcertado.set(null);
+      await this.empezarFlash();
+      if (this.destroyed || this.step() !== 'flash') return;
       this.generateProblem();
       return;
     }
@@ -771,6 +795,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.recall.set(null);
     this.recallFallados.set(new Set());
     this.recallAcertado.set(null);
+    this.flashKanji.set(null);
     this.line.set('');
     this.hint.set('');
     this.busy.set(false);
@@ -837,12 +862,46 @@ export class KanjiCompose implements OnInit, OnDestroy {
     void (async () => {
       await this.narrator.say(saludo);
       if (this.destroyed || this.step() !== 'story') return;
-      // Si ya conoce kanji, empieza por reconocerlos: recuerdo frío, sin la escalera de
-      // ayuda a mano (§5.6). Si no hay material, la sesión sigue siendo la misma de
-      // siempre —no se le enseña a reconocer algo que aún no ha visto ni una vez—.
+      // El orden del calentamiento no es un capricho. El Flash **enseña** los kanji, y en
+      // cuanto se enseñan el recuerdo del Reconocer deja de ser frío, que es lo único que
+      // ese paso puede medir. Así que primero se examina y después se enseña.
       if (this.empezarRecall()) return;
+      await this.empezarFlash();
+      if (this.destroyed || this.step() !== 'flash') return;
       await this.playStory();
     })();
+  }
+
+  /**
+   * El ritual Flash (§5.9): mostrar–decir–retirar a un segundo cada uno, **sin pregunta**.
+   *
+   * Es la forma más barata de repasar que hay —cinco formas y cinco sonidos, nada más— y
+   * además el único calentamiento que funciona desde la primera sesión, cuando el
+   * Reconocer todavía no tiene con qué funcionar: se puede enseñar un kanji conocido
+   * desde que se conoce uno.
+   *
+   * Sale solo si hay algo que enseñar. Un Flash sin kanji conocidos es una pantalla en
+   * blanco con una voz.
+   */
+  private async empezarFlash(): Promise<void> {
+    const edad = this.activeProfile()?.age ?? 6;
+    const conocidos = poolFor(edad, this.currentLevel())
+      .filter(id => this.srs.isIntroduced(KANJI_COMPOSITION_DECK, id))
+      .map(id => KANJI_COMPOSITIONS.find(c => c.id === id))
+      .filter((k): k is KanjiComposition => !!k);
+    if (!conocidos.length) return;
+
+    this.step.set('flash');
+    const tanda = shuffle(conocidos, Math.random).slice(0, FLASH_COUNT);
+    for (const k of tanda) {
+      if (this.destroyed || this.step() !== 'flash') return;
+      this.flashKanji.set(k);
+      // Un segundo por kanji, que es el tiempo que pide el ritual: la palabra dura ~0,8 s
+      // y la pausa es lo que hace que se note que se ha **retirado** y no que se quedó
+      // enseñando.
+      await this.narrator.play([{ clip: kanjiWord(k.id), pauseAfterMs: 250 }]);
+    }
+    this.flashKanji.set(null);
   }
 
   // ============================================

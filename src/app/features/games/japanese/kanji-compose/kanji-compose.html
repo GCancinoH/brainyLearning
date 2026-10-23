@@ -45,6 +45,19 @@
     }
 
     <!-- ======================================================= -->
+    <!-- RITUAL FLASH (§5.9): mostrar–decir–retirar              -->
+    <!-- Un segundo por kanji y sin pregunta. Es exposición, no  -->
+    <!-- examen: no se le pide nada porque el ritual de Doman no -->
+    <!-- pide nada.                                              -->
+    <!-- ======================================================= -->
+    @if (step() === 'flash' && flashKanji(); as f) {
+      <div class="flash">
+        <span class="flash-kanji" lang="ja">{{ f.kanji }}</span>
+        <span class="flash-emoji" aria-hidden="true">{{ f.emoji }}</span>
+      </div>
+    }
+
+    <!-- ======================================================= -->
     <!-- PASO 0 · RECONOCER (§5.6): ¿cuál suena?                  -->
     <!-- La lección de tres tiempos que faltaba. El paso de       -->
     <!-- componer era "¿qué es esto?"; este es "muéstrame X".     -->
