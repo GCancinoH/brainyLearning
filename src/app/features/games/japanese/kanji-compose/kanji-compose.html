@@ -132,9 +132,12 @@
             >
           }
 
+          <!-- El `#` va con nombre propio: antes era `#slot`, igual que la variable del
+               `@for`, y había que andar distinguiendo `slot.x` —la posición del hueco—
+               de `slot.nativeElement` —su elemento del DOM—. -->
           @for (slot of p.slots; track $index) {
             <button
-              #slot
+              #slotEl
               class="slot"
               [class.slot--filled]="placed()[$index]"
               [class.slot--hint]="hintedSlot() === $index"

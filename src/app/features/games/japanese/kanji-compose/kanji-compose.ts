@@ -442,7 +442,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
   // INTERNOS
   // ============================================
 
-  private readonly slotEls = viewChildren<ElementRef<HTMLElement>>('slot');
+  /** Los huecos del marco. Nombre propio (`#slotEl`), distinto del `slot` del `@for`. */
+  private readonly slotEls = viewChildren<ElementRef<HTMLElement>>('slotEl');
   private readonly trayEls = viewChildren<ElementRef<HTMLElement>>('trayPiece');
   /** Contenedor de la medición: las coordenadas del gesto son relativas a él. */
   private readonly container = viewChild<ElementRef<HTMLElement>>('container');
