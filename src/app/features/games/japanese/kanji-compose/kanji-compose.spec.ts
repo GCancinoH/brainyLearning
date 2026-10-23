@@ -566,20 +566,34 @@ describe('KanjiCompose (integración)', () => {
     return canvas;
   }
 
+  /**
+   * Dispara un evento de puntero con los campos que `PointerEvent` lleva y `MouseEvent`
+   * no: `isPrimary`, `pointerId` y el área de contacto. jsdom no implementa
+   * `PointerEvent`, así que se monta sobre `MouseEvent` con `defineProperty`.
+   */
+  function puntero(
+    canvas: HTMLCanvasElement,
+    type: string,
+    pt: { x: number; y: number },
+    extra: { pointerId?: number; isPrimary?: boolean; width?: number; height?: number } = {},
+  ): void {
+    const ev = new MouseEvent(type, { clientX: pt.x * 100, clientY: pt.y * 100, bubbles: true });
+    Object.defineProperty(ev, 'pointerId', { value: extra.pointerId ?? 1 });
+    Object.defineProperty(ev, 'isPrimary', { value: extra.isPrimary ?? true });
+    Object.defineProperty(ev, 'width', { value: extra.width ?? 30 });
+    Object.defineProperty(ev, 'height', { value: extra.height ?? 30 });
+    canvas.dispatchEvent(ev);
+  }
+
   /** Traza un segmento como lo haría el dedo: abajo, mover, arriba. */
   function trazar(
     canvas: HTMLCanvasElement,
     de: { x: number; y: number },
     a: { x: number; y: number },
   ): void {
-    const ev = (type: string, p: { x: number; y: number }): void => {
-      canvas.dispatchEvent(
-        new MouseEvent(type, { clientX: p.x * 100, clientY: p.y * 100, bubbles: true }),
-      );
-    };
-    ev('pointerdown', de);
-    ev('pointermove', a);
-    ev('pointerup', a);
+    puntero(canvas, 'pointerdown', de);
+    puntero(canvas, 'pointermove', a);
+    puntero(canvas, 'pointerup', a);
     fixture.detectChanges();
   }
 
@@ -667,5 +681,101 @@ describe('KanjiCompose (integración)', () => {
     component.finishDrawing();
     fixture.detectChanges();
     expect(component.consecutiveCorrect()).toBe(1);
+  });
+
+  // ================================================================
+  // B12 · EL LIENZO SOLO OBEDECE A UN DEDO
+  //
+  // La niña de 4 juega con la mano apoyada: llegan dos puntos de contacto a la vez, y
+  // a veces la palma es la primera. Ambos casos metían tinta donde no debía.
+  // ================================================================
+
+  // jsdom no trae `ResizeObserver`; se guarda el aviso para poder dispararlo a mano.
+  let avisoResize: (() => void) | null = null;
+  const roOriginal = (globalThis as { ResizeObserver?: unknown }).ResizeObserver;
+
+  afterEach(() => {
+    if (roOriginal === undefined) delete (globalThis as { ResizeObserver?: unknown }).ResizeObserver;
+    else (globalThis as { ResizeObserver?: unknown }).ResizeObserver = roOriginal;
+    avisoResize = null;
+  });
+
+  it('B12 un segundo punto de contacto no empieza trazo ni se cuela en el suyo', async () => {
+    mount(4);
+    conGeometriaDeTrazo();
+    await composeCorrectly();
+    const canvas = prepararLienzo();
+
+    // Que toque un dedo ajeno no debería dejar nada…
+    puntero(canvas, 'pointerdown', { x: 0.2, y: 0.2 }, { isPrimary: false, pointerId: 7 });
+    expect(component.strokes()).toHaveLength(0);
+
+    // …ni interrumpir el trazo que ella está haciendo con su dedo.
+    puntero(canvas, 'pointerdown', { x: 0.1, y: 0.5 }, { pointerId: 1 });
+    expect(component.strokes()).toHaveLength(1);
+
+    puntero(canvas, 'pointermove', { x: 0.3, y: 0.5 }, { isPrimary: false, pointerId: 7 });
+    puntero(canvas, 'pointermove', { x: 0.6, y: 0.5 }, { isPrimary: false, pointerId: 7 });
+    expect(component.strokes()[0], 'el trazo ajeno no añade puntos').toHaveLength(1);
+
+    // Levantar el dedo ajeno no puede cerrar el trazo de ella.
+    puntero(canvas, 'pointerup', { x: 0.6, y: 0.5 }, { isPrimary: false, pointerId: 7 });
+    fixture.detectChanges();
+    expect(component.trazoActual(), 'el trazo sigue en curso').toBe(0);
+    expect(component.strokes()).toHaveLength(1);
+  });
+
+  it('B12 una palma apoyada no deja tinta, y la suya sí entra', async () => {
+    mount(4);
+    conGeometriaDeTrazo();
+    await composeCorrectly();
+    const canvas = prepararLienzo();
+
+    // Único punto de contacto —por eso `isPrimary` no lo detecta— pero enorme.
+    puntero(canvas, 'pointerdown', { x: 0.3, y: 0.3 }, { width: 180, height: 140 });
+    fixture.detectChanges();
+    expect(component.strokes(), 'la palma no dibuja').toHaveLength(0);
+
+    // Y el umbral no le impide a ella: un dedo normal cabe de sobra.
+    puntero(canvas, 'pointerdown', { x: 0.2, y: 0.5 }, { width: 44, height: 38 });
+    fixture.detectChanges();
+    expect(component.strokes(), 'el dedo de ella sí dibuja').toHaveLength(1);
+  });
+
+  it('B12 al girar la tableta se repinta el lienzo', async () => {
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+      private readonly cb: () => void;
+      constructor(cb: () => void) {
+        this.cb = cb;
+        avisoResize = cb;
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    };
+
+    mount(4);
+    conGeometriaDeTrazo();
+    await composeCorrectly();
+    const canvas = prepararLienzo();
+    expect(avisoResize, 'el lienzo debe quedar observado').toBeTruthy();
+    const antes = canvas.width;
+
+    // El rectángulo crece y `strokes` no cambia: sin el observador no había ninguna
+    // señal que disparara `paint()`.
+    canvas.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top: 0,
+        width: 320,
+        height: 320,
+        right: 320,
+        bottom: 320,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    avisoResize!();
+    expect(canvas.width, 'la tinta se repinta a la escala nueva').toBeGreaterThan(antes);
   });
 });

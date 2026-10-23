@@ -3,6 +3,7 @@ import {
   OnInit,
   OnDestroy,
   ElementRef,
+  effect,
   afterRenderEffect,
   computed,
   inject,
@@ -258,6 +259,24 @@ export class KanjiCompose implements OnInit, OnDestroy {
   readonly drawHint = signal<'off' | 'demo' | 'your-turn'>('off');
 
   /**
+   * Área de contacto (px CSS) por encima de la cual un toque no puede ser una niña
+   * trazando: es la palma apoyada.
+   *
+   * **El umbral va alto a propósito.** Un dedo en tableta ronda los 40-60 px y una
+   * palma pasa de 100, pero el dato del navegador varía; si se quedara justo en el
+   * medio, el riesgo es rechazar el trazo de ella — que es el fallo que no se puede
+   * permitir. Mejor dejar pasar alguna mancha que no trazar por ella.
+   */
+  private static readonly AREA_PALMA = 90;
+
+  /** El puntero que está trazando ahora: los demás no pintan ni levantan el trazo. */
+  private punteroActivo: number | null = null;
+
+  /** Repinta al girar o redimensionar la tableta (B12). */
+  private resizeObserver: ResizeObserver | null = null;
+  private canvasObservado: HTMLCanvasElement | null = null;
+
+  /**
    * Los trazos del kanji que se está dibujando, tal y como los da KanjiVG: uno por
    * `<path>`, en orden. `null` si el kanji no está en el conjunto empaquetado — no
    * debería ocurrir, y la plantilla cae entonces a la fantasma de fuente de siempre.
@@ -451,6 +470,24 @@ export class KanjiCompose implements OnInit, OnDestroy {
       this.strokes(); // dependencia: se repinta cuando cambian los trazos
       this.paint();
     });
+
+    // El lienzo solo existe en el paso Dibujar, así que esto **no** puede montarse en
+    // `ngAfterViewInit`: esa ejecución llega cuando el juego todavía está en Historia y
+    // `canvasRef()` es `undefined`. En cambio un `effect` le sigue el paso y se reengancha
+    // cada vez que el lienzo aparece.
+    //
+    // Sin esto, al girar la tableta cambiaba el rectángulo pero `strokes` no: no había
+    // ninguna señal que disparara `paint()` y la tinta se quedaba a la escala vieja (B12).
+    effect(() => {
+      const el = this.canvasRef()?.nativeElement ?? null;
+      if (el === this.canvasObservado) return;
+      this.canvasObservado = el;
+      this.resizeObserver?.disconnect();
+      this.resizeObserver = null;
+      if (!el || typeof ResizeObserver === 'undefined') return;
+      this.resizeObserver = new ResizeObserver(() => this.paint());
+      this.resizeObserver.observe(el);
+    });
   }
 
   ngOnInit(): void {
@@ -492,6 +529,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     this.clearTimers();
     this.unsubscribeEvents?.();
     // ⚠️ Antes de `audio.dispose()`: al revés, `dispose()` deja los elementos inservibles
@@ -1202,16 +1241,42 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     };
   }
 
+  /**
+   * ¿Es un trazo de verdad, o es la mano apoyada?
+   *
+   * Dos filtros (B12):
+   *  - `isPrimary === false` es el **segundo** punto de contacto — el otro dedo, o la
+   *    palma que se apoya después. Sin esto estaba metiendo sus puntos dentro del trazo
+   *    que ella traía en marcha.
+   *  - El área de contacto es la palma que llega **primero**, caso que `isPrimary` no
+   *    cubre porque, al ser el único toque, sí es el primario.
+   *
+   * Se comprueba `=== false` y no `!isPrimary` a propósito: los eventos sintéticos de
+   * las pruebas son `MouseEvent`, que no lleva `isPrimary`, y un trazo de prueba no debe
+   * quedar rechazado por ir sin ese campo.
+   */
+  private esMano(event: PointerEvent): boolean {
+    if (event.isPrimary === false) return true;
+    const area = Math.max(event.width || 0, event.height || 0);
+    return area > KanjiCompose.AREA_PALMA;
+  }
+
   onPointerDown(event: PointerEvent): void {
+    if (this.esMano(event)) return;
     const p = this.canvasPoint(event);
     if (!p) return;
     this.canvasRef()?.nativeElement.setPointerCapture(event.pointerId);
+    this.punteroActivo = event.pointerId ?? null;
     this.drawing = [p];
     this.strokes.update(s => [...s, this.drawing!]);
   }
 
   onPointerMove(event: PointerEvent): void {
     if (!this.drawing) return;
+    // Solo el puntero que empezó: un segundo dedo que se mueve no debe heredar el trazo
+    if (this.punteroActivo !== null && event.pointerId != null && event.pointerId !== this.punteroActivo) {
+      return;
+    }
     const p = this.canvasPoint(event);
     if (!p) return;
     this.drawing.push(p);
@@ -1219,9 +1284,14 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     this.strokes.update(s => [...s]);
   }
 
-  onPointerUp(): void {
+  onPointerUp(event?: PointerEvent): void {
+    // Que levante un dedo ajeno no debe cerrar el trazo que está haciendo ella
+    if (event && this.punteroActivo !== null && event.pointerId != null && event.pointerId !== this.punteroActivo) {
+      return;
+    }
     const trazo = this.drawing;
     this.drawing = null;
+    this.punteroActivo = null;
     if (trazo) this.evaluarTrazoDibujado(trazo);
   }
 

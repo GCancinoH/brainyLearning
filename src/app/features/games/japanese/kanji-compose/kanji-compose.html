@@ -263,8 +263,8 @@
             class="draw-canvas"
             (pointerdown)="onPointerDown($event)"
             (pointermove)="onPointerMove($event)"
-            (pointerup)="onPointerUp()"
-            (pointercancel)="onPointerUp()"
+            (pointerup)="onPointerUp($event)"
+            (pointercancel)="onPointerUp($event)"
           ></canvas>
 
           <!-- PRIMERA VEZ (§5.5): dos trazos que se dibujan solos sobre el lienzo. El
