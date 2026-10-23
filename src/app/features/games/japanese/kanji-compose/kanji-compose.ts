@@ -497,6 +497,12 @@ export class KanjiCompose implements OnInit, OnDestroy {
     // historias). Sin manifiesto, un clip japonés ausente se intentaría en voz española.
     this.narrator.configure({
       base: CLIP_BASE,
+      // Los clips de este mazo son AAC/m4a: 48 kbps mono bastan de sobra para voz, y los
+      // 110 clips pasaron de 12 MB a 1,8 MB (§3.5.2). El service worker prefetcha este
+      // grupo entero al instalar, así que esa diferencia es directamente lo que baja la
+      // tableta. Los sonidos de abajo (elogio, level-up) son de `public/audio` y siguen
+      // siendo `.wav`: son de otro mazo, con otro guion de generación.
+      ext: 'm4a',
       manifest: CLIP_MANIFEST,
       defaultLang: 'es-MX'
     });

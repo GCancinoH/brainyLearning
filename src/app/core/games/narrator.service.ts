@@ -45,6 +45,8 @@ export class Narrator {
   readonly cue = signal<Cue | null>(null);
 
   private _base = '';
+  /** Extensión de los clips de este mazo; ver `configure`. */
+  private _ext = 'wav';
   private _manifest: Record<string, ClipSpec> = {};
   private _defaultLang = 'es-MX';
   /** Rutas de los clips que ha puesto este servicio, para poder pararlos solo a ellos. */
@@ -57,8 +59,22 @@ export class Narrator {
    * idioma correcto**. Sin él, un clip ausente en japonés intentaría leerse con voz
    * española.
    */
-  configure(opts: { base: string; manifest?: Record<string, ClipSpec>; defaultLang?: string }): void {
+  configure(opts: {
+    base: string;
+    /**
+     * Extensión de los clips de este mazo. `wav` por defecto: es formato sin comprimir y
+     * siempre funciona, pero pesa ~44 kB por segundo de habla.
+     *
+     * Kanji-compose declara `m4a` (AAC a 48 kbps): 110 clips pasaron de 12 MB a 1,8 MB.
+     * No se convirtió todo el audio a la vez porque los otros mazos se generan con otros
+     * guiones; cada mazo declara el suyo y no se cambia nadie por decreto.
+     */
+    ext?: string;
+    manifest?: Record<string, ClipSpec>;
+    defaultLang?: string;
+  }): void {
     if (opts.base !== undefined) this._base = opts.base;
+    if (opts.ext !== undefined) this._ext = opts.ext;
     if (opts.manifest) this._manifest = opts.manifest;
     if (opts.defaultLang) this._defaultLang = opts.defaultLang;
   }
@@ -185,13 +201,18 @@ export class Narrator {
     return ok;
   }
 
+  /** Ruta absoluta de un clip de este mazo: la base, la clave y la extensión acordada. */
+  private ruta(key: string): string {
+    return `${this._base}/${key}.${this._ext}`;
+  }
+
   /** Reproduce un clip. Devuelve `false` si no hay fichero, no arranca o no terminó. */
   private async _tryClip(key: string): Promise<boolean> {
     if (!this._base) {
       console.warn('[Narrator] Falta `configure({base})`: se intentará solo el TTS para', key);
       return false;
     }
-    const path = `${this._base}/${key}.wav`;
+    const path = this.ruta(key);
     // Se recuerda qué clips son **nuestros**, para poder pararlos sin tocar los sonidos
     // de celebración del juego (elogio, level-up), que deben sonar enteros.
     this._mios.add(path);
@@ -207,7 +228,7 @@ export class Narrator {
    */
   preload(keys: string[]): void {
     if (!this._base) return;
-    this.audio.preload(keys.map(k => `${this._base}/${k}.wav`));
+    this.audio.preload(keys.map(k => this.ruta(k)));
   }
 
   /**

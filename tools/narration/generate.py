@@ -4,9 +4,14 @@ Genera los clips de voz de los juegos a partir de sus manifiestos.
     python tools/narration/generate.py                     # ambos juegos
     python tools/narration/generate.py kanji-compose       # solo uno
 
-Los `.wav` que produce son **offline de verdad**: viajan en el service worker y suenan
+Los clips que produce son **offline de verdad**: viajan en el service worker y suenan
 sin red. Eso es justo lo que el TTS del navegador (`speechSynthesis`) NO garantiza, porque
 solo tiene voces disponibles si el sistema las trae instaladas y disponibles sin conexión.
+
+Cada mazo declara su formato. `logic-blocks` sigue en `.wav`, que no falla nunca pero pesa
+~44 kB por segundo de habla; `kanji-compose` va en `.m4a` (AAC a 48 kbps mono), que a esa
+misma voz la deja en un octavo. La extensión vive en una sola tupla por mazo: pasar el
+otro a m4a no es tocar el generador, es cambiar su línea.
 
 Para sustituirlos por una voz humana no hay que tocar nada del código: se graba un `.wav`
 por clave con el mismo nombre y se vuelve a generar. El juego no sabe de dónde sale.
@@ -38,16 +43,24 @@ RATE = "-12%"
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
-# nombre -> (manifiesto, carpeta de salida). El prefijo del fichero es el que espera el juego.
+# nombre -> (manifiesto, carpeta de salida, extensión, argumentos de códec).
+# El prefijo del fichero es el que espera el juego.
+#
+# El códec va vacío para `.wav` (PCM es el por defecto y basta con -ar/-ac); para `.m4a` va
+# el par de AAC. `libfdk` no hace falta: el códec `aac` nativo de ffmpeg sirve para voz a
+# 48 kbps sin que se note.
 JUEGOS = {
-    "logic-blocks": ("logic-blocks.es.json", "audio/logic-blocks/es"),
-    "kanji-compose": ("kanji-compose.json", "audio/kanji-compose"),
+    "logic-blocks": ("logic-blocks.es.json", "audio/logic-blocks/es", "wav", []),
+    # AAC 48 kbps mono: voz transparente y ~1/8 del peso. Este mazo lo prefetcha el service
+    # worker al instalar, así que cada MB que se ahorra es un MB menos en la tableta.
+    "kanji-compose": ("kanji-compose.json", "audio/kanji-compose", "m4a",
+                      ["-c:a", "aac", "-b:a", "48k"]),
 }
 
 
 def manifest_de(nombre: str) -> dict:
     """Lee un manifiesto en cualquiera de los dos formatos admitidos."""
-    archivo, _ = JUEGOS[nombre]
+    archivo = JUEGOS[nombre][0]
     datos = json.loads((ROOT / "tools" / "narration" / archivo).read_text(encoding="utf-8"))
     if not datos:
         raise SystemExit(f"{archivo} está vacío. ¿Has ejecutado el export de kanji?")
@@ -59,7 +72,7 @@ def manifest_de(nombre: str) -> dict:
 
 
 async def generar(nombre: str, solo_faltantes: bool) -> int:
-    archivo, carpeta = JUEGOS[nombre]
+    archivo, carpeta, ext, codigo = JUEGOS[nombre]
     manifest = manifest_de(nombre)
     out = ROOT / "public" / carpeta
     out.mkdir(parents=True, exist_ok=True)
@@ -74,9 +87,9 @@ async def generar(nombre: str, solo_faltantes: bool) -> int:
             print(f"  ✗ {key}: no hay voz para '{lang}'", file=sys.stderr)
             continue
 
-        wav = out / f"{key}.wav"
+        salida = out / f"{key}.{ext}"
         mp3 = out / f"{key}.mp3"
-        if solo_faltantes and wav.exists():
+        if solo_faltantes and salida.exists():
             saltados += 1
             continue
 
@@ -105,7 +118,7 @@ async def generar(nombre: str, solo_faltantes: bool) -> int:
                  "silenceremove=start_periods=1:start_silence=0.08:start_threshold=-45dB,"
                  "areverse,"
                  "loudnorm",
-                 "-ar", "22050", "-ac", "1", str(wav)],
+                 "-ar", "22050", "-ac", "1", *codigo, str(salida)],
                 check=True,
             )
             hechos += 1
@@ -118,7 +131,7 @@ async def generar(nombre: str, solo_faltantes: bool) -> int:
             if mp3.exists():
                 mp3.unlink()
 
-    total = sum(f.stat().st_size for f in out.glob("*.wav")) / 1024 / 1024
+    total = sum(f.stat().st_size for f in out.glob(f"*.{ext}")) / 1024 / 1024
     resumen = f"  {hechos} generados"
     if saltados:
         resumen += f", {saltados} ya estaban"
@@ -134,7 +147,7 @@ async def main() -> int:
     ap.add_argument("juego", nargs="?", choices=[*JUEGOS, None], default=None,
                     help="qué juego generar (por defecto, todos)")
     ap.add_argument("--todos", action="store_true",
-                    help="regenerar aunque el .wav ya exista (por defecto se salta)")
+                    help="regenerar aunque el clip ya exista (por defecto se salta)")
     args = ap.parse_args()
 
     juegos = [args.juego] if args.juego else list(JUEGOS)

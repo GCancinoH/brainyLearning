@@ -30,8 +30,8 @@
       "updateMode": "prefetch",
       "resources": {
         "files": [
-          "/audio/kanji-compose/**/*.wav",
-          "/audio/kanji-compose/*.wav"
+          "/audio/kanji-compose/**/*.m4a",
+          "/audio/kanji-compose/*.m4a"
         ]
       }
     },
