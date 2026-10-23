@@ -131,6 +131,43 @@ describe('pickComposition', () => {
     expect(clampLevel(-3)).toBe(1);
     expect(clampLevel(999)).toBe(MAX_LEVEL);
   });
+
+  // ============================================
+  // §5.4 · EL HUECO DE REPASO LO GANA EL MÁS ATRASADO
+  // ============================================
+  //
+  // `vencidos` lo entrega `SpacedRepetition.due()` ya ordenado por vencimiento. Aquí lo
+  // que se comprueba es que ese orden no se pierde en el camino.
+  const A_REPASO = ['mei', 'kyuu', 'rin', 'iwa'];   // repaso a nivel 3 con 6 años
+  const A_NUEVOS = ['otoko', 'koi'];                // y este es lo que acaba de entrar
+
+  /** `>= 0.6` cae siempre en el 40 % de repaso. */
+  const siempreRepaso = () => 0.99;
+  /** `>= 0.6` es falso: cae siempre en el 60 % de nuevos. */
+  const siempreNuevo = () => 0.0;
+
+  it('un kanji vencido gana el hueco de repaso', () => {
+    expect(pickComposition(3, 6, siempreRepaso, ['rin']).id).toBe('rin');
+    // Sin vencidos, ese mismo hueco sigue siendo aleatorio: el SRS empuja, no manda
+    // siempre.
+    expect(A_REPASO).toContain(pickComposition(3, 6, siempreRepaso).id);
+  });
+
+  it('el más atrasado manda, no el orden alfabético', () => {
+    // rin va antes que kyuu en la lista de vencidos e iría después en el alfabeto, así
+    // que si saliera kyuu sería que el orden se había perdido.
+    expect(pickComposition(3, 6, siempreRepaso, ['rin', 'kyuu']).id).toBe('rin');
+    expect(pickComposition(3, 6, siempreRepaso, ['iwa', 'mei']).id).toBe('iwa');
+  });
+
+  it('un vencido que todavía no está en el pool no secuestra el problema', () => {
+    // mori entra en el nivel 9; a nivel 3 no le toca salir.
+    expect(A_REPASO).toContain(pickComposition(3, 6, siempreRepaso, ['mori']).id);
+  });
+
+  it('los huecos nuevos siguen siendo nuevos aunque todo esté vencido', () => {
+    expect(A_NUEVOS).toContain(pickComposition(3, 6, siempreNuevo, [...A_REPASO]).id);
+  });
 });
 
 describe('buildCompositionProblem', () => {

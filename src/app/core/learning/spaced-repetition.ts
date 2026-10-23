@@ -60,6 +60,12 @@ export class SpacedRepetition {
    *
    * Leitner clásico: el acierto sube una caja, el fallo vuelve a la 1 (§5.4).
    *
+   * `ayuda` son los escalones de la escalera de ayuda que subió (0 = sola). Un acierto
+   * **con ayuda** no sube de caja: la memoria que importa es la que recuerda sin
+   * andamio, y si la escalera contase igual acabaría todo en la caja 5 en una sola
+   * sesión. Pero tampoco se le castiga volviendo a la 1, porque sí sabe hacerlo —solo no
+   * sola todavía—, así que vuelve mañana, que es la caja más frecuente.
+   *
    * No recibe cuánto tardó ella. Es una decisión: en este juego el tiempo de respuesta
    * está dominado por la motricidad de dibujar —un kanji de 6 trazos se compone a ritmo
    * distinto según la mano que lo haga— y no por la dificultad del kanji, así que ese
@@ -68,16 +74,20 @@ export class SpacedRepetition {
    * Un kanji nunca presentado se puede registrar igual: entra en la caja 0 y un acierto
    * lo pone en la 1, que es exactamente "se ha visto una vez".
    */
-  review(deck: string, itemId: string, resultado: { correct: boolean }): void {
+  review(deck: string, itemId: string, resultado: { correct: boolean; ayuda?: number }): void {
     const key = this.key(deck, itemId);
     if (!key) return;
     const ahora = Date.now();
+    const sola = (resultado.ayuda ?? 0) === 0;
     this._memory.update(mem => {
       const previa = mem[key] ?? { box: 0, introducedAt: ahora, lastSeenAt: ahora, dueAt: ahora };
-      const box = resultado.correct
-        ? Math.min(previa.box + 1, CAJA_MAX)
-        : 1;
-      return { ...mem, [key]: { ...previa, box, lastSeenAt: ahora, dueAt: ahora + venceEnDias(box) } };
+      const box = !resultado.correct
+        ? 1
+        : sola
+          ? Math.min(previa.box + 1, CAJA_MAX)
+          : previa.box;
+      const espera = sola ? box : INTERVALOS[1]!;
+      return { ...mem, [key]: { ...previa, box, lastSeenAt: ahora, dueAt: ahora + venceEnDias(espera) } };
     });
     this.save();
   }

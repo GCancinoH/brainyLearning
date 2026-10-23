@@ -522,17 +522,39 @@ export function difficultyFor(
  * piezas, los que abren el nivel— saldrían 1 de cada 13 y nunca se llegaría a
  * sentirse. A la inversa, solo elegir nuevo sería olvidar todo lo anterior.
  *
- * El SRS de §5.4 sustituirá "lo ya visto" por "lo que toca repasar según el olvido";
- * mientras tanto el 40 % es la garantía mínima de que el kanji aprendido vuelve a salir.
+ * `vencidos` (§5.4) es lo que convierte ese 40 % en repaso de verdad. Sin él, "repasar"
+ * significa "algo que ya se vio", elegido al azar entre todos; con él, cuando el hueco
+ * es de repaso **y** hay kanjis con el repaso vencido, gana el más atrasado de ellos, y
+ * los demás esperan su turno. El orden de `vencidos` importa y lo pone `due()`.
+ *
+ * Algo se puede quedar sin repasar en una ronda: si hay dos vencidos solo sale uno. Eso
+ * está bien. El SRS no decide nada de una vez, solo empuja; el resto es que hay más
+ * rondas.
  */
-export function pickComposition(level: number, age: number, rng: Rng = Math.random): KanjiComposition {
+export function pickComposition(
+  level: number,
+  age: number,
+  rng: Rng = Math.random,
+  vencidos: readonly string[] = [],
+): KanjiComposition {
   const lvl = clampLevel(level);
   const { nuevos, repaso } = poolSplit(age, lvl);
-  const lista =
-    nuevos.length === 0 ? repaso
-    : repaso.length === 0 ? nuevos
-    : rng() < 0.6 ? nuevos
-    : repaso;
+
+  // Si no hay nada nuevo toca repasar; si no hay repaso toca lo nuevo; si hay los dos,
+  // 60/40. Se deja en un booleano y no en una lista porque el SRS necesita saber si el
+  // hueco era de repaso para poder mandar en él.
+  const tocaRepaso = repaso.length === 0
+    ? false
+    : nuevos.length === 0
+      ? true
+      : rng() >= 0.6;
+
+  if (tocaRepaso) {
+    const vencido = vencidos.find(id => repaso.includes(id));
+    if (vencido) return BY_ID.get(vencido)!;
+  }
+
+  const lista = tocaRepaso ? repaso : nuevos;
   const id = lista[Math.floor(rng() * lista.length)]!;
   return BY_ID.get(id)!;
 }
@@ -577,11 +599,13 @@ export function buildCompositionProblem(
   level: number,
   age: number,
   rng: Rng = Math.random,
+  /** Kanjis con el repaso vencido, el más atrasado primero. Ver `pickComposition`. */
+  vencidos: readonly string[] = [],
 ): CompositionProblem {
   const lvl = clampLevel(level);
   const { ghost, distractors: nDistractors } = difficultyFor(age, lvl);
 
-  const target = pickComposition(lvl, age, rng);
+  const target = pickComposition(lvl, age, rng, vencidos);
 
   // Piezas correctas: puede haber repetidas (林 = 木+木, 炎 = 火+火)
   const correct = target.slots.map((s, i) => ({

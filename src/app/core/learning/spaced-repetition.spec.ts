@@ -127,6 +127,25 @@ describe('SpacedRepetition', () => {
     expect(enDias(Date.now(), 'mori')).toBe(INTERVALOS[1]);
   });
 
+  it('un acierto con ayuda no sube de caja, pero vuelve mañana', () => {
+    srs = montar();
+    srs.markIntroduced(DECK, ['mori']);
+    for (let i = 0; i < 2; i++) srs.review(DECK, 'mori', { correct: true });
+    const t0 = Date.now();
+    expect(enDias(t0, 'mori'), 'estaba en la caja 3').toBe(INTERVALOS[3]);
+
+    // Lo terminó, pero con la escalera subida hasta el final.
+    srs.review(DECK, 'mori', { correct: true, ayuda: 3 });
+
+    // La caja no sube: lo que importa es recordar sin andamio. Si contase igual, un
+    // kanji que nunca sale sola acabaría desapareciendo dos semanas.
+    expect(enDias(Date.now(), 'mori'), 'vuelve mañana').toBe(INTERVALOS[1]);
+
+    // Y un acierto limpio después sí la sube.
+    srs.review(DECK, 'mori', { correct: true });
+    expect(enDias(Date.now(), 'mori')).toBe(INTERVALOS[4]);
+  });
+
   it('registra un kanji que nadie había presentado, sin romperse', () => {
     srs = montar();
     srs.review(DECK, 'kyuu', { correct: true });

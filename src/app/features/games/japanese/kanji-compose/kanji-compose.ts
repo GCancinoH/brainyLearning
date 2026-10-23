@@ -38,6 +38,8 @@ import {
   SocraticMoment,
   TrayPiece,
 } from '@core/learning/kanji-composition';
+import { SkillProgressService } from '@core/learning/skill-progress.service';
+import { KANJI_COMPOSITION_DECK, SpacedRepetition } from '@core/learning/spaced-repetition';
 import {
   CLIP_BASE,
   CLIP_MANIFEST,
@@ -137,6 +139,10 @@ export class KanjiCompose implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
   private readonly speech = inject(SpeechService);
+  /** §5.4: qué kanji le toca repasar y cuándo vuelve a salir. */
+  private readonly srs = inject(SpacedRepetition);
+  /** Kanji-compose era el único juego japonés que no anotaba nada en las skills. */
+  private readonly skills = inject(SkillProgressService);
   /** Público: la plantilla lo usa para animar mientras suena. */
   readonly narrator = inject(Narrator);
   private readonly tutorials = inject(TutorialSeen);
@@ -149,6 +155,12 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   readonly GAME_ID = 'japanese-kanji-compose';
   readonly MAX_LEVEL = MAX_LEVEL;
+  /**
+   * La skill que se anota. Los otros cuatro juegos japoneses ya escriben en
+   * `japanese.kanji.*`; este era el único que no, con lo que el panel no veía nunca a
+   * kanji-compose.
+   */
+  readonly SKILL = 'japanese.kanji.composition';
   readonly requiredCorrect = (this.activeProfile()?.age ?? 6) <= 4 ? 3 : 4;
   readonly starSlots = Array.from({ length: this.requiredCorrect }, (_, i) => i);
 
@@ -196,13 +208,28 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   /**
    * Cuánto se cuenta la historia: `full` la primera vez a los 4 años, `short` si ya la
-   * conoce, `skip` si se la sabe de sobra. Se calcula por edad y por nivel; la
-   * repetición espaciada (§7.3 del spec) lo afinará con el tiempo.
+   * conoce, `skip` si se la sabe de sobra.
+   *
+   * Va por edad y por nivel: a los 4 años la historia es lo que la engancha, así que
+   * empieza entera y se va acortando. A partir del nivel 7 **deja de contarse sola en
+   * cualquier edad** (§5.4.5): a esas alturas es repaso, y lo que se recuerda es lo que
+   * se recuerda sin que se lo vuelvan a decir.
    */
   readonly storyMode = computed<StoryMode>(() => {
+    if (this.currentLevel() >= 7) return 'skip';
     if (!this.isPreReader()) return 'short';
-    return this.currentLevel() <= 2 ? 'full' : this.currentLevel() <= 5 ? 'short' : 'skip';
+    return this.currentLevel() <= 2 ? 'full' : 'short';
   });
+
+  /**
+   * ¿La historia ya no se cuenta sola? Entonces aparece el 🔊.
+   *
+   * No se muestra mientras la historia se cuenta sola porque ahí es ruido: ya está
+   * sonando. Pero cuando se la salta, es la **única** forma de oírla, y eso también vale
+   * para la prelectora de nivel 6, que antes se quedaba sin historia y sin ningún botón
+   * con el que pedirla.
+   */
+  readonly historiaAPeticion = computed(() => this.storyMode() === 'skip');
 
   /** Qué cue está sonando ahora. La plantilla lo usa para el karaoke. */
   readonly cue = signal<Cue<Highlight> | null>(null);
@@ -459,6 +486,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
   private lastPieceHeardAt = 0;
   /** Disparo que borra la pregunta socrática. Se cancela si reintenta antes (B8). */
   private clearPromptTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Cuándo empezó la ronda en curso, para anotar cuánto tardó (§5.11). */
+  private rondaEmpezadaEn = 0;
 
   // ============================================
   // CICLO DE VIDA
@@ -572,7 +601,12 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.clearPromptTimer = null;
     this.narrator.cancel();
     const age = this.activeProfile()?.age ?? 6;
-    const p = buildCompositionProblem(this.currentLevel(), age);
+    // §5.4. `poolSplit` separa "nuevo" de "repaso"; esto es lo que hace que ese 40 % de
+    // repaso sea repaso **de verdad** y no "algo que ya se vio, elegido al azar". Gana el
+    // más atrasado, que es el que se está olvidando.
+    const vencidos = this.srs.due(KANJI_COMPOSITION_DECK);
+    const p = buildCompositionProblem(this.currentLevel(), age, Math.random, vencidos);
+    this.rondaEmpezadaEn = Date.now();
 
     this.problem.set(p);
     this.tray.set([...p.tray]);
@@ -1456,6 +1490,32 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     this.celebrating.set(false);
     this.localFeedback.set('success');
     const result = this.session.recordCorrect();
+
+    // §5.4. El SRS se alimenta aquí, y con la ayuda de la escalera en la mano: una ronda
+    // terminada con el gesto fantasma tocando por ella no es un recuerdo, es un andamio,
+    // y si contara igual acabaría todo en la caja 5 en una sesión.
+    // §5.11. Kanji-compose era el único juego japonés que no anotaba nada, así que el
+    // panel no lo veía venir.
+    const objetivo = this.problem()?.target;
+    if (objetivo) {
+      const ayuda = this.ladderLevel();
+      this.srs.review(KANJI_COMPOSITION_DECK, objetivo.id, { correct: true, ayuda });
+
+      const profile = this.activeProfile();
+      if (profile) {
+        this.skills.recordAttempt({
+          skillId: this.SKILL,
+          contentId: objetivo.id,
+          correct: true,
+          responseTimeMs: Date.now() - this.rondaEmpezadaEn,
+          difficulty: this.currentLevel(),
+          representation: 'kanji',
+          timestamp: Date.now(),
+          profileAge: profile.age,
+          profileId: profile.id,
+        });
+      }
+    }
 
     if (result.leveledUp) {
       this.progress.saveProgress(this.GAME_ID, {

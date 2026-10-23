@@ -5,6 +5,8 @@ import { ProfileStateService } from '@core/services/profile-state';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { GameAudioService } from '@core/games/game-audio.service';
 import { installMemoryStorage } from '@core/testing/memory-storage';
+import { SkillProgressService } from '@core/learning/skill-progress.service';
+import { KANJI_COMPOSITION_DECK, SpacedRepetition } from '@core/learning/spaced-repetition';
 
 /**
  * El confeti no se prueba aquí, y en jsdom su animación revienta: llama a `clearRect`
@@ -151,6 +153,55 @@ describe('KanjiCompose (integración)', () => {
     await advance(500);
 
     expect(component.consecutiveCorrect()).toBe(1);
+  });
+
+  it('§5.4 una ronda terminada alimenta el SRS y anota la skill', async () => {
+    mount(4);
+    await composeCorrectly();
+    const id = component.problem()!.target.id;
+
+    const skills = TestBed.inject(SkillProgressService);
+    const anotar = vi.spyOn(skills, 'recordAttempt');
+    const srs = TestBed.inject(SpacedRepetition);
+
+    drawSomething();
+    component.finishDrawing();
+    await advance(500);
+
+    // Este juego era el único japonés que no anotaba nada: el panel no lo veía venir.
+    expect(anotar, 'se anota una sola vez por ronda').toHaveBeenCalledTimes(1);
+    expect(anotar.mock.calls[0]![0]).toMatchObject({
+      skillId: 'japanese.kanji.composition',
+      contentId: id,
+      correct: true,
+      representation: 'kanji',
+    });
+
+    // Y el SRS deja constancia: es lo que hace que `due()` sepa devolverlo mañana.
+    expect(srs.isIntroduced(KANJI_COMPOSITION_DECK, id), 'queda registro').toBe(true);
+    expect(srs.dueAt(KANJI_COMPOSITION_DECK, id), 'vence pronto').toBeTruthy();
+  });
+
+  it('§5.4.5 a partir del nivel 7 la historia deja de contarse sola', () => {
+    mount(6, 5);
+    expect(component.storyMode(), 'seguía contando').toBe('short');
+    expect(component.historiaAPeticion()).toBe(false);
+
+    mount(6, 7);
+    expect(component.storyMode(), 'es repaso: no se la vuelven a decir').toBe('skip');
+    // Y el 🔊 pasa a ser la única forma de oírla, no un adorno.
+    expect(component.historiaAPeticion()).toBe(true);
+  });
+
+  it('la prelectora puede pedir la historia que ya no recibe sola', () => {
+    mount(4, 1);
+    expect(component.storyMode(), 'la primera vez, entera').toBe('full');
+    mount(4, 3);
+    expect(component.storyMode()).toBe('short');
+
+    // Antes se quedaba sin historia **y** sin ningún botón con el que pedirla.
+    mount(4, 7);
+    expect(component.historiaAPeticion()).toBe(true);
   });
 
   it('REGRESIÓN B1: doble toque en ✅ solo suma UN acierto', async () => {

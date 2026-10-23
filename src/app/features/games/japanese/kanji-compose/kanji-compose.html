@@ -72,8 +72,12 @@
 
         @if (!isPreReader()) {
           <p class="story-text">{{ t.story }}</p>
-          <!-- Al final de la historia, que es donde una niña pierde el hilo: si quiere
-               oírla otra vez, el botón está donde termina de leerla. -->
+        }
+        <!-- Al final de la historia, que es donde una niña pierde el hilo: si quiere
+             oírla otra vez, el botón está donde termina de leerla. Cuando la historia se
+             salta del todo (§5.4.5) es además la única forma de oírla, y por eso también
+             aparece para la prelectora, que ya no la recibe sola. -->
+        @if (!isPreReader() || historiaAPeticion()) {
           <button class="mini-btn story-hear" (click)="hearStory()" aria-label="Escuchar la historia">
             🔊
           </button>

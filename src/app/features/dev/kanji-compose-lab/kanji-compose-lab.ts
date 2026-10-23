@@ -2,6 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProfileStateService } from '@core/services/profile-state';
 import { GameProgressService } from '@core/games/game-progress.service';
+import { SkillProgressService } from '@core/learning/skill-progress.service';
+import { SpacedRepetition } from '@core/learning/spaced-repetition';
 import {
   buildCompositionProblem,
   compositionsForAge,
@@ -31,6 +33,13 @@ import { KanjiCompose } from '@features/games/japanese/kanji-compose/kanji-compo
     LabProgress,
     { provide: ProfileStateService, useExisting: LabProfileState },
     { provide: GameProgressService, useExisting: LabProgress },
+    // Estos dos se vuelven a proveer aquí porque viven en el inyector **raíz**, y desde
+    // ahí inyectan el `ProfileStateService` de verdad, no el stub de arriba. En
+    // producción los dos apuntan al mismo sitio y no pasa nada; en el lab el SRS
+    // terminaba mirando a un perfil que no existe y no registraba **nada**, sin decirlo
+    // — lo que convierte cualquier prueba del repaso espaciado en un engaño.
+    SpacedRepetition,
+    SkillProgressService,
   ],
 })
 export class KanjiComposeLab {
