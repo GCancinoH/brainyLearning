@@ -1,5 +1,5 @@
 import {
-  KANJI_COMPOSITIONS, KanjiComposition, KanjiPiece, SOCRATIC_LINES, SocraticMoment, pieceData
+  DESCUBRIMIENTOS, KANJI_COMPOSITIONS, KanjiComposition, KanjiPiece, SOCRATIC_LINES, SocraticMoment, pieceData
 } from './kanji-composition';
 
 /**
@@ -45,6 +45,7 @@ export const kanjiStory = (id: string): ClipKey => `kc.es.k.${id}.story`;
 export const pieceWord = (pieceId: string): ClipKey => `kc.ja.p.${pieceId}`;
 export const pieceMeaning = (pieceId: string): ClipKey => `kc.es.p.${pieceId}`;
 export const siblingWord = (kanji: string): ClipKey => `kc.ja.sib.${kanji}`;
+export const siblingMeaning = (kanji: string): ClipKey => `kc.es.sib.${kanji}`;
 export const socraticLine = (m: SocraticMoment, n: number): ClipKey => `kc.es.line.${m}.${n}`;
 export const sys = (key: string): ClipKey => `kc.es.sys.${key}`;
 
@@ -70,7 +71,8 @@ export const SYSTEM_TEXT: Record<string, string> = {
   'recall-again': 'Escucha otra vez.',
   'draw-now': 'Ahora dibújalo tú.',
   'draw-empty': 'Dibuja con el dedo, aunque sea una línea.',
-  'siblings': '¡Mira! Con las mismas piezas salen otros kanji.'
+  'siblings': '¡Mira! Con las mismas piezas salen otros kanji.',
+  'lab-howto': 'Mueve las piezas por el marco y mira qué se forma.'
 };
 
 // ============================================
@@ -119,7 +121,17 @@ function construirManifiesto(): Record<ClipKey, ClipSpec> {
     m[kanjiStory(c.id)] = { tts: c.storyTts, lang: 'es-MX' };
     for (const sib of c.siblings ?? []) {
       m[siblingWord(sib.kanji)] = { tts: sib.reading, lang: 'ja-JP' };
+      m[siblingMeaning(sib.kanji)] = { tts: sib.meaning, lang: 'es-MX' };
     }
+  }
+
+  // El Laboratorio (§5.1) nombra también a los que no son del catálogo. Se dan sus clips
+  // aquí y no dentro del bucle anterior porque 末 y 未 no son composiciones: si estuvieran
+  // en `KANJI_COMPOSITIONS` entrarían en el pool y en el SRS, que es justo lo que no
+  // deben hacer (se descubre, no se estudia).
+  for (const descubierto of DESCUBRIMIENTOS) {
+    m[siblingWord(descubierto.kanji)] = { tts: descubierto.reading, lang: 'ja-JP' };
+    m[siblingMeaning(descubierto.kanji)] = { tts: descubierto.meaning, lang: 'es-MX' };
   }
 
   for (const pieza of piezasUnicas()) {

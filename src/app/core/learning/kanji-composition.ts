@@ -793,6 +793,197 @@ export function buildGuessProblem(target: KanjiComposition, rng: Rng = Math.rand
   return { objetivo: target, piezas, opciones: shuffle(opciones, rng) };
 }
 
+// ============================================
+// LABORATORIO DE POSICIÓN (§5.1)
+// ============================================
+
+/**
+ * Tolerancia con la que una pieza "cae" en una posición, en coordenadas normalizadas.
+ *
+ * **No es un número redondo: son dos restricciones opuestas las que lo fijan.**
+ *
+ *  - Por abajo, 0.22: es la distancia entre la pareja de árboles de abajo en 森 y las dos
+ *    de 林. Por debajo de eso, quitarle un árbol al bosque profundo no dejaría 林 y la
+ *    mitad del laboratorio —"el árbol que crece: 1, 2, 3"— no funcionaría.
+ *  - Por arriba, 0.24: la 一 de 本 está a 0.49 de la de 末 y 未, así que con más de 0.245
+ *    una sola 一 satisfacería a las tres y "abajo" y "arriba" dejarían de ser distintos.
+ *
+ * 0.24 es el sitio donde caben las dos. Lo que queda entre 本 y 末 —unos céntimos de
+ * tablero— es la zona de "no se forma nada", que también es un resultado del laboratorio.
+ */
+export const TOLERANCIA_POSICION = 0.24;
+
+/** Una pieza colocada en el tablero libre, en coordenadas normalizadas 0-1. */
+export interface Colocada {
+  kanji: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * Un kanji que el Laboratorio sabe nombrar, con dónde va cada pieza.
+ *
+ * Los descubrimientos no son composiciones: se **nombra** pero no se enseña.
+ */
+export interface Formable {
+  kanji: string;
+  reading: string;
+  meaning: string;
+  slots: readonly PieceSlot[];
+  /**
+   * `true` si no viene del catálogo. Un descubrimiento no entra en el pool, ni en el SRS,
+   * ni en el progreso: se descubre, no se estudia.
+   */
+  descubrimiento: boolean;
+}
+
+/**
+ * Kanji que el Laboratorio reconoce pero que **no** son composiciones del catálogo.
+ *
+ * 末 y 未 son hermanos de 本 y se distinguen entre sí solo por la **longitud** del trazo
+ * de la 一 —末 lo lleva más largo, 未 más corto—, no por su posición: un tablero por
+ * posiciones no puede expresarlo. Meterlos en `KANJI_COMPOSITIONS` los metería además en
+ * el pool y en el SRS, cuando lo que se busca aquí es que la niña los **descubra**.
+ *
+ * Por eso los dos van **en la misma posición** y el laboratorio los devuelve juntos: lo
+ * que queda por mirar después —la línea, más larga o más corta— es justo la parte del
+ * kanji que el tablero no puede decidir por ella. Ninguna de las dos tiene historia
+ * escrita todavía, y el laboratorio no las cuenta: solo las nombra y las deja ahí.
+ */
+export const DESCUBRIMIENTOS: readonly Formable[] = [
+  {
+    kanji: '末',
+    reading: 'すえ',
+    meaning: 'punta de la rama',
+    slots: [
+      { kanji: P.ki.kanji, x: 0.5, y: 0.44 },
+      { kanji: P.ichi.kanji, x: 0.5, y: 0.3 },
+    ],
+    descubrimiento: true,
+  },
+  {
+    kanji: '未',
+    reading: 'まだ',
+    meaning: 'aún no, retoño',
+    slots: [
+      { kanji: P.ki.kanji, x: 0.5, y: 0.44 },
+      { kanji: P.ichi.kanji, x: 0.5, y: 0.3 },
+    ],
+    descubrimiento: true,
+  },
+];
+
+/** Todo lo que el Laboratorio puede nombrar: el catálogo y los descubrimientos. */
+const TODOS_FORMABLES: readonly Formable[] = [
+  ...KANJI_COMPOSITIONS.map<Formable>(c => ({
+    kanji: c.kanji,
+    reading: c.reading,
+    meaning: c.meaning,
+    slots: c.slots,
+    descubrimiento: false,
+  })),
+  ...DESCUBRIMIENTOS,
+];
+
+const desdeCatalogo = (c: KanjiComposition): Formable => ({
+  kanji: c.kanji,
+  reading: c.reading,
+  meaning: c.meaning,
+  slots: c.slots,
+  descubrimiento: false,
+});
+
+/**
+ * ¿Qué kanji se está formando en el tablero?
+ *
+ * Devuelve **todos** los que cuadran, no solo el primero, y ahí está el descubrimiento
+ * del laboratorio:木 + 一 arriba no hace uno sino dos —末 y 未— y lo único que los
+ * separa es la longitud de la línea. El tablero no puede decidir eso por ella; lo que
+ * puede es dejarle mirar.
+ *
+ * Las piezas que sobran no estorban, porque lo que cuenta es lo que hay **sobre el
+ * tablero**: quitarle un árbol a 森 deja 林, y esa es la mitad del juego.
+ */
+export function reconocerTablero(colocadas: readonly Colocada[]): Formable[] {
+  return TODOS_FORMABLES.filter(f => encajan(colocadas, f.slots));
+}
+
+/**
+ * ¿Cuadran las piezas colocadas con los slots de un kanji?
+ *
+ * Cada slot se cubre con una pieza **del mismo kanji** que esté cerca, y se va tachando:
+ * como puede haber repetidas —森 es 木+木+木—, no vale con que la misma pieza sirva para
+ * dos sitios a la vez.
+ */
+function encajan(colocadas: readonly Colocada[], slots: readonly PieceSlot[]): boolean {
+  if (colocadas.length !== slots.length) return false;
+  const sinUsar = [...colocadas];
+  for (const slot of slots) {
+    const i = sinUsar.findIndex(
+      p => p.kanji === slot.kanji && Math.hypot(p.x - slot.x, p.y - slot.y) <= TOLERANCIA_POSICION,
+    );
+    if (i < 0) return false;
+    sinUsar.splice(i, 1);
+  }
+  return true;
+}
+
+/**
+ * Todo lo que se puede formar con las piezas de un kanji: el kanji mismo y sus hermanos.
+ */
+function familiaDe(target: KanjiComposition): Formable[] {
+  const familia: Formable[] = [desdeCatalogo(target)];
+  for (const sib of target.siblings ?? []) {
+    // 林 tiene posiciones reales en el catálogo; 末 y 未 las llevan en los
+    // descubrimientos. Los que no tengan ninguna —no hay ninguno hoy— se quedan sin
+    // huecos y simplemente no se reconocen.
+    familia.push(
+      DESCUBRIMIENTOS.find(d => d.kanji === sib.kanji) ??
+        (KANJI_COMPOSITIONS.find(c => c.kanji === sib.kanji)
+          ? desdeCatalogo(KANJI_COMPOSITIONS.find(c => c.kanji === sib.kanji)!)
+          : { kanji: sib.kanji, reading: sib.reading, meaning: sib.meaning, slots: [], descubrimiento: false }),
+    );
+  }
+  return familia;
+}
+
+/**
+ * Lo que hace falta para abrir el Laboratorio con un kanji: de dónde salen las piezas y
+ * dónde pueden ir.
+ *
+ * **Huecos, no destinos.** El tablero ofrece la unión de posiciones de toda la familia —
+ * 本, 末 y 未 comparten el hueco del 木 y cada uno tiene el suyo para la 一— y es ella la
+ * que decide a dónde va. Si el tablero solo tuviera los slots de 本, la 一 no tendría
+ * dónde ir arriba y el descubrimiento entero sería imposible.
+ *
+ * **Las piezas no se deduplican.** 森 da tres 木 en la bandeja, y eso es lo que permite
+ * que quite uno y vea 林 —el árbol que crece: 1, 2, 3—.
+ */
+export function laboratorioDe(target: KanjiComposition): {
+  piezas: TrayPiece[];
+  huecos: PieceSlot[];
+} {
+  const piezas = target.slots.map<TrayPiece>((s, i) => ({
+    ...pieceData(s.kanji),
+    trayId: `lab-${i}`,
+    correct: false,
+  }));
+
+  const huecos: PieceSlot[] = [];
+  for (const f of familiaDe(target)) {
+    for (const slot of f.slots) {
+      // A medio camino entre dos posiciones: un hueco no se puede duplicar solo porque
+      // dos kanji de la familia lo compartan casi igual (本 y 木 ponen el 木 en 0.43 y
+      // 0.44, que es el mismo sitio).
+      const yaHay = huecos.find(
+        h => h.kanji === slot.kanji && Math.hypot(h.x - slot.x, h.y - slot.y) <= TOLERANCIA_POSICION / 2,
+      );
+      if (!yaHay) huecos.push({ ...slot });
+    }
+  }
+  return { piezas, huecos };
+}
+
 const PIECE_TABLE: Record<string, KanjiPiece> = Object.values(P).reduce<Record<string, KanjiPiece>>(
   (acc, piece) => {
     acc[piece.kanji] = piece;

@@ -919,44 +919,14 @@ $ink: #1b1b3a;
   }
 }
 
+// El laboratorio (§5.1) lleva marco cuadrado y bandeja: necesita más ancho y menos aire
+// alrededor que el panel de texto que este overlay era.
+.overlay-card--lab {
+  padding: 1.3rem;
+  max-width: 540px;
+}
+
 // Hermanos: 本 / 末 / 未
-.siblings {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 1.4rem;
-}
-
-.sibling {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid var(--accent);
-  border-radius: 18px;
-  padding: 0.8rem 1rem;
-  min-width: 96px;
-
-  &-kanji {
-    font-size: 3rem;
-    line-height: 1;
-    color: var(--accent);
-  }
-
-  &-reading {
-    font-size: 0.85rem;
-    opacity: 0.8;
-    min-height: 1.2em;
-  }
-
-  &-meaning {
-    font-size: 0.85rem;
-    font-weight: 700;
-    margin-top: 0.2rem;
-  }
-}
-
 .reflection-options {
   display: flex;
   flex-direction: column;

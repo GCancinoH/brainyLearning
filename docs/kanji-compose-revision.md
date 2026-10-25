@@ -238,40 +238,48 @@ Hoy hay muy buena cobertura de **datos** (`kanji-composition.spec`, `kanji-narra
 
 Ordenado por **impacto pedagógico / esfuerzo**.
 
-### 5.1 ⭐ "Laboratorio de posición" — *mismas piezas, otro lugar* (impacto ALTO · esfuerzo M)
-Hoy los hermanos son un overlay estático. Convertirlo en el **modo estrella**: tablero libre donde mover una pieza y ver cómo el kanji **se transforma en vivo**:
+### 5.1 ⭐ "Laboratorio de posición" — *mismas piezas, otro lugar* (impacto ALTO · esfuerzo M) — **Hecho (25 oct)**
+El overlay estático de hermanos pasa a ser **modo estrella**: el mismo sitio de antes, pero
+con un marco donde mover las piezas y ver el kanji **transformarse en vivo**. Es
+isomorfismo + multi-solución + hipótesis puros (Zvonkin) y no se puede contar: hay que
+tropezar con ello.
 
-- 木 + 一 abajo → **本** (libro/raíz) · 一 arriba-corto → **末** · 一 arriba-largo → **未**.
-- 日 + 月 → **明**; 月 + 日 → "¿se forma algo?" (no) → pregunta socrática.
-- 木 + 木 → 林; + 木 → 森 (el árbol que crece: 1, 2, 3).
+- 木 + 一 abajo → **本** (libro/raíz) · 一 arriba → **末 y 未 a la vez**.
+- Las piezas al revés (一 en el hueco del árbol, árbol abajo) → "¿se forma algo?" → duda
+  socrática. **No es un fallo**: es un resultado del laboratorio.
+- De 森 se le puede quitar un árbol y ver **林** —el árbol que crece: 1, 2, 3—.
 
-Mecánica: un reconocedor sencillo por *tabla de posiciones* (los `slots` ya están normalizados) con tolerancia. Es **isomorfismo + multi-solución + hipótesis** puros (Zvonkin) y reutiliza los datos existentes. Lo que la niña descubre ("la posición cambia el significado") es lo más valioso del juego.
+**Las dos preguntas de arriba, resueltas:**
 
-**Pendiente. Antes de escribirlo, dos preguntas que los datos plantean (23 oct):**
+1. **末 y 未 entran en `DESCUBRIMIENTOS`**, una tabla aparte que el reconocedor consulta
+   **después** del catálogo. No son composiciones: no entran en el pool, ni en el SRS, ni
+   en el progreso — se descubre, no se estudia. Tienen posiciones autoradas y clips propios
+   (`kc.*.sib.*`), y la comprobación de que no se cuelan está en los tests.
+2. **El tablero no distingue 末 de 未, y eso es correcto.** Van **en la misma posición** y
+   el laboratorio los devuelve **juntos** ("末 — punta de la rama", "未 — aún no, retoño"):
+   lo único que los separa es la longitud del trazo, que una posición no puede expresar, y
+   pretender lo contrario enseñaría un kanji falso. Lo que queda por mirar después —la
+   línea, más larga o más corta— es justo la parte que el tablero no puede decidir por ella.
 
-1. **末 y 未 no están en el catálogo.** Solo existen como `siblings` de 本, es decir, con
-   kanji, lectura y significado pero **sin `slots`**. El reconocedor no puede encontrarlos
-   porque no hay posiciones que comparar. Se puede añadirlos como composiciones, pero eso
-   los metería en el pool y en el SRS —otra ronda de aprendizaje—, cuando lo valioso aquí
-   es que la niña los **descubra**, no que los estudie. La salida parece ser una tabla
-   aparte de "descubrimientos", con posiciones autoradas, que el reconocedor consulta
-   **después** del catálogo y que no alimenta ni el SRS ni el progreso.
-2. **末 y 未 solo se distinguen por la LONGITUD del trazo**, no por la posición: la一 de
-   末 es más larga que la de 未. Un tablero por posiciones no puede expresarlo. Hay que
-   decidir si el laboratorio se queda en lo que el tablero sí puede decir —木+一 abajo →
-   本, arriba → "punta de la reconocía"— o si se añade otra dimensión.
+**La tolerancia es un número con dos dueños, no un redondeo:** 0.24. Por abajo, 0.22, que
+es la distancia entre la pareja de árboles de abajo en 森 y las dos de林 —por debajo, el
+bosque no podría encogerse—; por arriba, la 一 de 本 y la de 末/未 están a 0.49, y con
+0.245 o más una sola satisfacería a las tres. Está fijado en `TOLERANCIA_POSICION` y
+comprobado por tests en ambos extremos.
 
-Y una decisión de mecánica ya tomada: **arrastre libre que hace *snap* a posiciones
-candidatas con tolerancia**, no un puntero libre. Es lo que el informe dice
-("reconocedor con tolerancia"), es más fácil para una mano de 4 años, y es lo que ya hace
-el paso de componer —`nearestSlot`—, así que se reutiliza la maquinaria de puntero.
+**Lo que no hace todavía (y se sabe):** el laboratorio se abre donde se abría el overlay,
+es decir, **solo para kanji con hermanos: 本 y 森**. El catálogo no tiene más parejas
+reales de "mismas piezas, otro kanji" —明, 休, 好, 男… son únicas—, así que ampliarlo
+pasa por añadir kanji (§5.8), no por inventar hermanos. Lo que sí cubre el caso negativo:
+cualquier combinación que no forme nada se plantea como duda.
 
-**Q10 relacionado.** `ki-hayashi-mori` en `nature-engine` **no** tiene ids rotos: los
-datos están intactos. Es **duplicación** —nature-engine enseña 木 → 林 → 森 por
-*reconocimiento* (elige cuál), kanji-compose por *composición* (móntalo)—, y solo aparece
-para perfiles que pueden leer kanji. Es otra habilidad, así que no hay que borrar nada por
-la razón que daba el informe; la decisión (dejar los dos, o enlazar el de naturaleza con
-este laboratorio) la tomará §5.1 cuando exista.
+**Q10, decidido aquí:** se dejan **los dos**. `ki-hayashi-mori` enseña 木 → 林 → 森 por
+*reconocimiento* (nature-engine), este laboratorio por *composición* —otra habilidad—, y
+el segundo solo aparece para perfiles que pueden leer kanji. Enlazarlos (que el laboratorio
+ofreciera el salto al escenario de naturaleza) queda como idea, sin comprometer.
+
+Ver también Q11: el **imán en arrastre** del informe ya estaba —`nearestSlot` con 40 px de
+margen— y es la misma maquinaria que usa el laboratorio.
 
 ### 5.2 "Adivina el significado" — descubrimiento antes de la revelación (impacto ALTO · M) — **Hecho (23 oct)**
 Antes de mostrar la historia: se dan las piezas con su emoji y voz (☀️ + 🌙) y se pregunta *"¿qué crees que quiere decir?"* con 3-4 opciones por emoji, **varias válidas**. Después se revela el kanji y su significado real. Cumple el §B.6 del documento (deducir significado) y convierte el paso 1 de espectáculo en indagación. A los 4 años: solo emoji + voz; a los 6: también puede escribir/ordenar la idea.
@@ -421,7 +429,8 @@ Sprint 3 y 4, y de Sprint 2 el sprite/Web Audio.*
       tablet con las niñas, no en un test
 - [x] `HintLadder` + `GhostHand` + `TutorialSeen` (§5.5)
 - [x] Tap/selección coherente (Q11) — el hueco lo elige ella
-- [ ] Imán en arrastre (la pieza se "engancha" al hueco más cercano al soltarla cerca)
+- [x] Imán en arrastre (la pieza se "engancha" al hueco más cercano al soltarla cerca) —
+  ya estaba: `nearestSlot` con 40 px de margen; lo comparten componer y el laboratorio
 - [x] Historia de 4 años: medida, ya cumple ≤ 10 s (Q6) · mnemotecnias reencuadradas (Q7)
 - [x] Reflexión útil: cada respuesta hace lo que dice (Q4)
 
@@ -432,11 +441,13 @@ Sprint 3 y 4, y de Sprint 2 el sprite/Web Audio.*
 - [ ] Sprite / Web Audio (el m4a ya está; el sprite es optimización, no requisito)
 
 ### Sprint 3 — Descubrimiento (el salto de calidad)
-- [ ] **Laboratorio de posición** (§5.1)
+- [x] **Laboratorio de posición** (§5.1) — el overlay de hermanos es ahora el marco donde
+  mover las piezas; 末 y 未 son `DESCUBRIMIENTOS`, fuera del pool y del SRS
 - [x] **Adivina el significado** (§5.2) — solo en kanji nuevos; la historia es la respuesta
 - [x] Modo **Reconocer** (§5.6) — calentamiento de 2 aciertos con recuerdo frío
 - [x] Ritual **Flash** (§5.9) — mostrar–decir–retirar; va **después** de examinar, no antes
-- [ ] Resolver solape con `nature-engine` (Q10)
+- [x] Resolver solape con `nature-engine` (Q10) — se dejan los dos: reconocimiento y
+  composición son habilidades distintas; ver §5.1
 
 ### Sprint 4 — Motivación y familia
 - [ ] Modo pareja (§5.7) · Álbum y familias (§5.8) · panel parental (§5.11)

@@ -1,0 +1,73 @@
+<!-- LABORATORIO DE POSICIÓN (§5.1)
+     No hay un kanji pedido y no lo hay a propósito: el titular de esta pantalla es lo
+     que ESTÁ saliendo, y si no sale nada, la pregunta. -->
+
+<!-- ============ LO QUE SE ESTÁ FORMANDO ============ -->
+<div class="lab-resultado" aria-live="polite">
+  @if (formados().length) {
+    <div class="lab-formados">
+      @for (f of formados(); track f.kanji) {
+        <!-- Un descubrimiento lleva distinto borde:末 y 08 no son una lección, son algo
+             que ha encontrado. La diferencia está escrita, no en un "¡correcto!". -->
+        <span class="lab-formado" [class.lab-formado--descubierto]="f.descubrimiento">
+          <span class="lab-formado-kanji" lang="ja">{{ f.kanji }}</span>
+          <span class="lab-formado-significado">{{ f.meaning }}</span>
+        </span>
+      }
+    </div>
+  } @else {
+    <!-- Sin emoji propio: las frases socráticas ya llevan el suyo, y con dos el
+         signo de interrogación doble se veía ridículo. -->
+    <p class="lab-duda">{{ linea() || '¿Se forma algo?' }}</p>
+  }
+</div>
+
+<!-- ============ MARCO ============
+     Los huecos NO pertenecen a una pieza: cualquiera puede ir a cualquiera, porque lo
+     que se está probando es la posición y no el orden. -->
+<div class="lab-marco">
+  @for (hueco of huecos(); track $index) {
+    <button
+      #labSlot
+      class="lab-hueco"
+      [class.lab-hueco--libre]="!!enMano() && !puestas()[$index]"
+      [class.lab-hueco--ocupado]="!!puestas()[$index]"
+      [style.left.%]="hueco.x * 100"
+      [style.top.%]="hueco.y * 100"
+      [attr.aria-label]="puestas()[$index] ? 'Sacar la pieza' : 'Poner aquí'"
+      (click)="onTapHueco($index)"
+    >
+      @if (puestas()[$index]; as pieza) {
+        <span class="lab-hueco-kanji" lang="ja">{{ pieza.kanji }}</span>
+        <span class="lab-hueco-emoji">{{ pieza.emoji }}</span>
+      } @else {
+        <span class="lab-hueco-marca" aria-hidden="true">?</span>
+      }
+    </button>
+  }
+</div>
+
+<!-- ============ BANDEJA ============ -->
+<div class="lab-bandeja">
+  @for (pieza of bandeja(); track pieza.trayId) {
+    <div
+      class="lab-pieza"
+      [class.lab-pieza--en-mano]="enMano()?.trayId === pieza.trayId"
+      cdkDrag
+      [cdkDragData]="pieza"
+      (cdkDragEnded)="onDragEnded($event, pieza)"
+      (click)="onTap(pieza)"
+    >
+      <span class="lab-pieza-kanji" lang="ja">{{ pieza.kanji }}</span>
+      <span class="lab-pieza-emoji">{{ pieza.emoji }}</span>
+    </div>
+  }
+</div>
+
+<!-- Icono a los 4 años: "Ver el dibujo" son palabras que no lee, y un botón sin texto que
+     no entiende la deja clavada en el laboratorio. -->
+@if (preread()) {
+  <button class="main-btn lab-salir" (click)="salir()" aria-label="Seguir">👉</button>
+} @else {
+  <button class="main-btn lab-salir" (click)="salir()">Ver el dibujo →</button>
+}

@@ -59,7 +59,6 @@ import {
   pieceMeaning,
   pieceWord,
   recountCues,
-  siblingWord,
   socraticLine,
   storyCues,
   sys,
@@ -67,6 +66,7 @@ import {
   type Highlight,
   type StoryMode,
 } from '@core/learning/kanji-narration';
+import { PositionLab } from './position-lab';
 import { nearestSlot } from './slot-hit';
 
 /**
@@ -152,7 +152,7 @@ interface PlacedPiece {
 
 @Component({
   selector: 'kanji-compose',
-  imports: [CdkDrag, GameFeedbackComponent, GameRestOverlayComponent, GhostHand],
+  imports: [CdkDrag, GameFeedbackComponent, GameRestOverlayComponent, GhostHand, PositionLab],
   templateUrl: './kanji-compose.html',
   styleUrl: './kanji-compose.scss',
 })
@@ -1381,29 +1381,16 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
       // medio nombre justo en el momento en que acababa de completarse.
       this.later(() => {
         this.showSiblings.set(true);
-        this.line.set(pickLine('sibling-discovery'));
-        // Se **dice**, no solo se escribe: a los 4 años ese `h2` no le llega, y sin este
-        // clip el descubrimiento de "estas mismas piezas forman otro kanji" pasaba en
-        // silencio.
-        this.speakSiblings();
+        // Sin frase en `line` ni `speakSiblings` aquí: la narración la manda ahora el
+        // laboratorio, que es quien dice "¡Mira! con las mismas piezas..." al abrirse y
+        // nombra lo que se forme. Dos `narrator.play` seguidos se cortarían entre sí, y
+        // el que ganaría sería el segundo.
       }, 1500);
       // El paso de dibujo NO se prepara a escondidas debajo del overlay: se abre al
       // cerrarlo (ver `dismissSiblings`).
     } else {
       this.later(() => this.enterDraw(), 2200);
     }
-  }
-
-  /**
-   * "¡Mira! Con las mismas piezas salen otros kanji", y después cada hermano con su
-   * lectura. La pausa deja tiempo de mirar cada uno antes de oírlo.
-   */
-  private speakSiblings(): void {
-    const siblings = this.target()?.siblings ?? [];
-    void this.narrator.play([
-      { clip: sys('siblings'), pauseAfterMs: 500 },
-      ...siblings.map(sib => ({ clip: siblingWord(sib.kanji), pauseAfterMs: 900 })),
-    ]);
   }
 
   /** Pasa al paso de dibujo. La instrucción se oye, no solo se escribe (B9). */
@@ -1952,8 +1939,8 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     if (que === 'posicion') {
       this.reflecting.set(false);
       this.desdeReflexion.set(true);
+      // El laboratorio se narra a sí mismo al abrirse; aquí no hay nada que decir.
       this.showSiblings.set(true);
-      void this.speakSiblings();
       return;
     }
 

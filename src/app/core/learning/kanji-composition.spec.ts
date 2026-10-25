@@ -4,18 +4,22 @@ import {
   buildGuessProblem,
   buildRecallProblem,
   clampLevel,
+  Colocada,
   compositionsForAge,
   difficultyFor,
   getComposition,
   KANJI_COMPOSITIONS,
+  laboratorioDe,
   MAX_LEVEL,
   pieceData,
   pickComposition,
   pickLine,
   poolFor,
   poolSplit,
+  reconocerTablero,
   SocraticMoment,
   SOCRATIC_LINES,
+  TOLERANCIA_POSICION,
   TrayPiece,
 } from './kanji-composition';
 
@@ -556,5 +560,101 @@ describe('§5.2 buildGuessProblem', () => {
         `${c.id} se queda sin elección`,
       ).toBeGreaterThanOrEqual(2);
     }
+  });
+});
+
+// ============================================
+// §5.1 · LABORATORIO DE POSICIÓN
+// ============================================
+
+describe('§5.1 laboratorio de posición', () => {
+  const p = (kanji: string, x: number, y: number): Colocada => ({ kanji, x, y });
+
+  describe('reconocerTablero', () => {
+    it('木 con la 一 abajo es 本; arriba son DOS: 末 y 未', () => {
+      const abajo = reconocerTablero([p('木', 0.5, 0.43), p('一', 0.5, 0.79)]);
+      expect(abajo.map(f => f.kanji), 'la 一 al pie del árbol: la raíz').toEqual(['本']);
+
+      // El descubrimiento entero: dos kanji con las MISMAS piezas en el MISMO sitio, y
+      // lo único que los separa es la longitud de la línea —algo que el tablero no puede
+      // expresar, y por eso los devuelve juntos en vez de elegir uno por ella.
+      const arriba = reconocerTablero([p('木', 0.5, 0.44), p('一', 0.5, 0.3)]);
+      expect(arriba.map(f => f.kanji).sort()).toEqual(['未', '末'].sort());
+      expect(arriba.every(f => f.descubrimiento), 'y ninguno es del catálogo').toBe(true);
+    });
+
+    it('la 一 en mitad del camino no forma nada: eso también es un resultado', () => {
+      // (0.3 + 0.79) / 2, a 0.245 de las dos: fuera de la tolerancia de las dos.
+      expect(reconocerTablero([p('木', 0.5, 0.43), p('一', 0.5, 0.545)]), 'y no es un error').toEqual([]);
+    });
+
+    it('las piezas al revés no forman nada: 日 y 月 cambian de sitio y 明 se va', () => {
+      expect(reconocerTablero([p('日', 0.29, 0.5), p('月', 0.71, 0.5)]).map(f => f.kanji)).toEqual(['明']);
+      expect(reconocerTablero([p('月', 0.29, 0.5), p('日', 0.71, 0.5)]), 'no es un error').toEqual([]);
+    });
+
+    it('el árbol que crece: quitarle uno a 森 deja 林', () => {
+      const tres = reconocerTablero([p('木', 0.5, 0.26), p('木', 0.3, 0.72), p('木', 0.7, 0.72)]);
+      expect(tres.map(f => f.kanji)).toEqual(['森']);
+
+      const dos = reconocerTablero([p('木', 0.3, 0.72), p('木', 0.7, 0.72)]);
+      expect(dos.map(f => f.kanji), 'dos árboles abajo, que es donde están los de 林').toEqual(['林']);
+    });
+
+    it('una pieza repetida no sirve para dos huecos a la vez', () => {
+      // Si lo mismo valiera para arriba y para abajo, un solo 木 haría 森.
+      expect(reconocerTablero([p('木', 0.5, 0.5), p('木', 0.5, 0.5), p('木', 0.5, 0.5)])).toEqual([]);
+    });
+
+    it('la tolerancia es un número con dos dueños, no un redondeo', () => {
+      // Por abajo: 林 está a 0.22 de la pareja de abajo de 森. Por debajo de eso la
+      // mitad del laboratorio dejaría de funcionar.
+      expect(TOLERANCIA_POSICION, 'aguanta el salto de 森 a 林').toBeGreaterThanOrEqual(0.22);
+      // Por arriba: la 一 de 本 y la de 末/未 están a 0.49, y con 0.245 o más una sola
+      // satisfacería a las tres.
+      expect(TOLERANCIA_POSICION, 'no mezcla 本 con 末/未').toBeLessThan(0.245);
+
+      const descentrada = reconocerTablero([p('木', 0.54, 0.47), p('一', 0.47, 0.75)]);
+      expect(descentrada.map(f => f.kanji), 'un dedo descentrado sigue siendo 本').toEqual(['本']);
+    });
+  });
+
+  describe('laboratorioDe', () => {
+    it('las piezas no se deduplican: de 森 salen tres 木, que es de lo que va el paso', () => {
+      const lab = laboratorioDe(getComposition('mori')!);
+      expect(lab.piezas).toHaveLength(3);
+      expect(lab.piezas.every(x => x.kanji === '木')).toBe(true);
+      expect(new Set(lab.piezas.map(x => x.trayId)).size, 'cada una es suya').toBe(3);
+    });
+
+    it('los huecos son la unión de la familia, no solo los del kanji', () => {
+      const lab = laboratorioDe(getComposition('hon')!);
+      // 本 pone la 一 abajo; 末 y 未 la arriba. Sin el hueco de arriba la 一 no tendría
+      // dónde ir y el descubrimiento entero sería imposible.
+      const ys = lab.huecos
+        .filter(h => h.kanji === '一')
+        .map(h => h.y)
+        .sort((a, b) => a - b);
+      expect(ys, 'la 1 en su sitio y en el contrario').toHaveLength(2);
+      expect(ys[0]).toBeCloseTo(0.3, 5);
+      expect(ys[1]).toBeCloseTo(0.79, 5);
+
+      // El 木 de 本 y el de 末/未 están a 0.01: es el mismo hueco, no dos.
+      expect(lab.huecos.filter(h => h.kanji === '木')).toHaveLength(1);
+    });
+
+    it('森 da además el hueco de 林, o el bosque no podría encogerse', () => {
+      const lab = laboratorioDe(getComposition('mori')!);
+      expect(lab.huecos, 'los tres de 森 y los dos de 林').toHaveLength(5);
+    });
+
+    it('los descubrimientos se pueden formar pero no están en el catálogo', () => {
+      expect(KANJI_COMPOSITIONS.some(c => c.kanji === '末'), 'no entra en el pool').toBe(false);
+      expect(KANJI_COMPOSITIONS.some(c => c.kanji === '未'), 'ni en el SRS').toBe(false);
+      expect(
+        reconocerTablero([p('木', 0.5, 0.44), p('一', 0.5, 0.3)]).some(f => f.descubrimiento),
+        'pero sí se nombran en el laboratorio',
+      ).toBe(true);
+    });
   });
 });

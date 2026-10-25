@@ -255,6 +255,18 @@
     "tts": "montaña",
     "lang": "es-MX"
   },
+  "kc.es.sib.未": {
+    "tts": "aún no, retoño",
+    "lang": "es-MX"
+  },
+  "kc.es.sib.末": {
+    "tts": "punta de la rama",
+    "lang": "es-MX"
+  },
+  "kc.es.sib.林": {
+    "tts": "arboleda de dos árboles",
+    "lang": "es-MX"
+  },
   "kc.es.sys.draw-empty": {
     "tts": "Dibuja con el dedo, aunque sea una línea.",
     "lang": "es-MX"
@@ -269,6 +281,10 @@
   },
   "kc.es.sys.guess-question": {
     "tts": "¿Qué crees que quiere decir?",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.lab-howto": {
+    "tts": "Mueve las piezas por el marco y mira qué se forma.",
     "lang": "es-MX"
   },
   "kc.es.sys.look-ghost": {

@@ -1119,7 +1119,10 @@ describe('KanjiCompose (integración)', () => {
       }
 
       expect(component.recall(), 'no queda tanda').toBeNull();
-      expect(component.step(), 'y empieza la historia del problema').toBe('story');
+      // El primer problema de un nivel puede ser de repaso —y va a la historia— o de
+      // kanji nuevo —y va a adivinar—. Lo que no puede quedar abierto es el
+      // calentamiento, que es lo que mide este test.
+      expect(['story', 'adivina'], 'y empieza la ronda del problema').toContain(component.step());
       expect(component.problem(), 'con problema y todo').toBeTruthy();
     });
 

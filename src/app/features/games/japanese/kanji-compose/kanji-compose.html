@@ -415,32 +415,13 @@
      llegue a bloquear lo suelta el primer toque, que ella da igualmente al entrar desde el
      menú (ver `GameAudioService`). -->
 
-<!-- HERMANOS: "con las mismas piezas salen otros kanji" -->
+<!-- LABORATORIO DE POSICIÓN (§5.1): antes un panel que **contaba** que con las mismas
+     piezas salen otros kanji; ahora está el marco donde verlo. El paso que sigue lo decide
+     el laboratorio, no este overlay: por eso el botón de salida vive dentro. -->
 @if (showSiblings() && target(); as t) {
   <div class="overlay" (click)="dismissSiblings()">
-    <div class="overlay-card" (click)="$event.stopPropagation()">
-      <!-- A los 4 años no lee: esa frase **se oye** (`speakSiblings`). Para quien lee, ahí está. -->
-      @if (!isPreReader()) {
-        <h2>{{ line() }}</h2>
-      }
-      <div class="siblings">
-        @for (sib of t.siblings ?? []; track sib.kanji) {
-          <div class="sibling">
-            <span class="sibling-kanji" lang="ja">{{ sib.kanji }}</span>
-            <span class="sibling-reading">
-              {{ sib.reading }}
-            </span>
-            <span class="sibling-meaning">{{ sib.meaning }}</span>
-          </div>
-        }
-      </div>
-      <!-- Icono a los 4 años: "Ver el dibujo →" son palabras que no lee, y un botón sin
-           texto que no entiende deja a la niña clavada en el overlay. -->
-      @if (isPreReader()) {
-        <button class="main-btn" (click)="dismissSiblings()" aria-label="Seguir">👉</button>
-      } @else {
-        <button class="main-btn" (click)="dismissSiblings()">Ver el dibujo →</button>
-      }
+    <div class="overlay-card overlay-card--lab" (click)="$event.stopPropagation()">
+      <kl-position-lab [target]="t" [preread]="isPreReader()" (cerrar)="dismissSiblings()" />
     </div>
   </div>
 }
