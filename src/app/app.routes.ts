@@ -76,6 +76,14 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/japanese/kanji-compose/kanji-compose').then(m => m.KanjiCompose)
   },
   {
+    path: 'games/chinese',
+    loadComponent: () => import('@features/games/chinese/chinese-menu/chinese-menu').then(m => m.ChineseMenu)
+  },
+  {
+    path: 'games/chinese/hanzi-numbers',
+    loadComponent: () => import('@features/games/chinese/hanzi-numbers/hanzi-numbers').then(m => m.HanziNumbers)
+  },
+  {
     // Laboratorio de la Tiendita. Va fuera de `games/` para que el reloj por tema no lo
     // bloquee, y `devOnlyGuard` lo hace desaparecer en builds de producción.
     path: 'lab/coin-shop',

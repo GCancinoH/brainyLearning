@@ -10,9 +10,12 @@ describe('parseGameUrl', () => {
     expect(parseGameUrl('/games/japanese/listening?x=1')).toEqual({ theme: 'japanese', playing: true });
     expect(parseGameUrl('/games/math')).toEqual({ theme: 'math', playing: false });
     expect(parseGameUrl('/games/japanese/')).toEqual({ theme: 'japanese', playing: false });
+    // Chino también cuenta: si no, el tiempo del Planeta Dragón no se descuenta de nada.
+    expect(parseGameUrl('/games/chinese/hanzi-numbers')).toEqual({ theme: 'chinese', playing: true });
+    expect(parseGameUrl('/games/chinese')).toEqual({ theme: 'chinese', playing: false });
   });
   it('ignora todo lo demás', () => {
-    for (const u of ['/', '/dashboard', '/stickers', '/games/chinese/x', '/games/math/a/b']) {
+    for (const u of ['/', '/dashboard', '/stickers', '/games/math/a/b']) {
       expect(parseGameUrl(u)).toBeNull();
     }
   });

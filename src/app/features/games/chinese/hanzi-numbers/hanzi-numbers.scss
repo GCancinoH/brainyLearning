@@ -1,0 +1,341 @@
+// ============================================
+// Números Hanzi - estilos
+// Pergamino de tinta y dorado sobre el fondo del Planeta Dragón 🐉
+// ============================================
+
+$oro: #fbbf24;
+$oro-oscuro: #b45309;
+$rojo: #ef4444;
+$rojo-hondo: #7f1d1d;
+
+.hanzi-container {
+  min-height: 100vh;
+  padding: 1.5rem;
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+
+  // Un velo rojo basta para que el juego se note en otro planeta: el fondo lo pone la
+  // app y no se toca.
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(127, 29, 29, 0.55), transparent 70%);
+}
+
+// ---------- ENCABEZADO ----------
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+
+  .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.6rem 1.1rem;
+    border-radius: 16px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  // Qué etapa se está jugando. El color cambia al entrar en "combinar": es la señal
+  // visible de que el juego cambió de forma.
+  .etapa-badge {
+    background: rgba(239, 68, 68, 0.18);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #fecaca;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+
+    &--combinar {
+      background: rgba(251, 191, 36, 0.16);
+      border-color: $oro;
+      color: $oro;
+    }
+  }
+
+  .level-badge {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid $oro;
+    padding: 0.5rem 1.1rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-weight: bold;
+    color: $oro;
+
+    .stars span {
+      opacity: 0.3;
+      font-size: 0.9rem;
+
+      &.active {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+// ---------- TABLERO ----------
+.game-board {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  border-radius: 32px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  flex: 1;
+}
+
+.hint {
+  margin: 0;
+  padding: 0.7rem 1.2rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fde68a;
+  font-weight: 600;
+  text-align: center;
+}
+
+// ---------- ETAPA 1 · RECONOCER ----------
+.enunciado {
+  font-size: clamp(4rem, 18vw, 8rem);
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  padding: 0.4rem 1rem;
+  border-radius: 24px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 2px solid rgba(239, 68, 68, 0.35);
+
+  // Cuando lo que se muestra es el hanzi, la letra se estrecha y sube el interlineado:
+  // un carácter ocupa una caja cuadrada, no una fila de dígitos.
+  &--hanzi {
+    font-size: clamp(4rem, 16vw, 7rem);
+    line-height: 1.15;
+    letter-spacing: 0.05em;
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.35);
+  }
+}
+
+.opciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: 100%;
+  max-width: 460px;
+}
+
+.opcion {
+  min-height: 96px;
+  font-size: clamp(2.4rem, 9vw, 3.6rem);
+  font-weight: 800;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+  animation: option-pop 0.25s ease both;
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &--acierto {
+    background: rgba(34, 197, 94, 0.25);
+    border-color: #22c55e;
+    color: #bbf7d0;
+  }
+}
+
+// ---------- ETAPA 2 · COMBINAR ----------
+.objetivo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+
+  .objetivo-label {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fca5a5;
+  }
+
+  .objetivo-numero {
+    font-size: clamp(3.6rem, 16vw, 6.5rem);
+    font-weight: 800;
+    line-height: 1;
+    color: $oro;
+    text-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/**
+ * Lo que lleva armado. El número de la derecha es LA LECTURA: si no es el objetivo, se
+ * pone apagado y la niña compara. No hay "mal", hay otra cuenta.
+ */
+.lectura {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 84px;
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.22);
+
+  &--vacia .lectura-vacia {
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 600;
+  }
+
+  &--otro {
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.35);
+
+    .lectura-valor {
+      opacity: 0.65;
+    }
+  }
+}
+
+.chip {
+  min-width: 64px;
+  min-height: 64px;
+  padding: 0.2rem 0.6rem;
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  font-weight: 800;
+  color: #fff;
+  background: rgba(239, 68, 68, 0.3);
+  border: 2px solid rgba(239, 68, 68, 0.6);
+  border-radius: 16px;
+  cursor: pointer;
+  animation: chip-in 0.2s ease both;
+
+  &:active {
+    transform: scale(0.94);
+  }
+}
+
+.lectura-valor {
+  font-size: clamp(1.8rem, 7vw, 2.6rem);
+  font-weight: 800;
+  color: $oro;
+  padding-left: 0.4rem;
+}
+
+.bandeja {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.pieza {
+  min-width: 72px;
+  min-height: 72px;
+  padding: 0.3rem 0.7rem;
+  font-size: clamp(2.2rem, 9vw, 3rem);
+  font-weight: 800;
+  color: #fff;
+  background: rgba(251, 191, 36, 0.14);
+  border: 2px solid rgba(251, 191, 36, 0.55);
+  border-radius: 18px;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+  animation: piece-in 0.25s ease both;
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  // Ya agarrada: se apaga pero sigue visible, para que se vea de dónde salió.
+  &--usada {
+    opacity: 0.28;
+    cursor: default;
+  }
+}
+
+.limpiar {
+  padding: 0.6rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fecaca;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+}
+
+// ---------- ANIMACIONES (CSS puro: `animate.enter`, sin @angular/animations) ----------
+@keyframes option-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes piece-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opcion,
+  .chip,
+  .pieza {
+    animation: none;
+  }
+}

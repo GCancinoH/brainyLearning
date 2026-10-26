@@ -1,0 +1,124 @@
+<!-- Pantalla de descanso (fin de sesión) -->
+<game-rest-overlay [isVisible]="isTimeUp()" (onBack)="goBack()" />
+
+<div class="hanzi-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+
+    <!-- Qué etapa está jugando: el juego la cambia solo con el nivel -->
+    <div class="etapa-badge" [class.etapa-badge--combinar]="etapa() === 'combinar'">
+      @if (etapa() === 'reconocer') {
+        🔤 Aprende 1–20
+      } @else {
+        🧩 Combina
+      }
+    </div>
+
+    <div class="level-badge">
+      <span>Nivel {{ currentLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <game-feedback
+      [state]="feedbackState()"
+      [customMessages]="customFeedbackMessages"
+      [customMessage]="linea()"
+    />
+
+    <!-- ==================================================== -->
+    <!-- ETAPA 1 · RECONOCER (1–20)                             -->
+    <!-- ==================================================== -->
+    @if (etapa() === 'reconocer') {
+      <!-- Lo que se muestra en grande: el número, o el hanzi si hay que leerlo -->
+      <div
+        class="enunciado"
+        [class.enunciado--hanzi]="direccion() === 'hanzi-a-numero'"
+        aria-live="polite"
+      >
+        {{ enunciado() }}
+      </div>
+
+      <div class="opciones">
+        @for (o of opciones(); track problemaId() + ':' + $index) {
+          <button
+            class="opcion"
+            [class.opcion--acierto]="solved() && o === respuesta()"
+            (click)="elegir(o)"
+            [attr.aria-label]="'Opción ' + o"
+          >
+            {{ o }}
+          </button>
+        }
+      </div>
+    }
+
+    <!-- ==================================================== -->
+    <!-- ETAPA 2 · COMBINAR (21–99 según edad)                  -->
+    <!-- ==================================================== -->
+    @if (etapa() === 'combinar') {
+      <div class="objetivo">
+        <span class="objetivo-label">Forma</span>
+        <span class="objetivo-numero" aria-live="polite">{{ objetivo() }}</span>
+      </div>
+
+      <!--
+        Lo que lleva armado. Los chips se tocan para devolver la pieza, y el número de la
+        derecha es LA LECTURA de lo armado: si no coincide con el objetivo, la niña lo ve
+        y lo cambia. No hay un "incorrecto" en ningún sitio.
+      -->
+      <div
+        class="lectura"
+        [class.lectura--vacia]="agarradas().length === 0"
+        [class.lectura--otro]="leido() !== null && leido() !== objetivo()"
+        aria-live="polite"
+      >
+        @for (a of agarradas(); track a.i) {
+          <button
+            class="chip"
+            (click)="soltar(a.i)"
+            [attr.aria-label]="'Devolver la pieza ' + a.p"
+          >
+            {{ a.p }}
+          </button>
+        } @empty {
+          <span class="lectura-vacia">Toca los hanzis de abajo 👇</span>
+        }
+
+        @if (leido() !== null) {
+          <span class="lectura-valor">= {{ leido() }}</span>
+        }
+      </div>
+
+      <!-- BANDEJA: las piezas se tocan para agarrarlas -->
+      <div class="bandeja">
+        @for (p of bandeja(); track problemaId() + ':' + $index) {
+          <button
+            class="pieza"
+            [class.pieza--usada]="usada($index)"
+            [disabled]="usada($index)"
+            (click)="agarrar($index)"
+            [attr.aria-label]="'Pieza ' + p"
+          >
+            {{ p }}
+          </button>
+        }
+      </div>
+
+      <button class="limpiar" (click)="limpiar()" [disabled]="agarradas().length === 0">
+        ↺ Limpiar
+      </button>
+    }
+
+    <!-- Duda socrática: propone el siguiente movimiento, nunca juzga el anterior -->
+    @if (hint()) {
+      <p class="hint" aria-live="polite">{{ hint() }}</p>
+    }
+  </main>
+</div>

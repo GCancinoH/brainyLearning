@@ -1,0 +1,422 @@
+{
+  "hn.ask.a-hanzi": {
+    "tts": "¿Cuál es el hanzi de este número?",
+    "lang": "es-MX"
+  },
+  "hn.ask.a-numero": {
+    "tts": "¿Qué número dice este hanzi?",
+    "lang": "es-MX"
+  },
+  "hn.ask.combinar": {
+    "tts": "Forma este número con los hanzis. Tócalos en orden.",
+    "lang": "es-MX"
+  },
+  "hn.duda.compara": {
+    "tts": "Mira el de arriba y compara.",
+    "lang": "es-MX"
+  },
+  "hn.duda.dieces": {
+    "tts": "¿Cuántos dieces lleva? Empieza por ahí.",
+    "lang": "es-MX"
+  },
+  "hn.duda.oye": {
+    "tts": "Tócalos uno por uno y escucha.",
+    "lang": "es-MX"
+  },
+  "hn.num.1": {
+    "tts": "一",
+    "lang": "zh-CN"
+  },
+  "hn.num.10": {
+    "tts": "十",
+    "lang": "zh-CN"
+  },
+  "hn.num.11": {
+    "tts": "十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.12": {
+    "tts": "十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.13": {
+    "tts": "十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.14": {
+    "tts": "十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.15": {
+    "tts": "十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.16": {
+    "tts": "十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.17": {
+    "tts": "十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.18": {
+    "tts": "十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.19": {
+    "tts": "十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.2": {
+    "tts": "二",
+    "lang": "zh-CN"
+  },
+  "hn.num.20": {
+    "tts": "二十",
+    "lang": "zh-CN"
+  },
+  "hn.num.21": {
+    "tts": "二十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.22": {
+    "tts": "二十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.23": {
+    "tts": "二十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.24": {
+    "tts": "二十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.25": {
+    "tts": "二十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.26": {
+    "tts": "二十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.27": {
+    "tts": "二十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.28": {
+    "tts": "二十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.29": {
+    "tts": "二十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.3": {
+    "tts": "三",
+    "lang": "zh-CN"
+  },
+  "hn.num.30": {
+    "tts": "三十",
+    "lang": "zh-CN"
+  },
+  "hn.num.31": {
+    "tts": "三十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.32": {
+    "tts": "三十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.33": {
+    "tts": "三十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.34": {
+    "tts": "三十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.35": {
+    "tts": "三十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.36": {
+    "tts": "三十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.37": {
+    "tts": "三十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.38": {
+    "tts": "三十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.39": {
+    "tts": "三十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.4": {
+    "tts": "四",
+    "lang": "zh-CN"
+  },
+  "hn.num.40": {
+    "tts": "四十",
+    "lang": "zh-CN"
+  },
+  "hn.num.41": {
+    "tts": "四十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.42": {
+    "tts": "四十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.43": {
+    "tts": "四十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.44": {
+    "tts": "四十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.45": {
+    "tts": "四十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.46": {
+    "tts": "四十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.47": {
+    "tts": "四十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.48": {
+    "tts": "四十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.49": {
+    "tts": "四十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.5": {
+    "tts": "五",
+    "lang": "zh-CN"
+  },
+  "hn.num.50": {
+    "tts": "五十",
+    "lang": "zh-CN"
+  },
+  "hn.num.51": {
+    "tts": "五十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.52": {
+    "tts": "五十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.53": {
+    "tts": "五十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.54": {
+    "tts": "五十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.55": {
+    "tts": "五十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.56": {
+    "tts": "五十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.57": {
+    "tts": "五十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.58": {
+    "tts": "五十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.59": {
+    "tts": "五十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.6": {
+    "tts": "六",
+    "lang": "zh-CN"
+  },
+  "hn.num.60": {
+    "tts": "六十",
+    "lang": "zh-CN"
+  },
+  "hn.num.61": {
+    "tts": "六十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.62": {
+    "tts": "六十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.63": {
+    "tts": "六十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.64": {
+    "tts": "六十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.65": {
+    "tts": "六十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.66": {
+    "tts": "六十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.67": {
+    "tts": "六十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.68": {
+    "tts": "六十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.69": {
+    "tts": "六十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.7": {
+    "tts": "七",
+    "lang": "zh-CN"
+  },
+  "hn.num.70": {
+    "tts": "七十",
+    "lang": "zh-CN"
+  },
+  "hn.num.71": {
+    "tts": "七十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.72": {
+    "tts": "七十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.73": {
+    "tts": "七十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.74": {
+    "tts": "七十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.75": {
+    "tts": "七十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.76": {
+    "tts": "七十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.77": {
+    "tts": "七十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.78": {
+    "tts": "七十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.79": {
+    "tts": "七十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.8": {
+    "tts": "八",
+    "lang": "zh-CN"
+  },
+  "hn.num.80": {
+    "tts": "八十",
+    "lang": "zh-CN"
+  },
+  "hn.num.81": {
+    "tts": "八十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.82": {
+    "tts": "八十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.83": {
+    "tts": "八十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.84": {
+    "tts": "八十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.85": {
+    "tts": "八十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.86": {
+    "tts": "八十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.87": {
+    "tts": "八十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.88": {
+    "tts": "八十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.89": {
+    "tts": "八十九",
+    "lang": "zh-CN"
+  },
+  "hn.num.9": {
+    "tts": "九",
+    "lang": "zh-CN"
+  },
+  "hn.num.90": {
+    "tts": "九十",
+    "lang": "zh-CN"
+  },
+  "hn.num.91": {
+    "tts": "九十一",
+    "lang": "zh-CN"
+  },
+  "hn.num.92": {
+    "tts": "九十二",
+    "lang": "zh-CN"
+  },
+  "hn.num.93": {
+    "tts": "九十三",
+    "lang": "zh-CN"
+  },
+  "hn.num.94": {
+    "tts": "九十四",
+    "lang": "zh-CN"
+  },
+  "hn.num.95": {
+    "tts": "九十五",
+    "lang": "zh-CN"
+  },
+  "hn.num.96": {
+    "tts": "九十六",
+    "lang": "zh-CN"
+  },
+  "hn.num.97": {
+    "tts": "九十七",
+    "lang": "zh-CN"
+  },
+  "hn.num.98": {
+    "tts": "九十八",
+    "lang": "zh-CN"
+  },
+  "hn.num.99": {
+    "tts": "九十九",
+    "lang": "zh-CN"
+  }
+}

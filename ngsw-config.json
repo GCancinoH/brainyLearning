@@ -36,6 +36,17 @@
       }
     },
     {
+      "name": "hanzi-numbers-audio",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/audio/hanzi-numbers/**/*.m4a",
+          "/audio/hanzi-numbers/*.m4a"
+        ]
+      }
+    },
+    {
       "name": "game-audio",
       "installMode": "lazy",
       "updateMode": "prefetch",

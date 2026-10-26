@@ -55,6 +55,10 @@ JUEGOS = {
     # worker al instalar, así que cada MB que se ahorra es un MB menos en la tableta.
     "kanji-compose": ("kanji-compose.json", "audio/kanji-compose", "m4a",
                       ["-c:a", "aac", "-b:a", "48k"]),
+    # Los números van en zh-CN (Xiaoxiao) y las consignas en es-MX (Dalia): la guía habla
+    # el idioma de las niñas, el contenido el del Planeta Dragón.
+    "hanzi-numbers": ("hanzi-numbers.json", "audio/hanzi-numbers", "m4a",
+                      ["-c:a", "aac", "-b:a", "48k"]),
 }
 
 

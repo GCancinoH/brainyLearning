@@ -461,6 +461,16 @@ Eso sí desbloquea "Mis kanji más difíciles" de §5.8 con datos reales.
 ### 5.12 Mundo Dragón, bien hecho (impacto MEDIO · L)
 Si se retoma: clips `zh-CN` propios (Sabio Long), pinyin con tonos, **hanzi simplificado** (语, no 語), pictogramas Jiaguwen del §C.1 como puente, y otro conjunto de caracteres (los de los radicales chinos del §C.4). Tratarlo como juego aparte, no como *skin*.
 
+> **26 oct — parcialmente hecho.** Existe ya un primer juego chino, **"Números Hanzi"**
+> (`/games/chinese/hanzi-numbers`), que recoge lo que este punto pedía: clips propios en
+> `zh-CN` con voz del Sabio Long y **hanzi simplificado**, y que el mundo Dragón sea un
+> juego aparte y no un *skin*. Ver `docs/hanzi-numbers-spec.md`.
+>
+> **Quedan pendientes, y uno a propósito:** el **pinyin** se decidió no mostrarlo — la
+> pronunciación la da el oído, y meter letra latina bajo el glifo mezcla dos sistemas de
+> símbolos en la misma lección (Plantilla 6 del método). Si se añade, detrás del toque y
+> nunca debajo del kanji. Faltan también los pictogramas Jiaguwen y los radicales del §C.4.
+
 ### 5.13 Pulido técnico (impacto BAJO-MEDIO · S)
 `navigator.vibrate` al colocar (Android), imán/resaltado de hueco con `cdkDragMoved`, `aria-live` en el estado del juego, repintado en resize, filtrado de palma, subconjunto de fuente embebido, audio comprimido, prefetch offline.
 

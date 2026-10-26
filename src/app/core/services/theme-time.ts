@@ -6,7 +6,14 @@
  * Los dos números están en un solo sitio para que sean fáciles de cambiar.
  */
 
-export type Theme = 'math' | 'japanese';
+/**
+ * Temas con reloj de descanso.
+ *
+ * `chinese` entra con "Números Hanzi": las niñas también juegan en el Planeta Dragón y
+ * merecen el mismo aviso de pausa que en matemáticas. Sin esto, `/games/chinese/...` no
+ * se reconocía y el tiempo de ese juego no se descontaba de ningún presupuesto.
+ */
+export type Theme = 'math' | 'japanese' | 'chinese';
 
 /** Tiempo de juego por tema antes de pedir un descanso */
 export const THEME_BUDGET_MS = 10 * 60 * 1000;
@@ -27,7 +34,7 @@ export interface ParsedGameUrl {
 /** '/games/math/space-addition?x=1' -> { theme: 'math', playing: true } */
 export function parseGameUrl(url: string): ParsedGameUrl | null {
   const path = url.split('?')[0].split('#')[0];
-  const m = /^\/games\/(math|japanese)(\/[^/]+)?\/?$/.exec(path);
+  const m = /^\/games\/(math|japanese|chinese)(\/[^/]+)?\/?$/.exec(path);
   if (!m) return null;
   return { theme: m[1] as Theme, playing: !!m[2] };
 }

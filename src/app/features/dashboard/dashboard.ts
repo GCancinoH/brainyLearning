@@ -33,7 +33,7 @@ export class DashboardComponent {
   readonly activeProfile = this.profileState.activeProfile;
 
   /** Temas que ya tienen juegos (y por lo tanto reloj). Chino, inglés y lectura aún no. */
-  private readonly PLAYABLE: Theme[] = ['math', 'japanese'];
+  private readonly PLAYABLE: Theme[] = ['math', 'japanese', 'chinese'];
 
   /** ?rest=math -> se acabó el tiempo de ese tema */
   private readonly restParam = toSignal(
@@ -43,7 +43,7 @@ export class DashboardComponent {
 
   readonly restTheme = computed<Theme | null>(() => {
     const v = this.restParam();
-    return v === 'math' || v === 'japanese' ? v : null;
+    return v === 'math' || v === 'japanese' || v === 'chinese' ? v : null;
   });
 
   readonly restSubject = computed(() => this.subjects.find(s => s.id === this.restTheme()) ?? null);
