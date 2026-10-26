@@ -72,7 +72,12 @@ export const SYSTEM_TEXT: Record<string, string> = {
   'draw-now': 'Ahora dibújalo tú.',
   'draw-empty': 'Dibuja con el dedo, aunque sea una línea.',
   'siblings': '¡Mira! Con las mismas piezas salen otros kanji.',
-  'lab-howto': 'Mueve las piezas por el marco y mira qué se forma.'
+  'lab-howto': 'Mueve las piezas por el marco y mira qué se forma.',
+  // §5.7 · modo pareja. El reparto se dice, no se supone: sin esto "te toca a ti" es un
+  // banner que una de las dos no lee.
+  'pair-roles': 'Mentora, tú eliges la pieza. Ingeniera, tú la pones en su hueco.',
+  'pair-mentora': 'Mentora, elige la pieza.',
+  'pair-ingeniera': 'Ingeniera, ponla en su hueco.'
 };
 
 // ============================================

@@ -34,6 +34,30 @@ $ink: #1b1b3a;
 }
 
 // ---------- ENCABEZADO ----------
+// MODO PAREJA (§5.7): el banner de quién actúa. `aria-live` va en la plantilla, y el
+// audio de `narrarTurno` es el mismo mensaje para quien no lee.
+.turno {
+  margin: 0 0 0.6rem;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(249, 168, 212, 0.18);
+  border: 1px solid var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+
+  // La Ingeniera lleva otro color: a los 4 años no distingue "Mentora" de "Ingeniera",
+  // pero sí de un vistazo si el turno es el suyo o no.
+  &--ingeniera {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+}
+
 .game-header {
   display: flex;
   justify-content: space-between;
@@ -48,6 +72,30 @@ $ink: #1b1b3a;
     border-radius: 16px;
     font-weight: 600;
     cursor: pointer;
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  // MODO PAREJA (§5.7): apagado casi invisible, encendido con el acento. Se ve de un
+  // vistazo si están jugando las dos, que es lo que importa cuando se sientan.
+  .pair-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    min-width: 44px;
+    min-height: 40px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+
+    &--on {
+      opacity: 1;
+      background: rgba(249, 168, 212, 0.18);
+      border-color: var(--accent);
+    }
 
     &:active {
       transform: scale(0.95);

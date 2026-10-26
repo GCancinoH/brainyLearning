@@ -231,6 +231,23 @@ export class KanjiCompose implements OnInit, OnDestroy {
    */
   readonly seleccionada = signal<TrayPiece | null>(null);
 
+  /**
+   * Modo pareja (§5.7): la mayor **decide**, la menor **coloca**.
+   *
+   * Solo cambia el paso de componer. En un problema de dos piezas son dos turnos, y en
+   * uno de tres, tres: la Mentora toca la pieza que cree que va —ahí se acaba su turno—
+   * y la Ingeniera toca el hueco donde la pone. Elegir el sitio es lo que hace la menor;
+   * elegir la pieza es lo que consolida la mayor, que es la que tiene que explicar por qué.
+   *
+   * No se guarda en el perfil: es un modo que se enciende para esa sesión, cuando se
+   * sientan las dos juntas.
+   */
+  readonly enPareja = signal(false);
+  /** A quién le toca dentro del paso de componer. */
+  readonly turno = signal<'mentora' | 'ingeniera'>('mentora');
+  /** El nombre del rol, para el banner y para las pruebas. */
+  readonly nombreTurno = computed(() => (this.turno() === 'mentora' ? 'Mentora' : 'Ingeniera'));
+
   readonly line = signal('');
   readonly hint = signal('');
   readonly busy = signal(false);
@@ -1154,13 +1171,21 @@ export class KanjiCompose implements OnInit, OnDestroy {
     }
 
     // Nada de texto que cante un acierto antes de tiempo: aquí empieza la investigación.
+    // En modo pareja la instrucción es el reparto: quien no sabe leer tiene que enterarse
+    // por lo mismo, y ese es el audio de abajo.
+    const pareja = this.enPareja();
+    this.turno.set('mentora'); // problema nuevo: ella empieza eligiendo
     this.line.set(
-      this.showGhost()
-        ? '👀 Mira el dibujo borroso. ¿Qué piezas crees que necesita?'
-        : '🤔 ¿Qué pieza va en cada hueco? Puedes probarlas.',
+      pareja
+        ? '👩‍🏫 La Mentora elige la pieza · 👧 la Ingeniera la pone en su hueco'
+        : this.showGhost()
+          ? '👀 Mira el dibujo borroso. ¿Qué piezas crees que necesita?'
+          : '🤔 ¿Qué pieza va en cada hueco? Puedes probarlas.',
     );
     // Y se dice en voz, no se escribe: a los 4 años ese texto no le llega.
-    await this.narrator.say(this.showGhost() ? sys('look-ghost') : sys('which-piece'));
+    await this.narrator.say(
+      pareja ? sys('pair-roles') : this.showGhost() ? sys('look-ghost') : sys('which-piece'),
+    );
     // El sonido del kanji justo al entrar: ancla la palabra antes de construirla.
     if (this.destroyed || this.step() !== 'compose') return;
     this.hearKanji();
@@ -1219,6 +1244,33 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.onActivity();
     this.hearPiece(piece);
     this.seleccionada.update(actual => (actual?.trayId === piece.trayId ? null : piece));
+
+    // Modo pareja: la Mentora eligió QUÉ, y ahí termina su turno. Dónde va lo decide la
+    // Ingeniera, tocando el hueco. Sin este reparto, la de 4 años se queda mirando cómo
+    // juega la de 6, que es justo lo que §5.7 quiere evitar.
+    if (this.enPareja() && this.turno() === 'mentora' && this.seleccionada()) {
+      this.turno.set('ingeniera');
+      void this.narrarTurno();
+    }
+  }
+
+  /** Enciende o apaga el modo pareja. Solo afecta al paso de componer. */
+  alternarPareja(): void {
+    this.onActivity();
+    this.enPareja.update(v => !v);
+    this.turno.set('mentora');
+    if (this.enPareja() && this.step() === 'compose') void this.narrarTurno();
+  }
+
+  /**
+   * Le dice en voz alta a quién le toca.
+   *
+   * El banner basta para quien lee; para la de 4 años hace falta el oído. Y solo se oye
+   * en componer: en los demás pasos no hay turnos, y anunciarlos allí sería un fantasma.
+   */
+  private async narrarTurno(): Promise<void> {
+    if (this.step() !== 'compose' || !this.enPareja()) return;
+    await this.narrator.say(this.turno() === 'mentora' ? sys('pair-mentora') : sys('pair-ingeniera'));
   }
 
   /**
@@ -1237,6 +1289,13 @@ export class KanjiCompose implements OnInit, OnDestroy {
     if (!pieza) return;
     this.seleccionada.set(null);
     this.place(index, pieza);
+    // Colocó la Ingeniera, y le toca de nuevo a la Mentora. Si con ese hueco se completó
+    // el kanji no hay turno que anunciar: ya está sonando el acierto y `narrarTurno` se lo
+    // comería.
+    if (this.enPareja() && !this.allFilled()) {
+      this.turno.set('mentora');
+      void this.narrarTurno();
+    }
   }
 
   /** Devuelve a la bandeja una pieza ya colocada */
@@ -1253,6 +1312,11 @@ export class KanjiCompose implements OnInit, OnDestroy {
     });
     this.tray.update(list => [...list, this.toTrayPiece(occupant)]);
     this.hint.set('');
+    // Sacar una pieza devuelve el turno a la Mentora: hay que volver a elegir qué va.
+    if (this.enPareja()) {
+      this.turno.set('mentora');
+      void this.narrarTurno();
+    }
   }
 
   /**

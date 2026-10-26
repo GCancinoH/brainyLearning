@@ -158,16 +158,23 @@ describe('PositionLab (§5.1 laboratorio de posición)', () => {
   it('recoger una pieza y volverla a poner deja un árbol en un hueco, no en dos', () => {
     mount('hon');
     colocar(0, ARBOL);
-    component.onTapHueco(ARBOL); // la recoge
-    component.onTap(component.bandeja()[0]!);
+    component.onTapHueco(ARBOL); // la recoge: vuelve a la bandeja, **al final** de ella
+
+    // Se busca por kanji y no por índice: al recogerla, la bandeja queda [一, 木] y el
+    // índice 0 ya no es el árbol.
+    component.onTap(component.bandeja().find(p => p.kanji === '木')!);
     component.onTapHueco(ICHI_ARRIBA); // y la vuelve a poner en otro sitio
 
     const puestas = component.puestas().filter(p => p !== null);
     expect(puestas, 'una sola pieza en el marco').toHaveLength(1);
     expect(
-      puestas.filter(p => p?.trayId === 'lab-0'),
-      'el mismo árbol, no dos: con dos el reconocedor lo contaría dos veces',
-    ).toHaveLength(1);
+      puestas.map(p => p!.kanji),
+      'el árbol: con dos el reconocedor lo contaría dos veces',
+    ).toEqual(['木']);
+    expect(
+      component.bandeja().some(p => p.kanji === '木'),
+      'y no está también en la bandeja',
+    ).toBe(false);
   });
 
   // ============================================

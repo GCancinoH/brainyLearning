@@ -13,6 +13,17 @@
         }
       </div>
     </div>
+    <!-- MODO PAREJA (§5.7). Interruptor de sesión, no opción de perfil: se enciende
+         cuando se sientan las dos juntas y se apaga cuando se levantan. -->
+    <button
+      class="pair-btn"
+      [class.pair-btn--on]="enPareja()"
+      [attr.aria-pressed]="enPareja()"
+      (click)="alternarPareja()"
+      aria-label="Jugar en pareja: la mayor elige, la menor coloca"
+    >
+      👥
+    </button>
   </header>
 
   <!-- GUÍA: Aki en Sakura, Long en Dragón.
@@ -215,6 +226,14 @@
     <!-- PASO 2 · COMPOSER: arrastrar las piezas a sus huecos -->
     <!-- ======================================================= -->
     @if (step() === 'compose' && problem(); as p) {
+      <!-- MODO PAREJA (§5.7): quién hace qué. El banner es para quien lee; para quien no,
+           el audio de `narrarTurno`. Sin los dos, la menor se queda mirando. -->
+      @if (enPareja()) {
+        <p class="turno" [class.turno--ingeniera]="turno() === 'ingeniera'" aria-live="polite">
+          <span aria-hidden="true">{{ turno() === 'mentora' ? '👩‍🏫' : '👧' }}</span>
+          Te toca, {{ nombreTurno() }}
+        </p>
+      }
       <!-- `#container` es el origen de las coordenadas del gesto fantasma: lo que se
            mide se mide contra él, no contra la ventana. -->
       <div class="work-area" #container>

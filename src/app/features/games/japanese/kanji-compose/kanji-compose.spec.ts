@@ -1324,4 +1324,104 @@ describe('KanjiCompose (integración)', () => {
       ).toBe(1);
     });
   });
+
+  // ============================================
+  // §5.7 · MODO PAREJA
+  // ============================================
+
+  /**
+   * La mayor decide QUÉ, la menor coloca DÓNDE. Si las dos hicieran lo mismo, la de 4
+   * años se queda mirando cómo juega la de 6, que es exactamente lo que §5.7 existe para
+   * evitar.
+   */
+  describe('§5.7 modo pareja', () => {
+    let decir: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mount(6, 1);
+      decir = vi.spyOn(component.narrator, 'say').mockResolvedValue(true);
+      vi.spyOn(component.narrator, 'play').mockResolvedValue(true);
+      component.startComposing();
+      fixture.detectChanges();
+    });
+
+    it('el interruptor está en la cabecera y empieza apagado', () => {
+      const boton = fixture.nativeElement.querySelector('.pair-btn') as HTMLButtonElement;
+      expect(boton, 'sin botón no hay pareja posible').toBeTruthy();
+      expect(component.enPareja(), 'por defecto juega una sola').toBe(false);
+      expect(fixture.nativeElement.querySelector('.turno'), 'y sin banner de turno').toBeNull();
+    });
+
+    it('encendido, la instrucción es el reparto y empieza la mayor', () => {
+      component.alternarPareja();
+      fixture.detectChanges();
+
+      expect(component.enPareja()).toBe(true);
+      expect(component.nombreTurno(), 'empieza eligiendo la que entiende el kanji').toBe('Mentora');
+      expect(fixture.nativeElement.querySelector('.turno')?.textContent).toContain('Mentora');
+    });
+
+    it('la Mentora elige QUÉ y ahí se acaba su turno; la Ingeniera elige DÓNDE', () => {
+      component.alternarPareja();
+      fixture.detectChanges();
+      const hueco0 = component.problem()!.slots[0]!.kanji;
+
+      tapPiece(hueco0);
+      expect(component.seleccionada(), 'la pieza está en la mano').toBeTruthy();
+      expect(
+        component.nombreTurno(),
+        'pero no la coloca ella: eligió y pasó el papel',
+      ).toBe('Ingeniera');
+
+      tapSlot(0);
+      expect(component.placed()[0], 'la Ingeniera puso la pieza').toBeTruthy();
+      expect(component.nombreTurno(), 'y vuelve a elegir la mayor').toBe('Mentora');
+    });
+
+    it('apagado, el mismo toque de siempre: una sola mano que elige pieza y hueco', () => {
+      tapPiece(component.problem()!.slots[0]!.kanji);
+      expect(component.enPareja(), 'sigue sin pareja').toBe(false);
+      expect(component.nombreTurno(), 'sin pareja no hay turnos').toBe('Mentora');
+
+      tapSlot(0);
+      expect(component.placed()[0]).toBeTruthy();
+    });
+
+    it('sacar una pieza devuelve el turno a la Mentora', () => {
+      component.alternarPareja();
+      fixture.detectChanges();
+      tapPiece(component.problem()!.slots[0]!.kanji);
+      tapSlot(0);
+      expect(component.nombreTurno()).toBe('Mentora');
+
+      tapSlot(0); // la Ingeniera cambia de idea y la saca
+      expect(component.placed()[0], 'el hueco queda vacío').toBeNull();
+      expect(component.nombreTurno(), 'hay que volver a elegir qué va').toBe('Mentora');
+    });
+
+    it('el turno se anuncia en voz alta: quien no lee tiene que enterarse igual', async () => {
+      decir.mockClear();
+      component.alternarPareja();
+      fixture.detectChanges();
+
+      tapPiece(component.problem()!.slots[0]!.kanji);
+      await advance(0);
+
+      expect(
+        decir.mock.calls.map((c: unknown[]) => c[0]),
+        'la de 4 años no lee el banner',
+      ).toEqual(expect.arrayContaining(['kc.es.sys.pair-mentora', 'kc.es.sys.pair-ingeniera']));
+    });
+
+    it('el modo pareja no se guarda: es de la sesión, no del perfil', () => {
+      component.alternarPareja();
+      expect(component.enPareja()).toBe(true);
+
+      // Un problema nuevo no lo apaga: se sientan las dos y siguen jugando juntas.
+      component.startComposing();
+      fixture.detectChanges();
+      expect(component.enPareja(), 'sigue encendido').toBe(true);
+      expect(component.nombreTurno(), 'y en un problema nuevo empieza la mayor').toBe('Mentora');
+    });
+  });
 });

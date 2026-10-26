@@ -214,6 +214,17 @@ Hoy hay muy buena cobertura de **datos** (`kanji-composition.spec`, `kanji-narra
 6. Nivel 10 de 4 años ≠ nivel 1 (regresión de §3.2) y los pools son acumulativos.
 7. Test de **clases CSS**: toda clase usada en la plantilla existe en el SCSS (evita B4).
 
+**Hecho (23–25 oct).** Ya existen `kanji-compose.spec.ts` (integración, ronda entera),
+`position-lab.spec.ts` (§5.1) y los specs del core: **318 pruebas**. Los 4 fallos que hay
+que ignorar **no son de este juego** — son de otras suites que ya venían caídas
+(`app.spec` ×2, `level-up-dialog`, `word-intro-carousel`).
+
+**Un aviso para leer la suite sin mentiras:** correr `npm test` mientras hay un
+`ng serve` en segundo plano produce **falsos timeouts** — pruebas con tope de 5 s que
+tardan 8–17 s por contención de CPU. Le pasó a `listening-engine.spec` (3 pruebas) y a
+`position-lab.spec` (2), y en ambos casos el fallo desaparece al parar el servidor. Antes
+de dar un resultado por bueno, parar `ng serve`.
+
 ---
 
 ## 4. Qué deberíamos quitar
@@ -368,11 +379,40 @@ paso `reconocer`). Cuatro decisiones, todas en el código con su porqué:
 Un error no zumba: se atenúa la que no es y se vuelve a oír la lectura. Si ya ha descartado
 todo lo demás, el kanji se levanta —el peldaño 2 de la escalera, aquí donde no hay hueco—.
 
-### 5.7 Modo pareja asimétrico (§4 del documento) (impacto MEDIO · M)
+### 5.7 Modo pareja asimétrico (§4 del documento) (impacto MEDIO · M) — **Hecho (25 oct)**
 Como `space-rescue-mission`:
 - **6 años = Mentora/Navegante:** lee la historia y decide qué piezas usar.
 - **4 años = Ingeniera:** arrastra las piezas.
 - Convierte la "reflexión" en algo real: la mayor **explica** a la menor y se registra qué estrategia eligió. Consolida el razonamiento de la mayor y evita que la menor sea espectadora.
+
+**Hecho** (interruptor 👥 en la cabecera, `enPareja`/`turno`). El reparto es el de
+`space-rescue-mission`: **la mayor decide QUÉ, la menor decide DÓNDE**.
+
+- Tocar la pieza **es el turno completo de la Mentora**: ahí se acaba. La pieza se queda en
+  la mano y el turno pasa a la Ingeniera, que toca el hueco. Elegir el sitio es lo único
+  que hace la menor, y elegir la pieza lo único que hace la mayor — que es la que tiene
+  que saber por qué va ahí.
+- **Sacar una pieza devuelve el turno a la Mentora**: alguien tiene que volver a elegir
+  qué va.
+- Si el kanji se completa con esa pieza no se anuncia turno: ya está sonando el acierto y
+  `narrarTurno` se lo comería.
+
+Tres desviaciones, las tres a propósito:
+
+- **El reparto es solo en el paso de componer.** El documento dice que la Mentora "lee la
+  historia", pero el paso de historia es de las dos: la de 6 lo narra y la de 4 lo escucha
+  con ella, que también es "explicárselo". Meter turnos en la historia partirla en dos y
+  la dejaría a la menor esperando su vez para no hacer nada.
+- **Se anuncia en voz, no solo en pantalla** (`pair-roles`/`pair-mentora`/`pair-ingeniera`,
+  3 clips). Un banner que dice "Te toca, Ingeniera" es inútil contra una de 4 años: no
+  lee. Y la Ingeniera lleva **otro color** en el banner — a los 4 años no distingue
+  "Mentora" de "Ingeniera", pero sí de un vistazo si el turno es el suyo.
+- **No se guarda la estrategia que eligió la mayor.** Es lo que pedía el documento, pero
+  no hay dónde guardarlo todavía: `SkillProgress` ni siquiera anota los fallos (§5.11).
+  Guardar un `enum` sobre datos que no significan nada sería un panel bonito de mentira.
+  Queda pendiente junto a §5.11.
+- **Es de sesión, no de perfil**: no se persiste. Se enciende cuando se sientan las dos y
+  se apaga cuando se levantan.
 
 ### 5.8 Álbum de kanji + "árbol de familias" (impacto MEDIO · M)
 - Cada kanji construido y dibujado = una **carta/sticker** (el perfil ya tiene `stickers` y el dashboard muestra el álbum, pero nadie las añade desde juegos).
@@ -396,8 +436,27 @@ kanji conocido desde que se conoce uno, mientras que reconocer exige tres.
 ### 5.10 Transferencia entre juegos (impacto MEDIO · S)
 Los componentes ya existen en otros juegos: 日 月 火 水 木 金 土 son los días del calendario; 木/林/森 están en Naturaleza. Añadir *"¡Ya conoces este! 木 está en 木曜日"* y puentes de entrada (si domina el calendario, desbloquear las piezas correspondientes).
 
-### 5.11 Panel parental / telemetría (impacto MEDIO · S-M)
-Por kanji: intentos, aciertos a la primera, ayudas usadas, tiempo, pieza más confundida. Se guarda en `SkillProgress`/`GameProgress` y se muestra en el dashboard parental. Hoy se pierde toda esa señal.
+### 5.11 Panel parental / telemetría (impacto MEDIO · **M-L**, no S-M) — *apuntado para después*
+Por kanji: intentos, aciertos a la primera, ayudas usadas, tiempo, pieza más confundida. Se
+guarda en `SkillProgress`/`GameProgress` y se muestra en el dashboard parental.
+
+**Revisión del tamaño (25 oct).** Es **M-L**, no S-M, y hay que decirlo antes de meterse:
+
+1. **No existe pantalla parental.** `app.routes.ts` no tiene ninguna ruta de padres; el
+   `dashboard` que hay es el **infantil** (saludo al jugador, materias, juegos). Hay que
+   crear la vista, no "mostrar" algo que no se ve.
+2. **La telemetría a medias ya existe y está sesgada.** `KanjiCompose` ya llama a
+   `skills.recordAttempt(...)` en `onComposed`, con `responseTimeMs`, `difficulty` y
+   perfil — pero **solo con `correct: true`**. Un fallo no se anota, así que la precisión
+   que calcula `SkillProgress` sale siempre al 100 % y "aciertos a la primera" es indistinguible
+   de "acertó a la cuarta". Arreglar eso es lo primero y es barato; el panel puede esperar.
+3. **Hay que decidir la protección** antes de crear la ruta: sin ella las niñas entran y
+   ven sus propias estadísticas; con PIN hace falta una pantalla de desbloqueo. *Sin
+   resolver: pendiente de decisión cuando se retome.*
+
+**Primer trozo que se puede hacer solo** (sin pantalla, sin decisión): anotar también los
+fallos del paso de componer y del `draw`, para que `attempts`/`accuracy` signifiquen algo.
+Eso sí desbloquea "Mis kanji más difíciles" de §5.8 con datos reales.
 
 ### 5.12 Mundo Dragón, bien hecho (impacto MEDIO · L)
 Si se retoma: clips `zh-CN` propios (Sabio Long), pinyin con tonos, **hanzi simplificado** (语, no 語), pictogramas Jiaguwen del §C.1 como puente, y otro conjunto de caracteres (los de los radicales chinos del §C.4). Tratarlo como juego aparte, no como *skin*.
@@ -450,7 +509,9 @@ Sprint 3 y 4, y de Sprint 2 el sprite/Web Audio.*
   composición son habilidades distintas; ver §5.1
 
 ### Sprint 4 — Motivación y familia
-- [ ] Modo pareja (§5.7) · Álbum y familias (§5.8) · panel parental (§5.11)
+- [x] Modo **pareja** (§5.7) — 👥 en la cabecera: la mayor elige QUÉ, la menor DÓNDE
+- [ ] Álbum y familias (§5.8) · panel parental (§5.11 · *apuntado: es M-L, y lo primero es
+  anotar los fallos de `recordAttempt`, que hoy solo se anota el acierto*)
 - [ ] Puentes con calendario/naturaleza (§5.10)
 - [ ] (Opcional) Dragón bien hecho (§5.12)
 
@@ -469,10 +530,10 @@ Sprint 3 y 4, y de Sprint 2 el sprite/Web Audio.*
 | SRS + `SkillProgress` (§5.4) | Agregar | 🔴 | M | 1 |
 | `HintLadder`/`GhostHand`/`TutorialSeen` (§5.5) | Agregar | 🔴 | S | 1 |
 | Trazo guiado KanjiVG (§5.3) | Agregar | 🔴 | L | 2 |
-| Laboratorio de posición (§5.1) | Agregar | 🔴 | M | 3 |
-| Adivina el significado (§5.2) | Agregar | 🔴 | M | 3 |
-| Reconocer (§5.6) | Agregar | 🟠 | S-M | 3 |
-| Modo pareja (§5.7) | Agregar | 🟠 | M | 4 |
+| Laboratorio de posición (§5.1) ✅ | Agregar | 🔴 | M | 3 |
+| Adivina el significado (§5.2) ✅ | Agregar | 🔴 | M | 3 |
+| Reconocer (§5.6) ✅ | Agregar | 🟠 | S-M | 3 |
+| Modo pareja (§5.7) ✅ | Agregar | 🟠 | M | 4 |
 | Álbum + familias (§5.8) | Agregar | 🟠 | M | 4 |
 | Audio comprimido + offline (§3.5) | Mejorar | 🟠 | M | 2 |
 | Dividir en 3 componentes + store (§3.7) | Refactor | 🟡 | M | 1-2 |

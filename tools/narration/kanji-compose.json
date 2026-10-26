@@ -295,6 +295,18 @@
     "tts": "Ahora tú.",
     "lang": "es-MX"
   },
+  "kc.es.sys.pair-ingeniera": {
+    "tts": "Ingeniera, ponla en su hueco.",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.pair-mentora": {
+    "tts": "Mentora, elige la pieza.",
+    "lang": "es-MX"
+  },
+  "kc.es.sys.pair-roles": {
+    "tts": "Mentora, tú eliges la pieza. Ingeniera, tú la pones en su hueco.",
+    "lang": "es-MX"
+  },
   "kc.es.sys.recall-again": {
     "tts": "Escucha otra vez.",
     "lang": "es-MX"
