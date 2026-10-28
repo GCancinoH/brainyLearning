@@ -1,0 +1,211 @@
+# Números Hanzi — plan por fases
+
+Fuente: observaciones del usuario en `plan-hanziNumbers.md` (originalmente en `src/`), verificadas
+una por una contra el código el 28/10/2026. Este documento es **el plan de implementación**; el de
+observaciones queda como anexo en `docs/plan-hanziNumbers-observaciones.md`.
+
+Regla de oro de las fases: cada fase termina con suite en verde (4 fallos baseline, sin `ng serve`
+corriendo), `npx ng build` limpio y verificación en lab dev (`npx ng serve --port 4213`) antes de
+toca la siguiente. **Nunca `npm run build`** (despliega a Firebase). Un commit por fase.
+
+---
+
+## Fase 0 — Verificación (hecha)
+
+| Obs. | Veredicto |
+|---|---|
+| 1 · rangos muertos | ✅ real |
+| 2 · el acierto no mide nada | ✅ real (herramientas ya existen en el repo) |
+| 3 · el audio hace la respuesta | ✅ real |
+| 4 · `playPraise` solapa con `level-up` | ✅ real |
+| 5 · ngsw sin `.m4a` | ❌ no procede: grupo `hanzi-numbers-audio` (prefetch) ya existe |
+| 6 · rest sin `chinese` | ❌ ya hecho en fase anterior; **sí** falta `chinese` en `PlayerProgress` (va en Fase 3) |
+| 7 · 4 opciones fijas a los 4 años | ✅ real (`DEFAULT_PROFILE_CONFIGS[4]` = 2–3) |
+| 8 · duda prematura | ✅ real |
+| 9 · 6 años arranca en nivel 1 | ✅ real (`GameSessionService`: `state?.level ?? 1`) |
+| 10 · acantilado 6→7 | ✅ real |
+| 11 · doble narración al acertar | ✅ real (`elegir()` y `finishProblem()` ambos llaman `narrar`) |
+| trazado 1–10 | `KANJI_TRAZOS` no incluye 一…十 → requiere añadir datos KanjiVG (CC BY-SA, atribución ya montada) |
+
+---
+
+## Fase 1 — MUY IMPORTANTE: que el juego mida y progrese
+
+Sin esto, subir de nivel no significa nada y 16–20 es inalcanzable.
+
+### 1.1 Rangos muertos → una perilla por nivel
+
+Fichero: `src/app/core/learning/hanzi-numbers-problem.ts` (+ specs).
+
+- **Reconocer (niveles 1–6):** `topeReconocer` hoy es `≤2→5, ≤4→10, ≤6→15, resto 20`, pero la
+  etapa termina en el 6 ⇒ **16–20 jamás se practica** pese a la insignia "Aprende 1–20".
+  Indexar la tabla por nivel directamente (6 entradas), p. ej.:
+  `N1: 1–5 · N2: 1–10 · N3: 1–15 · N4: 1–20 · N5: 1–20 (distractores vecinos) · N6: 1–20 (mixto)`.
+  En N5–N6 la perilla deja de ser el tope y pasa a ser la dificultad de los distractores.
+- **Combinar (niveles 7–12):** hoy `rangoObjetivo`/`tamanoBandeja` ramifican con `lvl <= 4`, pero
+  la etapa empieza en el 7 ⇒ **código muerto**. Indexar con `lvl = level - NIVEL_ULTIMO_RECONOCER`
+  (1..6) y tablas de 6 entradas. Propuesta (una sola perilla cambia por salto, nunca dos):
+
+  | Nivel | Edad 4: rango · distractores | Edad 6: rango · distractores |
+  |---|---|---|
+  | 7 | 11–20 · 0 | 21–60 · 1 |
+  | 8 | 11–20 · 1 | 21–60 · 2 |
+  | 9 | 11–30 · 1 | 41–99 · 2 |
+  | 10 | 11–30 · 2 | 41–99 · 3 |
+  | 11 | 15–30 · 2 | 11–99 mixto · 3 |
+  | 12 | 11–30 mixto · 3 | 11–99 mixto · 4 |
+
+  (Los rangos exactos se afinan en implementación; la **regla** es lo importante: hoy los niveles
+  7–12 de los 4 años son idénticos y los 9–12 de los 6 años también.)
+- **Invariantes que NO se tocan:** bandeja sin segundo `十` salvo que la escritura lo pida;
+  `leer()` sigue siendo la validación (sin "incorrecto"); brute-force de unicidad en specs.
+
+Tests: actualizar/añadir specs de tabla por nivel (cada nivel produce un tope/rango distinto),
+mantener brute-force.
+
+### 1.2 El acierto no mide nada
+
+- **Primer intento cuenta** (`FirstAttemptGuard` ya existe en `core/learning/`): en `reconocer`,
+  lo que cuenta para el progreso es acertar al primer toque.
+- **Opciones ya probadas se atenúan** con el patrón `recall-option--no` de kanji-compose
+  (clase en `.scss`, binding en `.html`) → la niña ve qué ya descartó, sin veredicto.
+- **No se rompe la racha por error** (Zvonkin: el error es exploración); se mide, no se castiga.
+
+Ficheros: `hanzi-numbers.ts/.html/.scss` + specs de integración.
+
+### 1.3 Duda prematura
+
+`revisar()` dispara la duda de "dieces" en cuanto el parcial no lee (p. ej. `三五`), aunque vaya
+a seguir agregando piezas. Regla propuesta: **solo dudar cuando el parcial es un callejón sin
+salida** (no puede completarse a una lectura) o tras una pausa; si aún puede cerrarse, callar.
+
+### 1.4 `playPraise` solapado con `level-up`
+
+Hoy: `void this.narrar(...).then(() => this.audio.playPraise())` se programa **antes** del chequeo
+de `leveledUp` ⇒ premio sonoro junto a `playLevelUp()` (y también si la narración fue cancelada).
+Fix: programar el premio solo si `!result.leveledUp` y solo si la narración fue aceptada.
+
+### 1.5 Doble narración al acertar (reconocer)
+
+`elegir()` narra el número y `finishProblem()` lo narra 1 ms después → el 2.º `say()` corta al 1.º.
+Fix: que `elegir()` **no** narre cuando acierta (narra solo `finishProblem`), o al revés — una sola
+voz por acierto.
+
+**Aceptación Fase 1:** un niño de 6 llega a practicar 16–20 antes del nivel 7; cada nivel de
+combinar se distingue del anterior; el primer intento queda registrado; no hay doble audio ni
+premio solapado con el level-up.
+
+---
+
+## Fase 2 — IMPORTANTE: andamio por edad y arranque
+
+### 2.1 Opciones por edad
+
+Usar `getProfileDifficultyConfig(age)` (ya existe): 4 años → **2–3 opciones**, 6 años → 3–4.
+Hoy el juego fija 4 siempre.
+
+### 2.2 Nivel inicial para los 6 años ⚠️ *decisión*
+
+Hoy todos arrancan en nivel 1 (1–5, trivial para 6 años). Opciones:
+
+- **(a)** edad 6 arranca en nivel 3–4 (recomendado: 3, llega a 15 rápido y refuerza 16–20 luego);
+- **(b)** mini-diagnóstico de 3 preguntas al primer uso;
+- **(c)** dejar nivel 1 (validar con las niñas en la tablet).
+
+### 2.3 El audio no hace la respuesta
+
+Andamio por nivel como el "fantasma" de kanji-compose: **N1–N2** el inicio dice el número (oído →
+emparejar está bien); **N3+** ya no lo dice al inicio — solo la duda y el oído al tocar piezas.
+Evita que resuelvan por oreja sin mirar el glifo.
+
+### 2.4 Puente del salto 6→7 (acantilado)
+
+Al pasar de reconocer a combinar, un problema-guía: narración "ahora agarra las piezas", demo de
+una pieza que entra, y solo después el primer problema real. (Patrón: tarjeta/tutorial como en
+otros juegos.)
+
+### 2.5 Texto → iconos y voz (pre-lectores)
+
+El texto no es consigna para 4 años: insignia (`🔤 Aprende 1–20` / `🧩 Combina` — con Fase 1.1 la
+promesa de la primera será cierta), rótulo "Forma", texto de la pista, banner de feedback →
+sustituir por iconos/emojis + mood + narración. De paso: eliminar el parámetro `text` sin uso de
+`narrar()`.
+
+### 2.6 Dirección fija en N1–N2
+
+Hoy la dirección se alterna desde el nivel 1. Para 4 años: N1–N2 fija (dígito → hanzi), desde N3
+aleatoria/alterna. *(Su observación "quitar random direction in levels 1–2".)*
+
+**Aceptación Fase 2:** perfil de 4 años ve 2–3 opciones; un recién llegado de 6 no empieza en
+1–5; el audio guía solo aparece al principio; el cambio de etapa se explica solo.
+
+---
+
+## Fase 3 — IMPORTANTE: datos honestos (§5.11) y reflexión
+
+### 3.1 `SkillProgressService` en hanzi-numbers
+
+`recordAttempt`/`recordMistake` ya existen y los usan kanji-find, calendar, nature, listening;
+hanzi-numbers no los llama. Copiar el patrón de `kanji-find-engine.ts:184-232`.
+**Qué cuenta como error (mismo criterio que T1 de `PLAN-pendientes.md`):** primer intento fallido
+en reconocer; en combinar, el uso de ayuda (pista/fantasma) y los reinicios por orden inválido —
+no cada toque, que es exploración.
+Añadir `chinese` a `PlayerProgress` (`player-profile.ts`) para que el panel/reflexión lo lea.
+
+### 3.2 SRS / `ProblemPicker`
+
+Repetición espaciada de los números fallados (mismo motor que el resto). Hoy el problema sale
+siempre del nivel, sin memoria de cuáles cuestan.
+
+### 3.3 Distractores intencionales
+
+Sustituir distractores aleatorios por `distractoresFor`-style (vecinos: 13/15 para 14; 二/三 para
+una opción de 20…) — patrón ya existente en `kanji-composition.ts:700`.
+
+### 3.4 Reflexión de toque único para 6 años
+
+Copiar el patrón `reflecting` de `coin-shop` (lo que queda de T4 en `PLAN-pendientes.md`); la
+elección **no** se persiste aquí (eso es §5.11).
+
+**Aceptación Fase 3:** el panel de padres/reflexión muestra intentos reales de este juego; los
+números difíciles vuelven a aparecer; la reflexión es de un toque.
+
+---
+
+## Fase 4 — MENOS IMPORTANTE: features nuevas
+
+Orden libre; ninguna bloquea las anteriores.
+
+1. **CPA / bloques Dienes** — cantidades concretas (11–35) antes del símbolo: barras de decenas y
+   unidades junto al hanzi. Refuerza lo positional.
+2. **Reordenar con arrastre** — `cdkDropList` sobre las piezas ya colocadas (hoy solo se agarra
+   en orden); el orden sigue validando por `leer()`.
+3. **Dirección inversa en combinar** — versión espejo del problema (otra perilla de dificultad).
+4. **Par (pair mode), ritual Flash, Guía Sabio Long** — reutilizar §5.7 y patrones de otros juegos.
+5. **Trazado de 一–十** — añadir esos 10 kanji a `KANJI_TRAZOS` (datos KanjiVG; **CC BY-SA 3.0 →
+   la atribución visible ya montada para kanji-compose se reutiliza**) + `stroke-check`.
+   Es el único punto que exige licencia con cuidado.
+6. **Spec de narración** — test que el manifiesto cubre los 6 clips es + 99 zh-CN y que todo
+   `numeroClip(n)` existe (evita roturas silenciosas al regenerar audio).
+7. **Botón 🔊 repetir** en ambos sentidos.
+8. **两 vs 二** — se mantiene **fuera** (decisión ya tomada en la spec: no mezclar variantes culturales
+   en la validación); solo nota de diseño si acaso.
+
+---
+
+## Cerrado / no procede
+
+- **ngsw `.m4a`** (obs. 5): el grupo `hanzi-numbers-audio` con prefetch ya cubre
+  `/audio/hanzi-numbers/**/*.m4a`. Solo haría falta re-verificar instalación offline en la tablet.
+- **rest con `chinese`** (obs. 6, resto): hecho en la fase anterior (`Theme`, `PLAYABLE`,
+  `restTheme`). Lo único pendiente es `PlayerProgress.chinese` → Fase 3.1.
+
+## Fuera de este plan
+
+T1–T8 globales siguen en `docs/PLAN-pendientes.md` (panel de padres `/padres` espera decisión de
+protección; T1 kanji-compose comparte el criterio de "qué cuenta como error" de Fase 3.1).
+
+## ⚠️ Decisiones que esperan al usuario
+
+1. **2.2** — ¿los 6 años arrancan en nivel 3, hacen diagnóstico, o siguen en 1?
+2. **1.1** — validar la tabla propuesta de rangos (es propuesta, no ley).
