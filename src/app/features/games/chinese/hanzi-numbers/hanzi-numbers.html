@@ -123,16 +123,22 @@
         Lo que lleva armado. Los chips se tocan para devolver la pieza, y el número de la
         derecha es LA LECTURA de lo armado: si no coincide con el objetivo, la niña lo ve
         y lo cambia. No hay un "incorrecto" en ningún sitio.
+        4.2 · cdkDropList permite reordenar por arrastre; al soltar, reorderPieces()
+        actualiza el orden y `leer()` valida la nueva secuencia.
       -->
       <div
         class="lectura"
         [class.lectura--vacia]="agarradas().length === 0"
         [class.lectura--otro]="leido() !== null && leido() !== objetivo()"
         aria-live="polite"
+        cdkDropList
+        (cdkDropListDropped)="reorderPieces($event)"
       >
-        @for (a of agarradas(); track a.i) {
+        @for (a of agarradas(); track a.i; let i = $index) {
           <button
             class="chip"
+            cdkDrag
+            [cdkDragData]="$index"
             (click)="soltar(a.i)"
             [attr.aria-label]="'Devolver la pieza ' + a.p"
           >

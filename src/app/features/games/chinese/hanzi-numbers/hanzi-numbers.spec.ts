@@ -883,6 +883,40 @@ describe('HanziNumbers (integración)', () => {
   });
 
   // ============================================
+  // FASE 4 · ITEM 2: REORDENAR CON ARRASTRE
+  // ============================================
+
+  it('4.2 · reorderPieces reordena las fichas y actualiza la lectura', () => {
+    mount(6, 7);
+    // Forzamos unas fichas en la mano: 九 十 二 (leer = 92, canónico)
+    component.agarradas.set([
+      { i: 0, p: '九' },
+      { i: 1, p: '十' },
+      { i: 2, p: '二' },
+    ]);
+    fixture.detectChanges();
+    expect(component.leido(), 'orden original: 九十二 = 92 (canónico)').toBe(92);
+
+    // Reordenamos: movemos la primera (九) al final → 十 二 九 = 129? No, 十二九 no es canónico.
+    // Probemos otro: 十 九 二 → 192 no es canónico. 
+    // La idea: cualquier cambio de orden rompe la canonicidad salvo el orden correcto.
+    // Movemos 九 al final: 十 二 九 → no se lee (null).
+    component.reorderPieces({
+      previousIndex: 0,
+      currentIndex: 2,
+      container: { data: component.agarradas() } as any,
+      item: { data: 0 } as any,
+      isPointerOverContainer: true,
+      distance: { x: 0, y: 0 },
+      dropPoint: { x: 0, y: 0 },
+      event: new Event('drop'),
+    } as any);
+    fixture.detectChanges();
+
+    expect(component.leido(), 'nuevo orden: 十二九 no es canónico → null').toBeNull();
+  });
+
+  // ============================================
   // INFRAESTRUCTURA
   // ============================================
 

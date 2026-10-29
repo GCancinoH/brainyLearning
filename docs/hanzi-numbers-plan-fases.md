@@ -252,6 +252,15 @@ Orden libre; ninguna bloquea las anteriores.
 - **Verificación lab** (perfil 6 años, N7): objetivo 48 → 4 barras + 8 cubos; objetivo 58 → 5 barras + 8 cubos; `aria-label` correctos.
 - **Verificación**: suite 4 baseline / 390 passed, `ng build` limpio (mismos 2 warnings).
 
+## ✅ Estado Fase 4 — ítem 2 (29 oct)
+
+- **Reordenar con arrastre (`cdkDropList`)** en zona de lectura (etapa combinar):
+  - Imports: `CdkDrag`, `CdkDropList`, `CdkDragDrop` de `@angular/cdk/drag-drop`.
+  - HTML: `.lectura` con `cdkDropList` + `(cdkDropListDropped)="reorderPieces($event)"`; cada `.chip` con `cdkDrag` + `[cdkDragData]="$index"`.
+  - Método `reorderPieces(event)` mueve el elemento en `agarradas[]` y limpia la duda; valida con `leer()` (la escritura canónica).
+  - Test `4.2` en spec: reordenar rompe la canonicidad → `leido()` = null.
+- **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
+
 ---
 
 ## Cerrado / no procede

@@ -6,6 +6,7 @@ import { GameSessionService } from '@core/games/game-session.service';
 import { GameAudioService } from '@core/games/game-audio.service';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { FeedbackState, SessionEvent } from '@core/games/game-types';
+import { CdkDrag, CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Narrator } from '@core/games/narrator.service';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import { FirstAttemptGuard } from '@core/learning/first-attempt-guard';
@@ -87,7 +88,7 @@ interface PiezaAgarrada {
 
 @Component({
   selector: 'hanzi-numbers',
-  imports: [GameFeedbackComponent, GameRestOverlayComponent],
+  imports: [CdkDrag, CdkDropList, GameFeedbackComponent, GameRestOverlayComponent],
   templateUrl: './hanzi-numbers.html',
   styleUrl: './hanzi-numbers.scss',
 })
@@ -550,6 +551,22 @@ export class HanziNumbers implements OnInit, OnDestroy {
     this.agarradas.set([]);
     this.hint.set('');
     // Vacío: no hay nada que dudar, y el reloj que hubiera armado se cancela.
+    this.armarDudaPorPausa();
+  }
+
+  /**
+   * 4.2 · Reordenar por arrastre: la niña puede mover las fichas ya puestas
+   * sin tener que limpiar y volver a empezar. El orden sigue validándose
+   * por `leer()` (la escritura canónica), así que si el nuevo orden no
+   * coincide con el objetivo, `leido()` dará otro número y ella lo verá.
+   */
+  reorderPieces(event: CdkDragDrop<PiezaAgarrada[]>): void {
+    if (this.busy() || this.isOver() || this.solved()) return;
+    const arr = this.agarradas();
+    const item = arr.splice(event.previousIndex, 1)[0];
+    arr.splice(event.currentIndex, 0, item);
+    this.agarradas.set([...arr]);
+    this.hint.set('');
     this.armarDudaPorPausa();
   }
 
