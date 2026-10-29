@@ -6,17 +6,27 @@
   <header class="game-header">
     <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
 
-    <!-- Qué etapa está jugando: el juego la cambia solo con el nivel -->
-    <div class="etapa-badge" [class.etapa-badge--combinar]="etapa() === 'combinar'">
-      @if (etapa() === 'reconocer') {
-        🔤 Aprende 1–20
-      } @else {
-        🧩 Combina
-      }
+    <!-- Qué etapa está jugando: el juego la cambia solo con el nivel. Icono, no
+         frase (2.5): a los4 años la insignia se MIRA; la promesa ("Aprende 1–20") queda
+         en el aria-label, que sí lo lee quien acompaña. -->
+    <div
+      class="etapa-badge"
+      [class.etapa-badge--combinar]="etapa() === 'combinar'"
+      role="img"
+      [attr.aria-label]="etapa() === 'reconocer' ? 'Aprende 1 a 20' : 'Combina'"
+    >
+      {{ etapa() === 'reconocer' ? '🔤' : '🧩' }}
     </div>
 
     <div class="level-badge">
-      <span>Nivel {{ currentLevel() }}</span>
+      <!-- 2.2 · Durante el diagnóstico la insignia dice por dónde va: "📝 1 de 3". -->
+      <span>
+        @if (diagnostico(); as diag) {
+          📝 {{ diag.respuestas.length + 1 }}/3
+        } @else {
+          Nivel {{ currentLevel() }}
+        }
+      </span>
       <div class="stars">
         @for (s of starSlots; track s) {
           <span [class.active]="s < consecutiveCorrect()">⭐</span>
@@ -31,6 +41,24 @@
       [customMessages]="customFeedbackMessages"
       [customMessage]="linea()"
     />
+
+    <!-- ==================================================== -->
+    <!-- 2.4 · PUENTE 6→7: la etapa nueva se explica sola        -->
+    <!-- ==================================================== -->
+    @if (puente()) {
+      <button
+        class="puente"
+        type="button"
+        (click)="seguirPuente()"
+        aria-label="Toca para empezar a combinar"
+      >
+        <span class="puente-demo" aria-hidden="true">
+          <span class="puente-caja"></span>
+          <span class="puente-pieza">十</span>
+        </span>
+        <span class="puente-toca" aria-hidden="true">👆</span>
+      </button>
+    }
 
     <!-- ==================================================== -->
     <!-- ETAPA 1 · RECONOCER (1–20)                             -->
@@ -65,9 +93,10 @@
     <!-- ==================================================== -->
     <!-- ETAPA 2 · COMBINAR (21–99 según edad)                  -->
     <!-- ==================================================== -->
-    @if (etapa() === 'combinar') {
+    @if (etapa() === 'combinar' && !puente()) {
       <div class="objetivo">
-        <span class="objetivo-label">Forma</span>
+        <!-- 2.5 · Rótulo icono: "Forma" no es consigna para quien aún no lee. -->
+        <span class="objetivo-label" role="img" aria-label="Forma">🧱</span>
         <span class="objetivo-numero" aria-live="polite">{{ objetivo() }}</span>
       </div>
 

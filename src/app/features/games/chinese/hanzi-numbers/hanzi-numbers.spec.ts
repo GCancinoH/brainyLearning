@@ -4,8 +4,10 @@ import { HanziNumbers, PAUSA_DUDA_MS } from './hanzi-numbers';
 import { piezasDe } from './hanzi-numbers-problem';
 import { ProfileStateService } from '@core/services/profile-state';
 import { GameProgressService } from '@core/games/game-progress.service';
+import { GameSessionService } from '@core/games/game-session.service';
 import { GameAudioService } from '@core/games/game-audio.service';
 import { Narrator } from '@core/games/narrator.service';
+import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import { installMemoryStorage } from '@core/testing/memory-storage';
 
 /**
@@ -42,6 +44,11 @@ class ProgressStub {
   saveProgress = (_id: string, p: { level: number }) => {
     this.level = p.level;
   };
+  /**
+   * `null` = recién llegada, sin ninguna partida guardada: así se activa el
+   * mini-diagnóstico de 6 años (2.2). Por defecto hay progreso, que es el caso normal.
+   */
+  getProgress = (_id: string): { level: number } | null => ({ level: this.level });
 }
 
 describe('HanziNumbers (integración)', () => {
@@ -51,12 +58,20 @@ describe('HanziNumbers (integración)', () => {
   let progress: ProgressStub;
   let decir: ReturnType<typeof vi.spyOn>;
 
-  /** Monta el componente con edad y nivel concretos */
-  function mount(age: 4 | 6, level = 1): void {
+  /**
+   * Monta el componente con edad y nivel concretos.
+   *
+   * - `recienLlegada`: sin progreso guardado —es el caso que dispara el diagnóstico—.
+   * - Nivel ≥ 7: se da por vista la tarjeta del puente (2.4) para que los tests que solo
+   *   quieren jugar a combinar no se encuentren la etapa interrumpida; el propio puente
+   *   tiene sus tests, que montan sin esta marca.
+   */
+  function mount(age: 4 | 6, level = 1, opts: { recienLlegada?: boolean } = {}): void {
     profile = new ProfileStub();
     profile.age = age;
     progress = new ProgressStub();
     progress.level = level;
+    if (opts.recienLlegada) progress.getProgress = () => null;
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -67,6 +82,9 @@ describe('HanziNumbers (integración)', () => {
       ],
     });
     TestBed.inject(GameAudioService).setEnabled(false);
+    if (level >= 7) {
+      TestBed.inject(TutorialSeen).mark('hanzi-numbers', 'combinar');
+    }
     // La narración en jsdom no puede sonar y su espera es con reloj real: sin esto, cada
     // `say` deja una promesa colgada y `whenStable()` se queda esperando.
     decir = vi.spyOn(TestBed.inject(Narrator), 'say').mockResolvedValue(true);
@@ -125,14 +143,16 @@ describe('HanziNumbers (integración)', () => {
   // ETAPA 1 · RECONOCER (1–20)
   // ============================================
 
-  it('muestra el número y cuatro opciones, y la respuesta está entre ellas', () => {
+  it('muestra el número y sus opciones, y la respuesta está entre ellas', () => {
     mount(4, 1);
 
     expect(component.etapa(), 'el nivel 1 es reconocer').toBe('reconocer');
     expect(component.enunciado(), 'algo se muestra en grande').toBeTruthy();
-    expect(component.opciones(), 'cuatro opciones').toHaveLength(4);
+    // 2.1 · La perilla de la edad manda: los 4 años ven 2–3 opciones, no 4 fijas.
+    expect(component.opciones().length, '2–3 opciones').toBeGreaterThanOrEqual(2);
+    expect(component.opciones().length).toBeLessThanOrEqual(3);
     expect(component.opciones()).toContain(component.respuesta());
-    expect(all('.opcion')).toHaveLength(4);
+    expect(all('.opcion')).toHaveLength(component.opciones().length);
   });
 
   it('acertar sube la racha; dudar no la toca y deja la pregunta socrática', () => {
@@ -144,7 +164,7 @@ describe('HanziNumbers (integración)', () => {
 
     expect(component.feedbackState(), 'una duda no es un veredicto').toBe('idle');
     expect(component.consecutiveCorrect(), 'y no avanza la ronda').toBe(0);
-    expect(component.hint(), 'pero sí propone el siguiente movimiento').toContain('escucha');
+    expect(component.hint(), 'pero sí propone el siguiente movimiento').toBe('👂');
 
     component.elegir(component.respuesta());
     fixture.detectChanges();
@@ -154,7 +174,7 @@ describe('HanziNumbers (integración)', () => {
   });
 
   it('la consigna cambia con la dirección: a veces se ve el número, a veces el hanzi', () => {
-    mount(6, 1);
+    mount(6, 3); // 2.6 · desde N3 la dirección alterna; en N1–N2 queda fija
     let vioNumero = 0;
     let vioHanzi = 0;
 
@@ -192,7 +212,10 @@ describe('HanziNumbers (integración)', () => {
     // La perilla de N7 a los 6: la solución y UN distractor. (Antes la bandeja traía
     // siempre 10 piezas, idénticas en los niveles 9–12.)
     expect(component.bandeja().length).toBe(piezasDe(component.objetivo()).length + 1);
-    expect(component.linea()).toContain(String(component.objetivo()));
+    // 2.5 · La consigna no se escribe para quien aún no lee: el banner queda para los
+    // iconos/feedback y "Forma" vive como rótulo icono junto al número.
+    expect(component.linea(), 'sin consigna escrita').toBe('');
+    expect(byText('.objetivo-label', '🧱'), 'rótulo icono').toBeTruthy();
     expect(all('.pieza')).toHaveLength(component.bandeja().length);
   });
 
@@ -226,7 +249,7 @@ describe('HanziNumbers (integración)', () => {
     expect(component.leido(), `${necesarias} piezas sin 十 no se leen`).toBeNull();
     expect(component.feedbackState(), 'y eso no termina la ronda').toBe('idle');
     expect(component.consecutiveCorrect()).toBe(0);
-    expect(component.hint(), 'la duda apunta al 十').toContain('dieces');
+    expect(component.hint(), 'la duda apunta al 十').toBe('🔟');
   });
 
   it('un orden legible pero distinto no termina: muestra el número que sale', () => {
@@ -373,7 +396,7 @@ describe('HanziNumbers (integración)', () => {
     // Se queda quieta: la pausa trae la duda.
     vi.advanceTimersByTime(PAUSA_DUDA_MS);
     fixture.detectChanges();
-    expect(component.hint(), 'tras la pausa, sí').toContain('dieces');
+    expect(component.hint(), 'tras la pausa, sí').toBe('🔟');
     expect(narraciones()).toContain('hn.duda.dieces');
   });
 
@@ -459,6 +482,164 @@ describe('HanziNumbers (integración)', () => {
   });
 
   // ============================================
+  // FASE 2 · QUE EL JUEGO SEA PARA LA EDAD
+  // ============================================
+
+  it('2.1 · los 6 años ven 3–4 opciones', () => {
+    mount(6, 3); // N3: sin diagnóstico porque el stub trae progreso guardado
+    expect(component.diagnostico(), 'no se examina si ya jugó').toBeNull();
+    expect(component.opciones().length).toBeGreaterThanOrEqual(3);
+    expect(component.opciones().length).toBeLessThanOrEqual(4);
+    expect(component.opciones()).toContain(component.respuesta());
+  });
+
+  it('2.2 · una recién llegada de 6 años juega el mini-diagnóstico antes que la sesión', () => {
+    mount(6, 1, { recienLlegada: true });
+
+    expect(component.diagnostico(), 'empieza por el diagnóstico').not.toBeNull();
+    expect(component.diagnostico()!.respuestas, 'ninguna pregunta contestada').toHaveLength(0);
+    expect(TestBed.inject(GameSessionService).state(), 'sin sesión todavía').toBeNull();
+    expect(component.etapa()).toBe('reconocer');
+    // Pregunta 1 = tramo del nivel 1 (1–5): la más fácil de las tres.
+    expect(Number(component.enunciado()), 'primer tramo, 1–5').toBeLessThanOrEqual(5);
+    expect(
+      fixture.nativeElement.querySelector('.level-badge')?.textContent,
+      'la insignia dice por dónde va',
+    ).toContain('1/3');
+  });
+
+  it('2.2 · acierta las 3 al primer toque → arranca en el nivel 4 (1–20)', async () => {
+    mount(6, 1, { recienLlegada: true });
+
+    for (let i = 0; i < 3; i++) {
+      component.elegir(component.respuesta());
+      fixture.detectChanges();
+      await micros();
+      vi.advanceTimersByTime(3000);
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    expect(component.diagnostico(), 'acabó el diagnóstico').toBeNull();
+    expect(TestBed.inject(GameSessionService).state()?.level, 'ubicada en el 4').toBe(4);
+    expect(progress.level, 'y quedó guardada como cualquier nivel').toBe(4);
+    expect(component.enunciado(), 'ya juega de verdad').toBeTruthy();
+  });
+
+  it('2.2 · falla la primera → con 2 de 3 queda en el nivel 3', async () => {
+    mount(6, 1, { recienLlegada: true });
+
+    // Pregunta 1: primer toque fallado —se atenúa y acaba acertando—.
+    component.elegir(component.opciones().find(o => o !== component.respuesta())!);
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+    await micros();
+    vi.advanceTimersByTime(3000);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.diagnostico()!.respuestas, 'el primer toque fue fallo').toEqual([false]);
+
+    // Preguntas 2 y 3: al primer toque.
+    for (let i = 0; i < 2; i++) {
+      component.elegir(component.respuesta());
+      fixture.detectChanges();
+      await micros();
+      vi.advanceTimersByTime(3000);
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    expect(component.diagnostico()).toBeNull();
+    expect(
+      TestBed.inject(GameSessionService).state()?.level,
+      '2 aciertos + 1 = nivel 3',
+    ).toBe(3);
+  });
+
+  it('2.2 · los 4 años arrancan sin diagnóstico y con la sesión ya montada', () => {
+    mount(4, 1);
+    expect(component.diagnostico()).toBeNull();
+    expect(TestBed.inject(GameSessionService).state(), 'la sesión empieza ya').not.toBeNull();
+  });
+
+  it('2.2 · quien ya tiene progreso guardado no repite el diagnóstico', () => {
+    mount(6, 5);
+    expect(component.diagnostico()).toBeNull();
+    expect(TestBed.inject(GameSessionService).state()?.level, 'su nivel manda').toBe(5);
+  });
+
+  it('2.3 · N1–N2: el inicio dice el número — emparejar por oído está bien', () => {
+    mount(4, 1);
+    const claves = narraciones()[0];
+    expect(claves, 'la consigna').toContain('hn.ask.');
+    expect(claves, 'y el ancla en chino').toContain('hn.num.');
+  });
+
+  it('2.3 · N3+: el inicio ya no dice el número — que no resuelvan por oreja', () => {
+    mount(4, 3);
+    expect(narraciones()[0], 'solo la consigna').not.toContain('hn.num.');
+    expect(narraciones()[0]).toContain('hn.ask.');
+  });
+
+  it('2.3 · combinar tampoco lo dice al entrar: el oído es al tocar las piezas', () => {
+    mount(6, 7);
+    expect(narraciones()[0]).toContain('hn.ask.combinar');
+    expect(narraciones()[0], 'sin el número leído en voz alta').not.toContain('hn.num.');
+  });
+
+  it('2.4 · el salto 6→7 explica la etapa antes del primer problema real', () => {
+    mount(4, 6);
+
+    // Tres aciertos seguidos suben de nivel a los 4 años.
+    for (let i = 0; i < 3; i++) {
+      component.elegir(component.respuesta());
+      fixture.detectChanges();
+      vi.advanceTimersByTime(3000);
+      fixture.detectChanges();
+    }
+
+    expect(component.etapa(), 'ya es combinar').toBe('combinar');
+    expect(component.puente(), 'pero primero se explica').toBe(true);
+    expect(all('.puente'), 'la tarjeta está en pantalla').toHaveLength(1);
+    expect(component.objetivo(), 'y el problema real espera').toBe(0);
+
+    // El toque entra al juego y la tarjeta queda como vista.
+    component.seguirPuente();
+    fixture.detectChanges();
+    expect(component.puente()).toBe(false);
+    expect(component.objetivo(), 'ahora sí, el primer problema real').toBeGreaterThanOrEqual(11);
+    expect(component.bandeja().length, 'y con su bandeja').toBeGreaterThan(0);
+    expect(
+      TestBed.inject(TutorialSeen).has('hanzi-numbers', 'combinar'),
+      'queda visto',
+    ).toBe(true);
+  });
+
+  it('2.4 · si la etapa ya se explicó, no interrumpe', () => {
+    mount(4, 7); // el mount da la tarjeta por vista
+    expect(component.puente()).toBe(false);
+    expect(all('.puente')).toHaveLength(0);
+    expect(component.objetivo(), 'entra directo al problema').toBeGreaterThanOrEqual(11);
+  });
+
+  it('2.5 · sin consigna escrita: iconos en el banner, en la pista y en la insignia', () => {
+    mount(4, 1);
+
+    expect(component.linea(), 'banner: iconos de dirección').not.toMatch(/[A-Za-z]/);
+    expect(component.linea()).toContain('➡️');
+    expect(byText('.etapa-badge', '🔤'), 'la insignia se mira, no se lee').toBeTruthy();
+    for (const mensajes of Object.values(component.customFeedbackMessages)) {
+      for (const m of mensajes) expect(m, 'emojis, no frases').not.toMatch(/[A-Za-z]/);
+    }
+
+    component.elegir(component.opciones().find(o => o !== component.respuesta())!);
+    fixture.detectChanges();
+    expect(component.hint(), 'la pista es un mood, no una frase').not.toMatch(/[A-Za-z]/);
+    expect(component.hint(), 'y sí hay pista').not.toBe('');
+  });
+
+  // ============================================
   // INFRAESTRUCTURA
   // ============================================
 
@@ -472,6 +653,7 @@ describe('HanziNumbers (integración)', () => {
     fixture.detectChanges();
 
     expect(component.feedbackState(), 'la ronda se cierra y empieza otra').toBe('idle');
-    expect(component.opciones()).toHaveLength(4);
+    expect(component.opciones().length, '2–3 opciones (4 años)').toBeGreaterThanOrEqual(2);
+    expect(component.opciones().length).toBeLessThanOrEqual(3);
   });
 });

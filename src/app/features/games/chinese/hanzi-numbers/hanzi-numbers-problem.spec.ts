@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getProfileDifficultyConfig } from '@core/learning/learning-content';
 import {
   PIEZAS,
   NIVEL_ULTIMO_RECONOCER,
@@ -140,19 +141,34 @@ describe('etapaDeNivel', () => {
 });
 
 describe('buildReconocerProblem', () => {
-  it('las 4 opciones son distintas, están en el tramo y una es la correcta', () => {
+  it('las opciones son distintas, están en el tramo y una es la correcta', () => {
     const rng = mulberry32(11);
-    for (let level = 1; level <= 10; level++) {
-      const tope = topeReconocer(level);
-      for (let i = 0; i < 200; i++) {
-        const p = buildReconocerProblem(level, rng);
-        expect(p.numero).toBeGreaterThanOrEqual(1);
-        expect(p.numero).toBeLessThanOrEqual(tope);
-        expect(p.opciones, 'cuatro opciones').toHaveLength(4);
-        expect(new Set(p.opciones).size, 'nunca repetidas').toBe(4);
-        expect(p.opciones, 'la respuesta está entre las opciones').toContain(p.respuesta);
+    for (const age of [4, 6] as const) {
+      const cfg = getProfileDifficultyConfig(age);
+      for (let level = 1; level <= 10; level++) {
+        const tope = topeReconocer(level);
+        for (let i = 0; i < 150; i++) {
+          const p = buildReconocerProblem(level, age, rng);
+          expect(p.numero).toBeGreaterThanOrEqual(1);
+          expect(p.numero).toBeLessThanOrEqual(tope);
+          expect(p.opciones.length, `${age}a·N${level}`).toBeGreaterThanOrEqual(cfg.minOptions);
+          expect(p.opciones.length, `${age}a·N${level}`).toBeLessThanOrEqual(cfg.maxOptions);
+          expect(new Set(p.opciones).size, 'nunca repetidas').toBe(p.opciones.length);
+          expect(p.opciones, 'la respuesta está entre las opciones').toContain(p.respuesta);
+        }
       }
     }
+  });
+
+  it('2.1 · las opciones siguen la perilla de la edad: 4 años ve 2–3, los 6, 3–4', () => {
+    const rng = mulberry32(29);
+    const vistas: Record<4 | 6, Set<number>> = { 4: new Set(), 6: new Set() };
+    for (let i = 0; i < 400; i++) {
+      vistas[4].add(buildReconocerProblem(3, 4, rng).opciones.length);
+      vistas[6].add(buildReconocerProblem(3, 6, rng).opciones.length);
+    }
+    for (const n of vistas[4]) expect([2, 3], 'los 4 años').toContain(n);
+    for (const n of vistas[6]) expect([3, 4], 'los 6 años').toContain(n);
   });
 
   it('la dirección decide qué se muestra y qué se elige', () => {
@@ -160,7 +176,7 @@ describe('buildReconocerProblem', () => {
     let vioNumero = 0;
     let vioHanzi = 0;
     for (let i = 0; i < 400; i++) {
-      const p = buildReconocerProblem(5, rng);
+      const p = buildReconocerProblem(5, 6, rng);
       const esHanzi = p.direccion === 'numero-a-hanzi';
       if (esHanzi) vioNumero++;
       else vioHanzi++;
@@ -178,9 +194,22 @@ describe('buildReconocerProblem', () => {
     expect(vioHanzi, 'las dos direcciones aparecen').toBeGreaterThan(100);
   });
 
+  it('2.6 · N1–N2 fija la dirección (dígito → hanzi); desde N3 se alterna', () => {
+    const rng = mulberry32(13);
+    for (let i = 0; i < 100; i++) {
+      expect(buildReconocerProblem(1, 4, rng).direccion, 'N1').toBe('numero-a-hanzi');
+      expect(buildReconocerProblem(2, 6, rng).direccion, 'N2').toBe('numero-a-hanzi');
+    }
+    let vioHanzi = 0;
+    for (let i = 0; i < 200; i++) {
+      if (buildReconocerProblem(3, 6, rng).direccion === 'hanzi-a-numero') vioHanzi++;
+    }
+    expect(vioHanzi, 'desde N3 aparece hanzi → número').toBeGreaterThan(50);
+  });
+
   it('con la misma semilla sale el mismo problema', () => {
-    const a = buildReconocerProblem(4, mulberry32(77));
-    const b = buildReconocerProblem(4, mulberry32(77));
+    const a = buildReconocerProblem(4, 6, mulberry32(77));
+    const b = buildReconocerProblem(4, 6, mulberry32(77));
     expect(a).toEqual(b);
   });
 });
@@ -204,7 +233,7 @@ describe('los distractores de reconocer: una perilla por nivel', () => {
     const rng = mulberry32(41);
     let lejos = 0;
     for (let i = 0; i < 300; i++) {
-      const p = buildReconocerProblem(4, rng);
+      const p = buildReconocerProblem(4, 6, rng);
       for (const d of distractores(p)) {
         if (Math.abs(d - p.numero) > 3) lejos++;
       }
@@ -212,29 +241,40 @@ describe('los distractores de reconocer: una perilla por nivel', () => {
     expect(lejos, 'con distractor aleatorio, alguno se aleja de verdad').toBeGreaterThan(0);
   });
 
-  it('N5: los tres distractores son vecinos (±1..±3)', () => {
+  it('N5: todos los distractores son vecinos (±1..±3), sea cual sea su número', () => {
     const rng = mulberry32(5);
-    for (let i = 0; i < 300; i++) {
-      const p = buildReconocerProblem(5, rng);
-      expect(p.numero).toBeLessThanOrEqual(20);
-      for (const d of distractores(p)) {
-        const dist = Math.abs(d - p.numero);
-        expect(dist, `${d} no es vecino de ${p.numero}`).toBeGreaterThanOrEqual(1);
-        expect(dist, `${d} se queda demasiado lejos de ${p.numero}`).toBeLessThanOrEqual(3);
+    for (const age of [4, 6] as const) {
+      for (let i = 0; i < 300; i++) {
+        const p = buildReconocerProblem(5, age, rng);
+        expect(p.numero).toBeLessThanOrEqual(20);
+        const ds = distractores(p);
+        expect(ds.length, `${age}a: siempre hay opción que tocar`).toBeGreaterThanOrEqual(1);
+        for (const d of ds) {
+          const dist = Math.abs(d - p.numero);
+          expect(dist, `${d} no es vecino de ${p.numero}`).toBeGreaterThanOrEqual(1);
+          expect(dist, `${d} se queda demasiado lejos de ${p.numero}`).toBeLessThanOrEqual(3);
+        }
       }
     }
   });
 
-  it('N6: mixto — la trampa de la decena (el número sin el 十) y dos vecinos', () => {
+  it('N6: mixto — SIEMPRE la trampa de la decena, y el resto vecinos', () => {
     const rng = mulberry32(6);
-    for (let i = 0; i < 300; i++) {
-      const p = buildReconocerProblem(6, rng);
-      const ds = distractores(p);
+    for (const age of [4, 6] as const) {
+      for (let i = 0; i < 300; i++) {
+        const p = buildReconocerProblem(6, age, rng);
+        const ds = distractores(p);
 
-      // Para 15 → 5, para 7 → 17: la confusión real de esta etapa es el 十 de más o de menos.
-      const trampas = ds.filter(d => Math.abs(d - p.numero) === 10);
-      expect(trampas, `para ${p.numero} falta la trampa de la decena`).toHaveLength(1);
-      expect(ds.filter(d => Math.abs(d - p.numero) <= 3), 'y el resto son vecinos').toHaveLength(2);
+        // Para 15 → 5, para 7 → 17: la confusión real de esta etapa es el 十 de más o
+        // de menos. Con 2–3 opciones (la perilla de la edad) la trampa sigue ESTANDO:
+        // es el primer distractor que se pone, no uno entre tres.
+        const trampas = ds.filter(d => Math.abs(d - p.numero) === 10);
+        expect(trampas, `para ${p.numero} falta la trampa de la decena`).toHaveLength(1);
+        expect(
+          ds.filter(d => Math.abs(d - p.numero) <= 3),
+          'y el resto son vecinos',
+        ).toHaveLength(ds.length - 1);
+      }
     }
   });
 });

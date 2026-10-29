@@ -7,10 +7,11 @@ import { GameAudioService } from '@core/games/game-audio.service';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { FeedbackState, SessionEvent } from '@core/games/game-types';
 import { Narrator } from '@core/games/narrator.service';
+import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import { FirstAttemptGuard } from '@core/learning/first-attempt-guard';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
-import { CLIP_BASE, CLIP_MANIFEST, CLIP_TEXT, numeroClip } from './hanzi-narration';
+import { CLIP_BASE, CLIP_MANIFEST, PISTA_ICONO, numeroClip } from './hanzi-narration';
 import {
   buildCombinacionProblem,
   buildReconocerProblem,
@@ -25,6 +26,21 @@ import {
  * quieta, llega.
  */
 export const PAUSA_DUDA_MS = 4000;
+
+/**
+ * 2.2 · Las 3 preguntas del mini-diagnóstico: una de cada tramo (5, 15, 20).
+ *
+ * No es un examen aparte: son problemas de reconocer generados **con su nivel**, así que
+ * dirección, ancla del audio (solo la trae la pregunta del nivel1) y opciones son
+ * exactamente las que vería al jugar. Lo que decide es el primer toque.
+ */
+const DIAG_NIVELES = [1, 3, 4] as const;
+
+/**
+ * 2.4 · Clave de "modo" para `TutorialSeen`: la etapa de combinar es una mecánica nueva
+ * que se explica una vez por perfil, como los tutoriales de kanji-compose.
+ */
+const PUENTE_MODO = 'combinar';
 
 /**
  * "Números Hanzi" — Planeta Dragón 🐉, con el Sabio Long.
@@ -68,6 +84,7 @@ export class HanziNumbers implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
   private readonly narrator = inject(Narrator);
+  private readonly tutorials = inject(TutorialSeen);
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -114,6 +131,13 @@ export class HanziNumbers implements OnInit, OnDestroy {
    */
   readonly primerIntento = signal<boolean | null>(null);
 
+  /**
+   * 2.2 · Mini-diagnóstico: `null` fuera de él; dentro, el primer toque de cada una de
+   * las 3 preguntas. La sesión **no existe todavía** — el diagnóstico es quien decide
+   * en qué nivel arranca una recién llegada de 6 años.
+   */
+  readonly diagnostico = signal<{ respuestas: boolean[] } | null>(null);
+
   // ============================================
   // ESTADO · etapa 2 (combinar)
   // ============================================
@@ -137,6 +161,11 @@ export class HanziNumbers implements OnInit, OnDestroy {
   /** La duda socrática. Nunca dice que está mal: propone el siguiente movimiento. */
   readonly hint = signal('');
   readonly busy = signal(false);
+  /**
+   * 2.4 · El puente del salto 6→7: la tarjeta que explica la etapa nueva con narración
+   * y una demostración **antes** del primer problema real. Se ve una vez por perfil.
+   */
+  readonly puente = signal(false);
   /**
    * Cambia en cada problema y va en el `track` de las piezas y las opciones.
    *
@@ -165,7 +194,9 @@ export class HanziNumbers implements OnInit, OnDestroy {
 
   readonly feedbackState = computed<FeedbackState>(() => {
     const s = this.session.state();
-    if (!s) return 'idle';
+    // Sin sesión solo pasa mientras dura el diagnóstico (2.2), que se juega ANTES de
+    // montarla: allí el avance de la ronda sí es feedback local que hay que enseñar.
+    if (!s) return this.localFeedback();
     if (s.isCompleted || s.isTimeUp) return 'game-over';
     return this.localFeedback();
   });
@@ -173,9 +204,11 @@ export class HanziNumbers implements OnInit, OnDestroy {
   readonly solved = computed(() => this.feedbackState() === 'success');
 
   readonly customFeedbackMessages: Record<string, string[]> = {
-    success: ['¡Muy bien! 🐉', '¡Lo formaste!'],
-    'level-up': ['¡Subiste de nivel! 🎉'],
-    'game-over': ['¡Buen trabajo! Descansa un poco.'],
+    // Iconos, no frases (2.5): el banner es un mood para quien aún no lee. Lo que hay
+    // que OÍR —el número acertado y el elogio— ya lo dice la voz, una sola vez.
+    success: ['🌟', '🥳'],
+    'level-up': ['🏆', '🎉'],
+    'game-over': ['🌙', '👋'],
   };
 
   ngOnInit(): void {
@@ -193,20 +226,59 @@ export class HanziNumbers implements OnInit, OnDestroy {
       { type: 'level-up', paths: ['audio/level-up.wav'], volume: 0.9 },
     ]);
 
-    const savedLevel = this.progress.getLevel(this.GAME_ID);
+    // 2.2 · Un perfil de 6 años que JUGÓ ya tiene progreso guardado y no vuelve a
+    // examinarse; solo una recién llegada pasa por las 3 preguntas que deciden su nivel.
+    // Los 4 años arrancan en el 1 sin diagnóstico.
+    if (this.debeDiagnosticar()) {
+      this.iniciarDiagnostico();
+      return;
+    }
+    this.iniciarPartida();
+  }
+
+  /** Monta la sesión en `level` (o en el guardado) y genera el primer problema. */
+  private iniciarPartida(level?: number): void {
+    const nivel = level ?? this.progress.getLevel(this.GAME_ID);
     this.session.startSession(
       {
         gameId: this.GAME_ID,
         sessionDurationMs: 5 * 60 * 1000,
         requiredCorrectForLevelUp: this.requiredCorrect,
         maxLevel: this.MAX_LEVEL,
-        initialLevel: savedLevel,
+        initialLevel: nivel,
       },
       this.activeProfile()?.age,
     );
 
     this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
     this.generateProblem();
+  }
+
+  /**
+   * Solo una recién llegada de 6 años: `getProgress` es `null` únicamente **sin**
+   * partida guardada — el nivel guardado (sea el que sea) manda siempre.
+   */
+  private debeDiagnosticar(): boolean {
+    if ((this.activeProfile()?.age ?? 4) !== 6) return false;
+    return this.progress.getProgress(this.GAME_ID) === null;
+  }
+
+  private iniciarDiagnostico(): void {
+    this.diagnostico.set({ respuestas: [] });
+    this.generateProblem(); // → la rama del diagnóstico genera la pregunta 1
+  }
+
+  /**
+   * El diagnóstico acaba: la ubicación es aciertos + 1 (3 → N4, 2 → N3, 1 → N2, 0 → N1)
+   * y queda guardada como cualquier otro nivel — a partir de ahí el juego no distingue
+   * a una diagnosticada de una que llegó al 4 jugando.
+   */
+  private terminarDiagnostico(): void {
+    const respuestas = this.diagnostico()?.respuestas ?? [];
+    const ubicacion = respuestas.filter(Boolean).length + 1;
+    this.diagnostico.set(null);
+    this.progress.saveProgress(this.GAME_ID, { level: ubicacion, completed: false });
+    this.iniciarPartida(ubicacion);
   }
 
   ngOnDestroy(): void {
@@ -256,34 +328,61 @@ export class HanziNumbers implements OnInit, OnDestroy {
     this.agarradas.set([]);
     this.problemaId.update(n => n + 1);
 
-    const nivel = this.currentLevel();
-    const age = this.activeProfile()?.age ?? 4;
-
-    if (etapaDeNivel(nivel) === 'reconocer') {
-      const p = buildReconocerProblem(nivel);
-      this.direccion.set(p.direccion);
-      this.enunciado.set(p.enunciado);
-      this.respuesta.set(p.respuesta);
-      this.opciones.set(p.opciones);
-      this.linea.set(
-        p.direccion === 'numero-a-hanzi'
-          ? 'Toca el hanzi de este número'
-          : 'Toca el número que dice este hanzi',
-      );
-      // La consigna **y el número en chino**. Este segundo clip es el ancla: sin oír
-      // "qī" mientras se mira el 7, no hay puente entre el número y el glifo.
-      void this.narrar([
-        p.direccion === 'numero-a-hanzi' ? 'hn.ask.a-hanzi' : 'hn.ask.a-numero',
-        numeroClip(p.numero),
-      ]);
+    // 2.2 · Diagnóstico: la pregunta que toca, o el cierre si ya van las 3.
+    const diag = this.diagnostico();
+    if (diag) {
+      if (diag.respuestas.length >= DIAG_NIVELES.length) this.terminarDiagnostico();
+      else this.generarReconocer(DIAG_NIVELES[diag.respuestas.length]);
       return;
     }
 
+    const nivel = this.currentLevel();
+
+    // 2.4 · Puente del salto 6→7: la primera vez la etapa nueva se EXPLICA —narración y
+    // una pieza que entra— y solo después entra el primer problema real. `TutorialSeen`
+    // lo hace una vez por perfil: la quinta ronda ya no aporta nada y sí le quita juego.
+    if (etapaDeNivel(nivel) === 'combinar' && !this.tutorials.has(this.GAME_ID, PUENTE_MODO)) {
+      this.puente.set(true);
+      void this.narrar('hn.puente');
+      return;
+    }
+
+    if (etapaDeNivel(nivel) === 'reconocer') {
+      this.generarReconocer(nivel);
+      return;
+    }
+
+    const age = this.activeProfile()?.age ?? 4;
     const p = buildCombinacionProblem(nivel, age);
     this.objetivo.set(p.objetivo);
     this.bandeja.set(p.bandeja);
-    this.linea.set(`Forma el ${p.objetivo} con los hanzis`);
-    void this.narrar(['hn.ask.combinar', numeroClip(p.objetivo)]);
+    // 2.5 · Sin consigna escrita: el rótulo "Forma" es un icono (en el html) y la frase
+    // la dice la voz. Y 2.3 · el objetivo NO se lee en voz alta al entrar: el oído
+    // acompaña el montaje (las piezas suenan al tocarlas), no lo entrega hecho.
+    this.linea.set('');
+    void this.narrar('hn.ask.combinar');
+  }
+
+  /**
+   * Una pregunta de reconocer en el nivel que toca —el real, o una de las del
+   * diagnóstico, que se generan con SU nivel para que sean el juego tal cual.
+   */
+  private generarReconocer(nivel: number): void {
+    const age = this.activeProfile()?.age ?? 4;
+    const p = buildReconocerProblem(nivel, age);
+    this.direccion.set(p.direccion);
+    this.enunciado.set(p.enunciado);
+    this.respuesta.set(p.respuesta);
+    this.opciones.set(p.opciones);
+    // 2.5 · La consigna no se escribe para quien aún no lee: son iconos de dirección —
+    // ¿qué se muestra y qué se elige— y la frase la dice la voz al entrar.
+    this.linea.set(p.direccion === 'numero-a-hanzi' ? '🔢➡️🔤' : '🔤➡️🔢');
+    const ask = p.direccion === 'numero-a-hanzi' ? 'hn.ask.a-hanzi' : 'hn.ask.a-numero';
+    // 2.3 · El ancla —oír "qī" mientras se mira el 7— puentea número y glifo, pero SOLO
+    // en N1–N2, donde emparejar por oído está bien. Desde el N3 el inicio ya no dice el
+    // número: si lo dijera, tocar hasta oír lo igual resolvería el problema sin mirar
+    // el glifo, que es justamente lo que el juego enseña.
+    void this.narrar(nivel <= 2 ? [ask, numeroClip(p.numero)] : ask);
   }
 
   // ============================================
@@ -399,6 +498,13 @@ export class HanziNumbers implements OnInit, OnDestroy {
     this.localFeedback.set('success');
     this.hint.set('');
 
+    // 2.2 · Diagnóstico: lo que decide es el PRIMER toque de la pregunta. Se anota al
+    // cerrar, que es cuando ya se sabe cómo terminó (el2.º toque no lo reescribe).
+    const diag = this.diagnostico();
+    if (diag) {
+      this.diagnostico.set({ respuestas: [...diag.respuestas, this.primerIntento() ?? false] });
+    }
+
     // Primero el número, entero, en chino: es la recompensa y la pronunciación de la
     // palabra que acaba de construir. El elogio va DETRÁS, pero solo si **no** sube de
     // nivel —entonces el premio sonoro ya es `playLevelUp()` y sonar los dos juntos es
@@ -434,7 +540,8 @@ export class HanziNumbers implements OnInit, OnDestroy {
    * segundo detiene al primero— y la niña se quedaría sin oír lo que acaba de tocar.
    */
   private dudar(clip: 'hn.duda.oye' | 'hn.duda.dieces', previa: string | null = null): void {
-    this.hint.set(CLIP_TEXT[clip]);
+    // 2.5 · En pantalla, icono —el texto de la duda es del TTS, no una consigna escrita—.
+    this.hint.set(PISTA_ICONO[clip] ?? '');
     if (this.dudaDicha) {
       if (previa) void this.narrar(previa);
       return;
@@ -480,6 +587,17 @@ export class HanziNumbers implements OnInit, OnDestroy {
   // VISTA
   // ============================================
 
+  /**
+   * 2.4 · La tarjeta del puente se toca para seguir: la demostración queda vista y —solo
+   * entonces— entra el primer problema real de combinar.
+   */
+  seguirPuente(): void {
+    if (this.isOver()) return;
+    this.tutorials.mark(this.GAME_ID, PUENTE_MODO);
+    this.puente.set(false);
+    this.generateProblem();
+  }
+
   goBack(): void {
     this.narrator.cancel();
     this.session.endSession('user-exit');
@@ -493,11 +611,9 @@ export class HanziNumbers implements OnInit, OnDestroy {
   /** Habla una clave (o una secuencia de ellas) con la voz que pide el manifiesto. */
   private narrar(keys: string | string[] | null): Promise<boolean> {
     if (!keys) return Promise.resolve(false);
-    const lista = Array.isArray(keys) ? keys : [keys];
-    // `undefined`, no '': un texto vacío ahogaría al manifiesto, que es el que tiene el
-    // TTS y el idioma de los clips en chino.
-    const textos = lista.map(k => CLIP_TEXT[k]).filter(Boolean).join(' ');
-    return this.narrator.say(lista, textos || undefined);
+    // El texto de reserva no va aquí (2.5): lo trae el manifiesto, y en su idioma.
+    // Pasarlo a mano era redundante —solo para el primer clip, además—.
+    return this.narrator.say(Array.isArray(keys) ? keys : [keys]);
   }
 
   private isOver(): boolean {

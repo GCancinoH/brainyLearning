@@ -46,14 +46,15 @@ $rojo-hondo: #7f1d1d;
   }
 
   // Qué etapa se está jugando. El color cambia al entrar en "combinar": es la señal
-  // visible de que el juego cambió de forma.
+  // visible de que el juego cambió de forma. Hoy es solo icono (2.5), así que la letra
+  // crece un poco para que el emoji no quede diminuto.
   .etapa-badge {
     background: rgba(239, 68, 68, 0.18);
     border: 1px solid rgba(239, 68, 68, 0.5);
     color: #fecaca;
     padding: 0.45rem 0.9rem;
     border-radius: 999px;
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     font-weight: 700;
     white-space: nowrap;
 
@@ -108,6 +109,9 @@ $rojo-hondo: #7f1d1d;
   color: #fde68a;
   font-weight: 600;
   text-align: center;
+  // 2.5 · Lo que hay aquí es un icono, no una frase: el mood necesita tamaño.
+  font-size: 1.7rem;
+  line-height: 1.2;
 }
 
 // ---------- ETAPA 1 · RECONOCER ----------
@@ -183,10 +187,9 @@ $rojo-hondo: #7f1d1d;
   gap: 0.2rem;
 
   .objetivo-label {
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    // 2.5 · Icono en vez de la palabra "Forma".
+    font-size: 1.6rem;
+    line-height: 1.1;
     color: #fca5a5;
   }
 
@@ -309,6 +312,59 @@ $rojo-hondo: #7f1d1d;
   }
 }
 
+// ---------- 2.4 · PUENTE 6→7 ----------
+// Tapa la pantalla la PRIMERA vez que se entra en combinar: narra el cambio, muestra
+// una pieza que entra en su caja y espera el toque. Es tarjeta, no pantalla aparte —
+// al tocar, el juego sigue donde estaba, con el primer problema real de la etapa.
+.puente {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4rem;
+  width: 100%;
+  background: rgba(15, 23, 42, 0.94);
+  border: none;
+  cursor: pointer;
+}
+
+.puente-demo {
+  position: relative;
+  width: 9rem;
+  height: 12rem;
+}
+
+.puente-caja {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: 6rem;
+  height: 6rem;
+  border: 3px dashed rgba(251, 191, 36, 0.6);
+  border-radius: 18px;
+}
+
+.puente-pieza {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  translate: -50% 0;
+  font-size: 3.4rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  animation: pieza-entra 2.4s ease-in-out infinite;
+}
+
+.puente-toca {
+  font-size: 2.4rem;
+  animation: toca 1.1s ease-in-out infinite alternate;
+}
+
 // ---------- ANIMACIONES (CSS puro: `animate.enter`, sin @angular/animations) ----------
 @keyframes option-pop {
   from {
@@ -343,10 +399,43 @@ $rojo-hondo: #7f1d1d;
   }
 }
 
+// La pieza del puente sube de abajo y se queda DENTRO de la caja, luego vuelve a
+// empezar: el gesto que hay que aprender es "agarrar y poner", se muestre una vez.
+@keyframes pieza-entra {
+  0% {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+  15% {
+    transform: translateY(1.5rem);
+    opacity: 1;
+  }
+  50%,
+  75% {
+    transform: translateY(-6.4rem);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes toca {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.25);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .opcion,
   .chip,
-  .pieza {
+  .pieza,
+  .puente-pieza,
+  .puente-toca {
     animation: none;
   }
 }

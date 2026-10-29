@@ -26,6 +26,8 @@
  *    objetivo y la niña decide.
  */
 
+import { getProfileDifficultyConfig } from '@core/learning/learning-content';
+
 export type Rng = () => number;
 
 /** Los diez caracteres con los que se escribe cualquier número del 1 al 99. */
@@ -110,7 +112,7 @@ export interface ReconocerProblem {
   enunciado: string;
   /** Lo que hay que elegir */
   respuesta: string;
-  /** Las 4 opciones, mezcladas: siempre incluye `respuesta` */
+  /** Las opciones, mezcladas: 2–3 a los4 años, 3–4 a los6; siempre incluye `respuesta` */
   opciones: string[];
 }
 
@@ -134,21 +136,23 @@ export function topeReconocer(level: number): number {
 }
 
 /**
- * Los 3 distractores de `numero`, con la perilla de su nivel.
+ * Los distractores de `numero`, tantos como pida la perilla de la edad (`cuantos`), con
+ * la perilla de su nivel:
  *
  *  - **N1–N4:** aleatorios del tramo. La perilla de estos niveles es el tope: con un
- *    tramo de cinco números las cuatro opciones son casi todo el tramo, que es lo que
- *    hace que elegir cueste.
+ *    tramo de cinco números las opciones son casi todo el tramo, que es lo que hace
+ *    que elegir cueste.
  *  - **N5:** vecinos (±1..±3). Casi idénticos en valor, así que elegir obliga a mirar
  *    el glifo, no el número de al lado.
- *  - **N6:** mixto — dos vecinos y la **trampa de la decena**: el mismo número sin el 十
- *    (5 para 15, 7 para 17). Es la confusión real de esta etapa y solo aparece en su
- *    último nivel.
+ *  - **N6:** mixto — la **trampa de la decena** (el mismo número sin el 十: 5 para 15,
+ *    7 para 17) y el resto vecinos. Es la confusión real de esta etapa y solo aparece
+ *    en su último nivel.
  */
 function distractoresReconocer(
   numero: number,
   tope: number,
   level: number,
+  cuantos: number,
   rng: Rng,
 ): number[] {
   const lvl = Math.max(1, Math.min(level, NIVEL_ULTIMO_RECONOCER));
@@ -159,14 +163,14 @@ function distractoresReconocer(
       .map(d => numero + d)
       .filter(enTramo);
 
-  /** Hasta `cuantos` de `candidatos` (mezclados), completando con aleatorios del tramo. */
-  const tomar = (candidatos: readonly number[], cuantos: number): number[] => {
+  /** Hasta `hasta` de `candidatos` (mezclados), completando con aleatorios del tramo. */
+  const tomar = (candidatos: readonly number[], hasta: number): number[] => {
     const elegidos = new Set<number>();
     for (const n of shuffle(candidatos, rng)) {
-      if (elegidos.size >= cuantos) break;
+      if (elegidos.size >= hasta) break;
       elegidos.add(n);
     }
-    while (elegidos.size < cuantos) {
+    while (elegidos.size < hasta) {
       const n = randInt(1, tope, rng);
       if (enTramo(n)) elegidos.add(n);
     }
@@ -176,38 +180,56 @@ function distractoresReconocer(
   if (lvl <= 4) {
     // Aleatorios del tramo, como siempre: aquí la perilla es el tope.
     const otrosNumeros = new Set<number>();
-    while (otrosNumeros.size < 3) {
+    while (otrosNumeros.size < cuantos) {
       const n = randInt(1, tope, rng);
       if (enTramo(n)) otrosNumeros.add(n);
     }
     return [...otrosNumeros];
   }
 
-  if (lvl === 5) return tomar(vecinos(), 3);
+  if (lvl === 5) return tomar(vecinos(), cuantos);
 
   // N6 · mixto: la trampa de la decena manda (5 para 15; 15 para 5) y el resto son
   // vecinos. Para cualquier número de 1–20 con tope 20 la trampa existe siempre: si el
-  // número es ≤ 10, su +10 cabe en el tramo; si es ≥ 11, su −10 también.
+  // número es ≤ 10, su +10 cabe en el tramo; si es ≥ 11, su −10 también. Con una sola
+  // opción (4 años) queda la trampa sola, que es la elección más dura de la etapa.
   const trampa = [numero - 10, numero + 10].filter(enTramo);
   const elegidos = new Set(tomar(trampa, Math.min(1, trampa.length)));
-  for (const n of tomar(vecinos().filter(v => !elegidos.has(v)), 3 - elegidos.size)) {
+  for (const n of tomar(vecinos().filter(v => !elegidos.has(v)), cuantos - elegidos.size)) {
     elegidos.add(n);
   }
   return [...elegidos];
 }
 
-export function buildReconocerProblem(level: number, rng: Rng = Math.random): ReconocerProblem {
+/**
+ * 2.1 · Cuántas opciones: la perilla de la EDAD (4 años → 2–3, 6 → 3–4), que es lo que
+ * `getProfileDifficultyConfig` ya dice de los demás juegos. Antes aquí había un4 fijo
+ * para todo el mundo.
+ *
+ * 2.6 · La dirección se alterna desde el nivel3; en N1–N2 queda fija (dígito → hanzi),
+ * que para los4 años las dos primeras rondas son emparejar sin sorpresas.
+ */
+export function buildReconocerProblem(
+  level: number,
+  age: 4 | 6,
+  rng: Rng = Math.random,
+): ReconocerProblem {
   const tope = topeReconocer(level);
   const numero = randInt(1, tope, rng);
-  // Se alterna la dirección: reconocer el glifo y leerlo son dos habilidades distintas,
-  // y una sola dirección convertiría el juego en adivinar cuál de los cuatro es el bonito.
+
+  const cfg = getProfileDifficultyConfig(age);
+  const cuantos = randInt(cfg.minOptions - 1, cfg.maxOptions - 1, rng);
+
+  const lvl = Math.max(1, Math.min(level, NIVEL_ULTIMO_RECONOCER));
+  // Reconocer el glifo y leerlo son dos habilidades distintas, y una sola dirección
+  // convertiría el juego en adivinar cuál de las opciones es el bonito.
   const direccion: ReconocerProblem['direccion'] =
-    rng() < 0.5 ? 'numero-a-hanzi' : 'hanzi-a-numero';
+    lvl <= 2 || rng() < 0.5 ? 'numero-a-hanzi' : 'hanzi-a-numero';
   const esHanzi = direccion === 'numero-a-hanzi';
   const respuesta = esHanzi ? hanziPara(numero) : String(numero);
   const enunciado = esHanzi ? String(numero) : hanziPara(numero);
 
-  const distractores = distractoresReconocer(numero, tope, level, rng);
+  const distractores = distractoresReconocer(numero, tope, level, cuantos, rng);
   const opciones = shuffle(
     [respuesta, ...distractores.map(n => (esHanzi ? hanziPara(n) : String(n)))],
     rng,

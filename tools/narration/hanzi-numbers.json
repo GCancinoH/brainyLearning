@@ -418,5 +418,9 @@
   "hn.num.99": {
     "tts": "九十九",
     "lang": "zh-CN"
+  },
+  "hn.puente": {
+    "tts": "Ahora agarra las piezas y forma el número.",
+    "lang": "es-MX"
   }
 }

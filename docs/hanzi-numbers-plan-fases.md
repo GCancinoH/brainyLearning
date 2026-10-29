@@ -110,13 +110,22 @@ el 19 se practicó antes del nivel 7, y el N7 de combinar abrió con bandeja = s
 Usar `getProfileDifficultyConfig(age)` (ya existe): 4 años → **2–3 opciones**, 6 años → 3–4.
 Hoy el juego fija 4 siempre.
 
-### 2.2 Nivel inicial para los 6 años ⚠️ *decisión*
+### 2.2 Nivel inicial para los 6 años — ✅ *decidido: (b) mini-diagnóstico*
 
-Hoy todos arrancan en nivel 1 (1–5, trivial para 6 años). Opciones:
+Hoy todos arrancan en nivel 1 (1–5, trivial para 6 años). **Decisión del usuario (29 oct): opción
+(b)** — mini-diagnóstico de 3 preguntas al primer uso, solo para perfiles de 6 años **sin** partida
+guardada (`getProgress === null`; quien ya jugó, su nivel manda). *(Las opciones (a) nivel 3 y (c)
+dejar el 1 quedaron descartadas.)*
 
-- **(a)** edad 6 arranca en nivel 3–4 (recomendado: 3, llega a 15 rápido y refuerza 16–20 luego);
-- **(b)** mini-diagnóstico de 3 preguntas al primer uso;
-- **(c)** dejar nivel 1 (validar con las niñas en la tablet).
+- Las 3 preguntas son problemas de reconocer generados **con su nivel** (tramos 5, 15 y 20): la
+  dirección, el ancla del audio y las opciones son exactamente las del juego; nada de examen aparte.
+- Lo que decide es el **primer toque** de cada una.
+- Ubicación = aciertos + 1: 3 → nivel 4 (1–20), 2 → N3, 1 → N2, 0 → N1. Se guarda como cualquier
+  otro nivel: a partir de ahí el juego no distingue a una diagnosticada de una que llegó al 4
+  jugando.
+- La sesión **no existe** hasta que el diagnóstico acaba (nada de tiempo consumido ni subidas de
+  nivel a medias); la insignia enseña "📝 1/3".
+- Los 4 años siguen arrancando en el 1 sin diagnóstico; `startLevel` del catálogo no se toca.
 
 ### 2.3 El audio no hace la respuesta
 
@@ -144,6 +153,15 @@ aleatoria/alterna. *(Su observación "quitar random direction in levels 1–2".)
 
 **Aceptación Fase 2:** perfil de 4 años ve 2–3 opciones; un recién llegado de 6 no empieza en
 1–5; el audio guía solo aparece al principio; el cambio de etapa se explica solo.
+
+**Estado (29 oct): ✅ completada.** Suite en baseline (4 fallos preexistentes ajenos al juego, 369
+verdes), `npx ng build` limpio (los mismos 2 avisos de presupuesto de siempre) y verificación en
+lab dev (puerto 4213): el perfil de 4 años vio **siempre 2–3 opciones** (6 problemas seguidos),
+una recién llegada de 6 años jugó el mini-diagnóstico `📝 1/3 → 3/3` al primer toque y quedó en
+**Nivel 4** (nunca 1–5), insignia/rótulo/pista/banner salen de **iconos** con `aria-label`, y el
+puente 6→7 narró con `hn.puente.m4a` (regenerado con `export-hanzi.ts` + `generate.py`;
+prefetchado en `ngsw.json`), enseñó la demo de la pieza y, tras tocarse, no volvió a interrumpir.
+0 errores de consola (solo los avisos ambientales de siempre: TTS local y Firebase offline).
 
 ---
 
@@ -211,7 +229,7 @@ Orden libre; ninguna bloquea las anteriores.
 T1–T8 globales siguen en `docs/PLAN-pendientes.md` (panel de padres `/padres` espera decisión de
 protección; T1 kanji-compose comparte el criterio de "qué cuenta como error" de Fase 3.1).
 
-## ⚠️ Decisiones que esperan al usuario
+## ✅ Decisiones ya resueltas
 
-1. **2.2** — ¿los 6 años arrancan en nivel 3, hacen diagnóstico, o siguen en 1?
-2. **1.1** — validar la tabla propuesta de rangos (es propuesta, no ley).
+1. ~~**2.2**~~ — resuelta: **(b) mini-diagnóstico** (29 oct).
+2. ~~**1.1**~~ — resuelta y jugada en Fase 1 (rangos por nivel y distractores N5/N6 validados).

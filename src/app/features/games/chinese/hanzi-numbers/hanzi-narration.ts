@@ -60,11 +60,13 @@ export const CLIP_TEXT: Record<ClipKey, string> = {
   'hn.ask.a-numero': '¿Qué número dice este hanzi?',
   /** Etapa 2: se ve 35, se arman 三 十 五 con las piezas */
   'hn.ask.combinar': 'Forma este número con los hanzis. Tócalos en orden.',
+  /** El puente del salto 6→7 (2.4): la etapa nueva se explica ANTES del primer problema */
+  'hn.puente': 'Ahora agarra las piezas y forma el número.',
 
   // --- Dudas socráticas: ayudan sin decir que está mal ---
   /**
-   * La estrategia real de la etapa 1: el número se dice en chino al entrar, así que
-   * tocar cada opción y escuchar cuál dice *igual* resuelve el problema sin saber
+   * La estrategia real de la etapa 1: el número se dice en chino al entrar (N1–N2), así
+   * que tocar cada opción y escuchar cuál dice *igual* resuelve el problema sin saber
    * todavía qué glifo es cuál. Enseña el método, no la respuesta.
    */
   'hn.duda.oye': 'Tócalos uno por uno y escucha.',
@@ -72,6 +74,19 @@ export const CLIP_TEXT: Record<ClipKey, string> = {
   'hn.duda.dieces': '¿Cuántos dieces lleva? Empieza por ahí.',
   /** Mira el que ya se lee y compáralo con el objetivo. */
   'hn.duda.compara': 'Mira el de arriba y compara.',
+};
+
+/**
+ * 2.5 · El icono de la pista EN PANTALLA.
+ *
+ * El texto no es consigna para 4 años: la duda se **oye** (la narra `dudar`) y se
+ * **muestra** como mood. El detalle sigue vivo en `CLIP_TEXT`, que es la fuente del TTS
+ * y del manifiesto — allí, no en la interfaz.
+ */
+export const PISTA_ICONO: Partial<Record<ClipKey, string>> = {
+  'hn.duda.oye': '👂',
+  'hn.duda.dieces': '🔟',
+  'hn.duda.compara': '👀',
 };
 
 // ============================================
