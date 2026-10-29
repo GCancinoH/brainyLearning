@@ -37,7 +37,7 @@
         🔊
       </button>
       <!-- 4.5 · Botón ✏️ Trazado: abre el lienzo para practicar el trazo del número actual. -->
-      @if (!diagnostico() && !puente()) {
+      @if (!diagnostico() && !puente() && tieneTrazos()) {
         <button class="trace-btn" (click)="abrirTrazado()" aria-label="Practicar trazo">
           ✏️
         </button>
@@ -215,27 +215,6 @@
       </div>
     }
 
-    <!-- Duda socrática: propone el siguiente movimiento, nunca juzga el anterior -->
-    @if (hint()) {
-      <p class="hint" aria-live="polite">{{ hint() }}</p>
-    }
-
-    <!-- ==================================================== -->
-    <!-- 3.4 · REFLEXIÓN (6 años): un toque, y cada uno cambia algo -->
-    <!-- ==================================================== -->
-    @if (reflecting()) {
-      <div id="reflexion-overlay" class="reflexion" role="dialog" aria-label="¿Cómo lo hiciste?">
-        <p class="reflexion-titulo" aria-hidden="true">🤔 ¿Cómo lo hiciste?</p>
-        <div class="reflexion-opciones">
-          @for (r of reflexiones; track r.que) {
-            <button class="reflexion-btn" (click)="chooseReflection(r.que)" [attr.aria-label]="r.aria">
-              <span class="reflexion-emoji" aria-hidden="true">{{ r.emoji }}</span>
-              <span class="reflexion-texto">{{ r.text }}</span>
-            </button>
-          }
-        </div>
-      </div>
-    }
 
     <!-- ==================================================== -->
     <!-- 4.5 · TRAZADO 一–十: lienzo para practicar el trazo   -->

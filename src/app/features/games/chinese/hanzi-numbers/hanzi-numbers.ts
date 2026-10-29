@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import confetti from 'canvas-confetti';
 import { ProfileStateService } from '@core/services/profile-state';
@@ -32,7 +32,7 @@ import {
   hanziPara,
   numerosParaFlash,
 } from './hanzi-numbers-problem';
-import { KANJI_TRAZOS, type KanjiTrazos } from '@core/learning/kanji-strokes';
+import { KANJI_TRAZOS, type KanjiTrazos, trazoCount } from '@core/learning/kanji-strokes';
 
 /**
  * ms sin tocar un montaje que no se lee antes de proponer el 十. Mientras le queden
@@ -442,12 +442,17 @@ private unsubscribeEvents?: () => void;
     this.hint.set('');
     this.busy.set(true);
 
-    for (const n of this._flashTanda) {
-      if (this.destroyed || this.isOver()) return;
-      // Mostrar el número + su hanzi, sonar el clip, 1 s.
-      this.linea.set(`${n} ${hanziPara(n)}`);
-      await this.narrator.play([{ clip: numeroClip(n), pauseAfterMs: 250 }]);
-    }
+    // untracked: el effect que llama a este método ya reacciona a isOver();
+    // aquí solo queremos ejecutar la tanda sin reaccionar a cambios.
+    untracked(async () => {
+      for (const n of this._flashTanda) {
+        if (this.destroyed) return;
+        // Mostrar el número + su hanzi, sonar el clip, 1 s.
+        this.linea.set(`${n} ${hanziPara(n)}`);
+        await this.narrator.play([{ clip: numeroClip(n), pauseAfterMs: 250 }]);
+      }
+    });
+
     this.linea.set('');
     this.busy.set(false);
   }
@@ -661,6 +666,7 @@ private unsubscribeEvents?: () => void;
    * sin tener que limpiar y volver a empezar. El orden sigue validándose
    * por `leer()` (la escritura canónica), así que si el nuevo orden no
    * coincide con el objetivo, `leido()` dará otro número y ella lo verá.
+   * Al soltar, `revisar()` cierra la ronda si la lectura coincide.
    */
   reorderPieces(event: CdkDragDrop<PiezaAgarrada[]>): void {
     if (this.busy() || this.isOver() || this.solved()) return;
@@ -670,6 +676,8 @@ private unsubscribeEvents?: () => void;
     this.agarradas.set([...arr]);
     this.hint.set('');
     this.armarDudaPorPausa();
+    // 4.2 fix: reordenar puede completar la lectura → cerrar la ronda
+    this.revisar();
   }
 
   /**
@@ -972,6 +980,11 @@ private unsubscribeEvents?: () => void;
   private get trazosKanji(): readonly string[] {
     const kanji = this.kanjiTrazado();
     return kanji ? KANJI_TRAZOS[kanji]?.trazos ?? [] : [];
+  }
+
+  /** ¿El kanji actual tiene trazos definidos en KANJI_TRAZOS? (para botón ✏️). */
+  tieneTrazos(): boolean {
+    return trazoCount(this.kanjiTrazado()) > 0;
   }
 
   goBack(): void {
