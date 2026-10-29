@@ -307,6 +307,15 @@ Orden libre; ninguna bloquea las anteriores.
   - Reutiliza `stroke-check.ts` y atribución KanjiVG ya existente en `kanji-compose`.
 - **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
 
+## ✅ Estado Fase 4 — ítem 8 (29 oct)
+
+- **两 vs 二** — nota de diseño:
+  - En chino mandarín existen dos formas para "dos": **二** (formal, para contar/números ordinales) y **两** (cuantificador, "dos de algo": 两个, 两岁).
+  - **Decisión**: el juego usa **solo 二** en validación y visualización, por coherencia pedagógica (no mezclar variantes culturales en el mismo nivel) y para que la niña aprenda la forma canónica primero.
+  - Si en el futuro se añade un nivel avanzado de "cuantificadores", se evaluará introducir 两 como variante contextual, pero hoy queda **fuera de la validación** (igual que en la spec original).
+  - No requiere cambios de código: el hanzi mostrado y validado sigue siendo 二.
+- **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
+
 ---
 
 ## Cerrado / no procede
