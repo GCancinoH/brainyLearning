@@ -139,9 +139,11 @@ export function topeReconocer(level: number): number {
  * Los distractores de `numero`, tantos como pida la perilla de la edad (`cuantos`), con
  * la perilla de su nivel:
  *
- *  - **N1–N4:** aleatorios del tramo. La perilla de estos niveles es el tope: con un
- *    tramo de cinco números las opciones son casi todo el tramo, que es lo que hace
- *    que elegir cueste.
+ *  - **N1–N4:** los que **comparten pieza** con la respuesta van primero (3.3, mismo
+ *    criterio que `distractoresFor` de kanji-compose: un distractor que no se parece a
+ *    nada se descarta de un vistazo y no prueba nada —para 15 salen 5, 10, 13…, que
+ *    todos llevan 十—). El resto del tramo completa, si hace falta. La perilla de estos
+ *    niveles sigue siendo el tope: el tramo no cambia, cambia quién lo llena.
  *  - **N5:** vecinos (±1..±3). Casi idénticos en valor, así que elegir obliga a mirar
  *    el glifo, no el número de al lado.
  *  - **N6:** mixto — la **trampa de la decena** (el mismo número sin el 十: 5 para 15,
@@ -178,13 +180,19 @@ function distractoresReconocer(
   };
 
   if (lvl <= 4) {
-    // Aleatorios del tramo, como siempre: aquí la perilla es el tope.
-    const otrosNumeros = new Set<number>();
-    while (otrosNumeros.size < cuantos) {
-      const n = randInt(1, tope, rng);
-      if (enTramo(n)) otrosNumeros.add(n);
+    // 3.3 · Intencionales: comparten glifo con la respuesta (十五 comparte 十 con 十三,
+    // 十七, 十…; 二十 comparte 二 con 2). Se barajan DENTRO de cada grupo —el criterio
+    // pedagógico manda, el orden no— y el tramo completa: tope − 1 ≥ 3 candidatos
+    // siempre, así que no hace falta más.
+    const glifos = new Set([...hanziPara(numero)]);
+    const comparten: number[] = [];
+    const ajenas: number[] = [];
+    for (let n = 1; n <= tope; n++) {
+      if (n === numero) continue;
+      const comparte = [...hanziPara(n)].some(g => glifos.has(g));
+      (comparte ? comparten : ajenas).push(n);
     }
-    return [...otrosNumeros];
+    return [...shuffle(comparten, rng), ...shuffle(ajenas, rng)].slice(0, cuantos);
   }
 
   if (lvl === 5) return tomar(vecinos(), cuantos);
@@ -208,14 +216,25 @@ function distractoresReconocer(
  *
  * 2.6 · La dirección se alterna desde el nivel3; en N1–N2 queda fija (dígito → hanzi),
  * que para los4 años las dos primeras rondas son emparejar sin sorpresas.
+ *
+ * 3.2 · `numeroElegido` es el número que el SRS manda a repasar (el más atrasado del
+ * tramo). Ignora lo que está fuera del tramo del nivel: el repaso no sube de nivel por
+ * la puerta trasera — todos los invariants del generador siguen mandando.
  */
 export function buildReconocerProblem(
   level: number,
   age: 4 | 6,
   rng: Rng = Math.random,
+  numeroElegido?: number,
 ): ReconocerProblem {
   const tope = topeReconocer(level);
-  const numero = randInt(1, tope, rng);
+  const numero =
+    numeroElegido !== undefined &&
+    Number.isInteger(numeroElegido) &&
+    numeroElegido >= 1 &&
+    numeroElegido <= tope
+      ? numeroElegido
+      : randInt(1, tope, rng);
 
   const cfg = getProfileDifficultyConfig(age);
   const cuantos = randInt(cfg.minOptions - 1, cfg.maxOptions - 1, rng);
@@ -303,14 +322,25 @@ export function perillaCombinar(level: number, age: 4 | 6): PerillaCombinar {
   return COMBINAR_POR_EDAD[age][lvl - 1];
 }
 
+/**
+ * 3.2 · `objetivoElegido` es el número vencido del SRS (dentro del rango del nivel; si
+ * no lo está, se ignora y manda el azar del nivel, como siempre).
+ */
 export function buildCombinacionProblem(
   level: number,
   age: 4 | 6,
   rng: Rng = Math.random,
+  objetivoElegido?: number,
 ): CombinacionProblem {
   const perilla = perillaCombinar(level, age);
   const [min, max] = perilla.rango;
-  const objetivo = randInt(min, max, rng);
+  const objetivo =
+    objetivoElegido !== undefined &&
+    Number.isInteger(objetivoElegido) &&
+    objetivoElegido >= min &&
+    objetivoElegido <= max
+      ? objetivoElegido
+      : randInt(min, max, rng);
   const solucion = piezasDe(objetivo);
 
   // Distractores: el resto de los diez caracteres. No pueden formar otra lectura del

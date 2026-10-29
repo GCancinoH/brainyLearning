@@ -44,7 +44,8 @@ export type RepresentationType =
   | 'hiragana'     // ねこ
   | 'kanji'        // 猫
   | 'audio'        // 🔊 ねこ
-  | 'romaji';      // neko
+  | 'romaji'       // neko
+  | 'digit';       // 7 — en Números Hanzi el enunciado es un dígito, no un glifo
 
 export interface WordRepresentation {
   type: RepresentationType;
@@ -243,6 +244,34 @@ export const JAPANESE_SKILLS: SkillDefinition[] = [
       ['kanji', 'audio']
     ],
     recommendedAgeMin: 6
+  }
+];
+
+// Fase 3 · Skills de chino (Números Hanzi). Sin esto, los intentos de este juego se
+// anotarían bajo un skill que no existe en ningún sitio y "el panel" no podría nombrarlos.
+export const CHINESE_SKILLS: SkillDefinition[] = [
+  {
+    id: 'chinese.numeros.reconocer',
+    name: 'Números chinos: reconocer',
+    category: 'chinese',
+    subcategory: 'numeros',
+    description: 'Reconocer el hanzi del 1 al 20 y leerlo al revés (dígito ↔ glifo)',
+    representationProgression: [
+      ['digit', 'kanji'],
+      ['kanji', 'digit']
+    ],
+    recommendedAgeMin: 4
+  },
+  {
+    id: 'chinese.numeros.combinar',
+    name: 'Números chinos: combinar',
+    category: 'chinese',
+    subcategory: 'numeros',
+    description: 'Formar números con diez y unidades, en orden (35 → 三 十 五)',
+    representationProgression: [
+      ['digit']
+    ],
+    recommendedAgeMin: 4
   }
 ];
 

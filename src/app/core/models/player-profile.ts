@@ -25,6 +25,8 @@ export interface PlayerProgress {
   spanish: GameSubjectProgress;
   english: GameSubjectProgress;
   japanese: GameSubjectProgress;
+  /** 3.1 · Para que el panel de padres/reflexión pueda leer los juegos de chino. */
+  chinese: GameSubjectProgress;
 }
 
 export interface PlayerProfile {
@@ -58,7 +60,8 @@ export function createInitialProfile(name: string, age: 4 | 6, avatar: string, t
       math: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
       spanish: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
       english: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
-      japanese: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] }
+      japanese: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
+      chinese: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] }
     }
   };
 }

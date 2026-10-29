@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { HanziNumbers, PAUSA_DUDA_MS } from './hanzi-numbers';
-import { piezasDe } from './hanzi-numbers-problem';
+import { leer, piezasDe } from './hanzi-numbers-problem';
 import { ProfileStateService } from '@core/services/profile-state';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { GameSessionService } from '@core/games/game-session.service';
 import { GameAudioService } from '@core/games/game-audio.service';
 import { Narrator } from '@core/games/narrator.service';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
+import { SkillProgressService } from '@core/learning/skill-progress.service';
+import { SpacedRepetition } from '@core/learning/spaced-repetition';
 import { installMemoryStorage } from '@core/testing/memory-storage';
 
 /**
@@ -105,14 +107,37 @@ describe('HanziNumbers (integración)', () => {
   /** Toca en la bandeja las piezas que forman el objetivo, en orden. */
   function agarrarSolucion(): void {
     const bandeja = component.bandeja();
-    const usados = new Set<number>();
+    // Las que ya están en la mano (una ronda a medias) cuentan: no se agarran dos veces.
+    const usados = new Set<number>(component.agarradas().map(a => a.i));
+    const necesitadas = new Map<string, number>();
     for (const pieza of piezasDe(component.objetivo())) {
+      necesitadas.set(pieza, (necesitadas.get(pieza) ?? 0) + 1);
+      const enMano = component.agarradas().filter(a => a.p === pieza).length;
+      if (enMano >= necesitadas.get(pieza)!) continue;
       const i = bandeja.findIndex((p, idx) => p === pieza && !usados.has(idx));
       expect(i, `la bandeja trae ${pieza}`).toBeGreaterThanOrEqual(0);
       usados.add(i);
       component.agarrar(i);
       fixture.detectChanges();
     }
+  }
+
+  /** El número que dice un texto del tablero: dígito o hanzi. */
+  function valorDe(texto: string): number {
+    return /^\d+$/.test(texto) ? Number(texto) : (leer([texto]) ?? NaN);
+  }
+
+  /** Los telégrafos de la Fase 3: intentos, errores y repasos del SRS. */
+  function espiarAnotaciones(): {
+    intentos: MockInstance;
+    errores: MockInstance;
+    revisiones: MockInstance;
+  } {
+    return {
+      intentos: vi.spyOn(TestBed.inject(SkillProgressService), 'recordAttempt'),
+      errores: vi.spyOn(TestBed.inject(SkillProgressService), 'recordMistake'),
+      revisiones: vi.spyOn(TestBed.inject(SpacedRepetition), 'review'),
+    };
   }
 
   /** Deja correr las microtareas de las promesas de narración (`say` está mockeado). */
@@ -637,6 +662,224 @@ describe('HanziNumbers (integración)', () => {
     fixture.detectChanges();
     expect(component.hint(), 'la pista es un mood, no una frase').not.toMatch(/[A-Za-z]/);
     expect(component.hint(), 'y sí hay pista').not.toBe('');
+  });
+
+  // ============================================
+  // FASE 3 · DATOS HONESTOS (§5.11) Y REFLEXIÓN
+  // ============================================
+
+  it('3.1 · un acierto al primer toque anota el intento con su skill y su representación', () => {
+    mount(4, 1);
+    const { intentos } = espiarAnotaciones();
+
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+
+    expect(intentos, 'un intento por problema, no por toque').toHaveBeenCalledTimes(1);
+    const registro = intentos.mock.calls[0]![0];
+    expect(registro.skillId).toBe('chinese.numeros.reconocer');
+    expect(registro.correct, 'acierto al primer toque').toBe(true);
+    // N1: dirección fija (dígito → hanzi), así que lo que se MOSTRÓ es un dígito.
+    expect(registro.representation).toBe('digit');
+    expect(registro.contentId, 'el número, como contenido').toBe(String(valorDe(component.respuesta())));
+    expect(registro.difficulty).toBe(1);
+    expect(registro.responseTimeMs).toBeGreaterThanOrEqual(0);
+    expect(registro.profileId).toBe('test-profile');
+  });
+
+  it('3.1 · el primer toque fallado anota la falla Y el mistake con la opción exacta', () => {
+    mount(4, 1);
+    const { intentos, errores } = espiarAnotaciones();
+
+    const mala = component.opciones().find(o => o !== component.respuesta())!;
+    component.elegir(mala);
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+
+    expect(intentos, 'sigue siendo un intento por problema').toHaveBeenCalledTimes(1);
+    expect(intentos.mock.calls[0]![0].correct, 'lo que mide es el primer toque').toBe(false);
+    expect(errores, 'y el error queda registrado').toHaveBeenCalledTimes(1);
+    const mistake = errores.mock.calls[0]![0];
+    expect(mistake.mistakeType).toBe('primer-toque');
+    expect(mistake.answered, 'la opción que tocó primero, sin adivinar').toBe(mala);
+    expect(mistake.expected).toBe(component.respuesta());
+  });
+
+  it('3.1 · en combinar, la duda por pausa cuenta como ayuda —no como tanteo—', () => {
+    mount(6, 9); // N9: 41–99 — casi todo son objetivos de 3 piezas
+    let regeneraciones = 0;
+    while (piezasDe(component.objetivo()).length < 3 && regeneraciones < 100) {
+      component.generateProblem();
+      regeneraciones++;
+    }
+    const { intentos, errores, revisiones } = espiarAnotaciones();
+
+    // Dos unidades sin 十: el parcial no se lee todavía → la pausa trae la duda.
+    const unidades = component.bandeja().map((p, i) => ({ p, i })).filter(x => x.p !== '十');
+    component.agarrar(unidades[0]!.i);
+    component.agarrar(unidades[1]!.i);
+    fixture.detectChanges();
+    expect(component.leido(), 'sin el 十 no se lee').toBeNull();
+    vi.advanceTimersByTime(PAUSA_DUDA_MS);
+    fixture.detectChanges();
+    expect(component.hint(), 'la pausa sí trae la duda').toBe('🔟');
+
+    // Lo arregla —vacía lo que estorba y arma la escritura bien— y cierra la ronda: la
+    // duda ya sonó, así que la ronda queda como "resuelta con ayuda".
+    component.limpiar();
+    agarrarSolucion();
+    fixture.detectChanges();
+
+    expect(intentos.mock.calls[0]![0].correct, 'con ayuda no fue sola').toBe(false);
+    expect(errores, 'la ayuda es el mistake honesto').toHaveBeenCalledTimes(1);
+    expect(errores.mock.calls[0]![0].mistakeType).toBe('ayuda');
+    expect(
+      revisiones.mock.calls[0]![2],
+      '§5.4: con ayuda no sube de caja, pero vuelve mañana',
+    ).toEqual({ correct: true, ayuda: 1 });
+  });
+
+  it('3.1 · en combinar, el callejón de orden inválido cuenta como error de orden', () => {
+    mount(6, 7);
+    const { intentos, errores, revisiones } = espiarAnotaciones();
+
+    // Todas las piezas que pide la escritura sin el 十: callejón sin salida.
+    const necesarias = piezasDe(component.objetivo()).length;
+    const unidades = component.bandeja().map((p, i) => ({ p, i })).filter(x => x.p !== '十');
+    expect(unidades.length, 'hay unidades de sobra para el callejón').toBeGreaterThanOrEqual(necesarias);
+    for (const u of unidades.slice(0, necesarias)) component.agarrar(u.i);
+    fixture.detectChanges();
+    expect(component.hint(), 'la duda del callejón').toBe('🔟');
+
+    // Lo arregla y cierra la ronda: el callejón ya quedó anotado.
+    component.limpiar();
+    agarrarSolucion();
+    fixture.detectChanges();
+
+    expect(intentos.mock.calls[0]![0].correct, 'un orden inválido no fue sola').toBe(false);
+    expect(errores, 'y el mistake es de orden').toHaveBeenCalledTimes(1);
+    expect(errores.mock.calls[0]![0].mistakeType).toBe('orden');
+    expect(revisiones.mock.calls[0]![2], '§5.4: el callejón vuelve a la caja 1').toEqual({
+      correct: false,
+      ayuda: 1,
+    });
+  });
+
+  it('3.2 · cada ronda alimenta el SRS con el mismo veredicto de "sola"', () => {
+    mount(4, 1);
+    const { revisiones } = espiarAnotaciones();
+
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+
+    expect(revisiones).toHaveBeenCalledTimes(1);
+    const [deck, numero, resultado] = revisiones.mock.calls[0]!;
+    expect(deck).toBe('hanzi-numbers');
+    expect(numero, 'un recuerdo por número').toBe(String(valorDe(component.respuesta())));
+    expect(resultado, 'sola y sin ayuda: sube de caja').toEqual({ correct: true, ayuda: 0 });
+  });
+
+  it('3.2 · el número vencido del SRS manda sobre el azar del nivel', () => {
+    mount(4, 4);
+    vi.spyOn(TestBed.inject(SpacedRepetition), 'due').mockReturnValue(['15']);
+    decir.mockClear();
+
+    component.generateProblem();
+
+    const visto = [component.enunciado(), component.respuesta()];
+    expect(
+      visto.some(v => v === '15' || v === '十五'),
+      `salió el repasado (15): ${visto.join(' / ')}`,
+    ).toBe(true);
+  });
+
+  it('3.4 · a los 6 años, tras un acierto aparece la reflexión de un toque', () => {
+    mount(6, 3);
+
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1600);
+    fixture.detectChanges();
+
+    expect(component.reflecting(), 'espera su toque').toBe(true);
+    expect(all('.reflexion-btn'), 'tres respuestas').toHaveLength(3);
+    expect(
+      [...document.querySelectorAll('.reflexion-btn')].some(b => b.textContent?.includes('Lo conté')),
+      'cada una dice lo que hace',
+    ).toBe(true);
+
+    component.chooseReflection('nuevo');
+    fixture.detectChanges();
+    expect(component.reflecting(), 'un toque y se va').toBe(false);
+    expect(component.enunciado(), 'y el juego sigue').toBeTruthy();
+  });
+
+  it('3.4 · cada botón hace lo que dice: "repaso" repite el número y "nuevo" trae otro', () => {
+    mount(6, 3);
+    const antes = valorDe(component.respuesta());
+
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1600);
+    component.chooseReflection('repaso');
+    fixture.detectChanges();
+    expect(valorDe(component.respuesta()), 'el mismo, para contarlo otra vez').toBe(antes);
+
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1600);
+    component.chooseReflection('nuevo');
+    fixture.detectChanges();
+    expect(valorDe(component.respuesta()), 'uno que no haya salido hoy').not.toBe(antes);
+  });
+
+  it('3.4 · "me ayudó el audio" vuelve a poner el ancla al entrar (N3+)', () => {
+    mount(6, 3);
+    decir.mockClear();
+
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1600);
+    component.chooseReflection('ancla');
+    fixture.detectChanges();
+
+    const ultima = narraciones().at(-1) ?? '';
+    expect(ultima, 'la consigna').toContain('hn.ask.');
+    expect(ultima, 'y el ancla que ella pidió').toContain('hn.num.');
+  });
+
+  it('3.4 · el diagnóstico no se interrumpe con la reflexión', () => {
+    mount(6, 1, { recienLlegada: true });
+
+    for (let i = 0; i < 3; i++) {
+      component.elegir(component.respuesta());
+      fixture.detectChanges();
+      vi.advanceTimersByTime(3000);
+      fixture.detectChanges();
+      expect(component.reflecting(), 'pregunta tras pregunta, sin preguntar cómo').toBe(false);
+    }
+    expect(component.diagnostico(), 'acabó y siguió a la sesión').toBeNull();
+  });
+
+  it('3.4 · al subir de nivel no hay reflexión: el premio es el nivel', () => {
+    mount(6, 3);
+    // Cuatro aciertos seguidos suben a los 6 años; los tres primeros reflexionan.
+    for (let i = 0; i < 3; i++) {
+      component.elegir(component.respuesta());
+      fixture.detectChanges();
+      vi.advanceTimersByTime(1600);
+      fixture.detectChanges();
+      expect(component.reflecting(), `acierto ${i + 1}: toca reflexionar`).toBe(true);
+      component.chooseReflection('nuevo');
+      fixture.detectChanges();
+    }
+    component.elegir(component.respuesta());
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1600);
+    fixture.detectChanges();
+
+    expect(component.reflecting(), 'con el nivel no se conversa').toBe(false);
+    expect(TestBed.inject(GameSessionService).state()?.level, 'subió al 4').toBe(4);
   });
 
   // ============================================

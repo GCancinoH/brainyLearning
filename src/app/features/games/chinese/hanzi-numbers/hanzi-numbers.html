@@ -152,5 +152,22 @@
     @if (hint()) {
       <p class="hint" aria-live="polite">{{ hint() }}</p>
     }
+
+    <!-- ==================================================== -->
+    <!-- 3.4 · REFLEXIÓN (6 años): un toque, y cada uno cambia algo -->
+    <!-- ==================================================== -->
+    @if (reflecting()) {
+      <div class="reflexion" role="dialog" aria-label="¿Cómo lo hiciste?">
+        <p class="reflexion-titulo" aria-hidden="true">🤔 ¿Cómo lo hiciste?</p>
+        <div class="reflexion-opciones">
+          @for (r of reflexiones; track r.que) {
+            <button class="reflexion-btn" (click)="chooseReflection(r.que)" [attr.aria-label]="r.aria">
+              <span class="reflexion-emoji" aria-hidden="true">{{ r.emoji }}</span>
+              <span class="reflexion-texto">{{ r.text }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
   </main>
 </div>

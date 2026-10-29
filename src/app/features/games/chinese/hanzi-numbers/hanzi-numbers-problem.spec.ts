@@ -212,6 +212,25 @@ describe('buildReconocerProblem', () => {
     const b = buildReconocerProblem(4, 6, mulberry32(77));
     expect(a).toEqual(b);
   });
+
+  it('3.2 · el número que manda el SRS se respeta si cabe en el tramo del nivel', () => {
+    const rng = mulberry32(31);
+    for (let i = 0; i < 40; i++) {
+      const p = buildReconocerProblem(4, 6, rng, 15);
+      expect(p.numero, 'siempre el que se pidió').toBe(15);
+      expect(p.opciones, 'y el problema sigue completo').toContain(p.respuesta);
+      expect(p.opciones.length, 'nunca repetidas').toBe(new Set(p.opciones).size);
+    }
+  });
+
+  it('3.2 · un número fuera del tramo se ignora: el repaso no sube de nivel', () => {
+    const rng = mulberry32(32);
+    for (let i = 0; i < 30; i++) {
+      const p = buildReconocerProblem(1, 4, rng, 17); // N1 solo llega a 5
+      expect(p.numero).toBeGreaterThanOrEqual(1);
+      expect(p.numero).toBeLessThanOrEqual(5);
+    }
+  });
 });
 
 /** El valor numérico de una opción: dígito o hanzi. */
@@ -229,16 +248,33 @@ function distractores(p: ReconocerProblem): number[] {
  * dificultad pasa de "hasta qué número" a "qué tan parecidos son los equivocados".
  */
 describe('los distractores de reconocer: una perilla por nivel', () => {
-  it('N1–N4: aleatorios del tramo — aquí la perilla es el tope', () => {
+  it('3.3 · N1–N4: los distractores que comparten glifo van primero; el tramo manda', () => {
+    // Mismo criterio que `distractoresFor` de kanji-compose: un distractor que no se
+    // parece a nada se descarta de un vistazo y no prueba nada. Para 15 salen 5, 10,
+    // 13…, que todos llevan 十; el resto del tramo completa si el tramo se agota.
     const rng = mulberry32(41);
-    let lejos = 0;
-    for (let i = 0; i < 300; i++) {
-      const p = buildReconocerProblem(4, 6, rng);
-      for (const d of distractores(p)) {
-        if (Math.abs(d - p.numero) > 3) lejos++;
+    for (const level of [1, 2, 3, 4] as const) {
+      const tope = topeReconocer(level);
+      for (let i = 0; i < 150; i++) {
+        const p = buildReconocerProblem(level, 6, rng);
+        const glifos = new Set([...hanziPara(p.numero)]);
+        const comparten: number[] = [];
+        for (let n = 1; n <= tope; n++) {
+          if (n !== p.numero && [...hanziPara(n)].some(g => glifos.has(g))) comparten.push(n);
+        }
+        const ds = distractores(p);
+        for (const d of ds) {
+          expect(d, `${d} vive en el tramo 1–${tope}`).toBeGreaterThanOrEqual(1);
+          expect(d).toBeLessThanOrEqual(tope);
+        }
+        if (comparten.length > 0) {
+          expect(
+            ds.some(d => comparten.includes(d)),
+            `N${level}: para ${p.numero} (${hanziPara(p.numero)}) falta un glifo familiar; salió ${ds.map(hanziPara).join(' ')}`,
+          ).toBe(true);
+        }
       }
     }
-    expect(lejos, 'con distractor aleatorio, alguno se aleja de verdad').toBeGreaterThan(0);
   });
 
   it('N5: todos los distractores son vecinos (±1..±3), sea cual sea su número', () => {
@@ -381,6 +417,17 @@ describe('buildCombinacionProblem', () => {
     const a = buildCombinacionProblem(9, 6, mulberry32(42));
     const b = buildCombinacionProblem(9, 6, mulberry32(42));
     expect(a).toEqual(b);
+  });
+
+  it('3.2 · el objetivo forzado por el SRS se respeta si cabe en el rango del nivel', () => {
+    const rng = mulberry32(33);
+    const p = buildCombinacionProblem(7, 4, rng, 14);
+    expect(p.objetivo, 'el repaso trae el número que costó').toBe(14);
+    expect(leer(p.solucion), 'y el problema sigue completo').toBe(14);
+    // Rango de N7 a los 4: 11–20. El 5 no cabe, así que manda el azar del nivel.
+    const fuera = buildCombinacionProblem(7, 4, rng, 5);
+    expect(fuera.objetivo).toBeGreaterThanOrEqual(11);
+    expect(fuera.objetivo).toBeLessThanOrEqual(20);
   });
 });
 

@@ -5,7 +5,7 @@
 import { Service, inject, signal, computed } from '@angular/core';
 import { JapaneseWord, LearningContent, ProfileDifficultyConfig, SkillDefinition,
   RepresentationType, getProfileDifficultyConfig, getWordsForProfile, getWordsBySkill,
-  JAPANESE_WORDS, JAPANESE_SKILLS
+  JAPANESE_WORDS, JAPANESE_SKILLS, CHINESE_SKILLS
 } from './learning-content';
 import { ProfileStateService } from '../services/profile-state';
 
@@ -17,7 +17,9 @@ export class LearningContentService {
   // ESTADO - Dataset declarativo
   // ============================================
   private _words = signal<JapaneseWord[]>(JAPANESE_WORDS);
-  private _skills = signal<SkillDefinition[]>(JAPANESE_SKILLS);
+  // 3.1 · Los skills de chino acompañan a los de japonés: Números Hanzi deja de ser el
+  // juego que no anota, y el futuro panel de padres puede nombrar lo que anota.
+  private _skills = signal<SkillDefinition[]>([...JAPANESE_SKILLS, ...CHINESE_SKILLS]);
 
   readonly words = this._words.asReadonly();
   readonly skills = this._skills.asReadonly();

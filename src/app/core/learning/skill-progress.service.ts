@@ -25,7 +25,8 @@ function emptyByRepresentation(): Record<RepresentationType, { attempts: number;
     hiragana: { attempts: 0, correct: 0, accuracy: 0 },
     kanji: { attempts: 0, correct: 0, accuracy: 0 },
     audio: { attempts: 0, correct: 0, accuracy: 0 },
-    romaji: { attempts: 0, correct: 0, accuracy: 0 }
+    romaji: { attempts: 0, correct: 0, accuracy: 0 },
+    digit: { attempts: 0, correct: 0, accuracy: 0 }
   };
 }
 

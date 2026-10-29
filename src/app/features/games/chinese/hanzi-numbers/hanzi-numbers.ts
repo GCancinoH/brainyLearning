@@ -9,6 +9,9 @@ import { FeedbackState, SessionEvent } from '@core/games/game-types';
 import { Narrator } from '@core/games/narrator.service';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import { FirstAttemptGuard } from '@core/learning/first-attempt-guard';
+import { SkillProgressService } from '@core/learning/skill-progress.service';
+import { HANZI_NUMBERS_DECK, SpacedRepetition } from '@core/learning/spaced-repetition';
+import type { RepresentationType } from '@core/learning/learning-content';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { CLIP_BASE, CLIP_MANIFEST, PISTA_ICONO, numeroClip } from './hanzi-narration';
@@ -17,7 +20,9 @@ import {
   buildReconocerProblem,
   etapaDeNivel,
   leer,
+  perillaCombinar,
   piezasDe,
+  topeReconocer,
 } from './hanzi-numbers-problem';
 
 /**
@@ -41,6 +46,14 @@ const DIAG_NIVELES = [1, 3, 4] as const;
  * que se explica una vez por perfil, como los tutoriales de kanji-compose.
  */
 const PUENTE_MODO = 'combinar';
+
+/**
+ * 3.1 · Los skills que este juego anota (catálogo `CHINESE_SKILLS`). Reconocer y
+ * combinar son dos habilidades distintas —como reconocer y componer un kanji— y el
+ * panel de padres necesita poder nombrar cada una.
+ */
+const SKILL_RECONOCER = 'chinese.numeros.reconocer';
+const SKILL_COMBINAR = 'chinese.numeros.combinar';
 
 /**
  * "Números Hanzi" — Planeta Dragón 🐉, con el Sabio Long.
@@ -85,6 +98,8 @@ export class HanziNumbers implements OnInit, OnDestroy {
   private readonly progress = inject(GameProgressService);
   private readonly narrator = inject(Narrator);
   private readonly tutorials = inject(TutorialSeen);
+  private readonly skills = inject(SkillProgressService);
+  private readonly srs = inject(SpacedRepetition);
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -138,6 +153,19 @@ export class HanziNumbers implements OnInit, OnDestroy {
    */
   readonly diagnostico = signal<{ respuestas: boolean[] } | null>(null);
 
+  /**
+   * 3.4 · Reflexión de un toque (6 años): tras cada acierto que NO sube de nivel se
+   * pregunta "¿Cómo lo hiciste?" y el juego espera su toque. La elección no se guarda
+   * —eso es §5.11— pero **cambia el problema que viene**: cada botón hace lo que dice.
+   */
+  readonly reflecting = signal(false);
+
+  readonly reflexiones = [
+    { que: 'nuevo' as const, emoji: '🧠', text: 'Lo sé de memoria', aria: 'Sacar uno que no haya salido' },
+    { que: 'repaso' as const, emoji: '🖐️', text: 'Lo conté', aria: 'El mismo número otra vez' },
+    { que: 'ancla' as const, emoji: '👂', text: 'Me ayudó el audio', aria: 'Que el audio te acompañe al entrar' },
+  ];
+
   // ============================================
   // ESTADO · etapa 2 (combinar)
   // ============================================
@@ -187,6 +215,20 @@ export class HanziNumbers implements OnInit, OnDestroy {
   private problemaActual: object = {};
   /** El temporizador de la duda por pausa, si hay uno armado. */
   private dudaPausaId: number | null = null;
+  /** 3.1 · Cuántos callejones de orden inválido hubo en esta ronda de combinar. */
+  private callejones = 0;
+  /** 3.1 · La opción con la que FALLÓ el primer toque: va en el mistake, sin adivinar. */
+  private primerToqueErrado: string | null = null;
+  /** 3.1 · Cuándo se mostró el problema, para el `responseTimeMs` del intento. */
+  private rondaEmpezadaEn = Date.now();
+  /** 3.2 · Números que ya han salido hoy en la sesión (los pide la reflexión "nuevo"). */
+  private readonly vistosHoy = new Set<number>();
+  /** 3.2 · El número de este problema, por si la reflexión pide repetirlo ("repaso"). */
+  private ultimoNumero = 0;
+  /** 3.4 · La elección de la reflexión, que consume `generateProblem`. */
+  private modoReflexion: 'nuevo' | 'repaso' | 'ancla' | null = null;
+  /** 3.4 · Si el siguiente problema entra con el ancla pedida en la reflexión. */
+  private anclaPedida = false;
 
   // ============================================
   // DERIVADOS
@@ -320,7 +362,10 @@ export class HanziNumbers implements OnInit, OnDestroy {
     this.hint.set('');
     this.localFeedback.set('idle');
     this.busy.set(false);
+    this.reflecting.set(false);
     this.dudaDicha = false;
+    this.callejones = 0;
+    this.primerToqueErrado = null;
     // Nuevo problema, nueva medición: el primer intento y lo descartado empiezan de cero.
     this.problemaActual = {};
     this.primerIntento.set(null);
@@ -347,33 +392,83 @@ export class HanziNumbers implements OnInit, OnDestroy {
       return;
     }
 
+    // 3.4 · Lo que pidió la reflexión manda aquí y se consume: un toque, un cambio.
+    const modo = this.modoReflexion;
+    this.modoReflexion = null;
+    this.anclaPedida = modo === 'ancla';
+
+    // 3.2 · Repetición espaciada (mismo motor que kanji-compose): los números vencidos
+    // del mazo mandan sobre el azar —el más atrasado primero— pero solo si caben en el
+    // tramo del nivel: el repaso no sube de nivel por la puerta trasera.
+    const vencidos = this.srs.due(HANZI_NUMBERS_DECK).map(Number).filter(Number.isInteger);
+
     if (etapaDeNivel(nivel) === 'reconocer') {
-      this.generarReconocer(nivel);
+      const tope = topeReconocer(nivel);
+      this.generarReconocer(nivel, this.numeroPara(modo, [1, tope], vencidos), modo === 'ancla');
       return;
     }
 
     const age = this.activeProfile()?.age ?? 4;
-    const p = buildCombinacionProblem(nivel, age);
+    const rango = perillaCombinar(nivel, age).rango;
+    const p = buildCombinacionProblem(
+      nivel,
+      age,
+      Math.random,
+      this.numeroPara(modo, rango, vencidos),
+    );
     this.objetivo.set(p.objetivo);
     this.bandeja.set(p.bandeja);
+    this.rondaEmpezadaEn = Date.now();
+    this.ultimoNumero = p.objetivo;
+    this.vistosHoy.add(p.objetivo);
     // 2.5 · Sin consigna escrita: el rótulo "Forma" es un icono (en el html) y la frase
     // la dice la voz. Y 2.3 · el objetivo NO se lee en voz alta al entrar: el oído
-    // acompaña el montaje (las piezas suenan al tocarlas), no lo entrega hecho.
+    // acompaña el montaje (las piezas suenan al tocarlas), no lo entrega hecho. Salvo
+    // que ella pida el audio en la reflexión (3.4): entonces el ancla vuelve una vez.
     this.linea.set('');
-    void this.narrar('hn.ask.combinar');
+    void this.narrar(
+      this.anclaPedida ? ['hn.ask.combinar', numeroClip(p.objetivo)] : 'hn.ask.combinar',
+    );
+  }
+
+  /**
+   * 3.2 + 3.4 · Qué número toca: primero lo que pidió la reflexión, después el SRS (el
+   * más atrasado del tramo), y si no hay memoria —o ya salió todo el tramo— que decida
+   * el azar del nivel (el builder).
+   */
+  private numeroPara(
+    modo: 'nuevo' | 'repaso' | 'ancla' | null,
+    tramo: readonly [number, number],
+    vencidos: readonly number[],
+  ): number | undefined {
+    const [min, max] = tramo;
+    const enTramo = (n: number): boolean => Number.isInteger(n) && n >= min && n <= max;
+    if (modo === 'repaso' && enTramo(this.ultimoNumero)) return this.ultimoNumero;
+    if (modo === 'nuevo') {
+      const frescos: number[] = [];
+      for (let n = min; n <= max; n++) if (!this.vistosHoy.has(n)) frescos.push(n);
+      if (frescos.length > 0) return frescos[Math.floor(Math.random() * frescos.length)];
+    }
+    return vencidos.find(enTramo);
   }
 
   /**
    * Una pregunta de reconocer en el nivel que toca —el real, o una de las del
    * diagnóstico, que se generan con SU nivel para que sean el juego tal cual.
+   *
+   * `numeroElegido` viene del SRS o de la reflexión (3.2/3.4); `ancla` es el audio que
+   * ella pidió en la reflexión y que vuelve una vez.
    */
-  private generarReconocer(nivel: number): void {
+  private generarReconocer(nivel: number, numeroElegido?: number, ancla = false): void {
     const age = this.activeProfile()?.age ?? 4;
-    const p = buildReconocerProblem(nivel, age);
+    const p = buildReconocerProblem(nivel, age, Math.random, numeroElegido);
     this.direccion.set(p.direccion);
     this.enunciado.set(p.enunciado);
     this.respuesta.set(p.respuesta);
     this.opciones.set(p.opciones);
+    this.rondaEmpezadaEn = Date.now();
+    this.ultimoNumero = p.numero;
+    if (!this.diagnostico()) this.vistosHoy.add(p.numero);
     // 2.5 · La consigna no se escribe para quien aún no lee: son iconos de dirección —
     // ¿qué se muestra y qué se elige— y la frase la dice la voz al entrar.
     this.linea.set(p.direccion === 'numero-a-hanzi' ? '🔢➡️🔤' : '🔤➡️🔢');
@@ -381,8 +476,9 @@ export class HanziNumbers implements OnInit, OnDestroy {
     // 2.3 · El ancla —oír "qī" mientras se mira el 7— puentea número y glifo, pero SOLO
     // en N1–N2, donde emparejar por oído está bien. Desde el N3 el inicio ya no dice el
     // número: si lo dijera, tocar hasta oír lo igual resolvería el problema sin mirar
-    // el glifo, que es justamente lo que el juego enseña.
-    void this.narrar(nivel <= 2 ? [ask, numeroClip(p.numero)] : ask);
+    // el glifo, que es justamente lo que el juego enseña. Salvo que ella lo pida en la
+    // reflexión (3.4): pedir ayuda y recibirla es aprender, no hacer trampa.
+    void this.narrar(nivel <= 2 || ancla ? [ask, numeroClip(p.numero)] : ask);
   }
 
   // ============================================
@@ -393,8 +489,10 @@ export class HanziNumbers implements OnInit, OnDestroy {
     if (this.busy() || this.isOver() || this.solved()) return;
 
     // El primer toque queda registrado tal cual: es lo que cuenta para medir (1.2).
+    // 3.1 · Y la opción con la que falló el primero viaja en el mistake, sin adivinar.
     if (this.firstAttempt.isFirst(this.problemaActual)) {
       this.primerIntento.set(opcion === this.respuesta());
+      if (opcion !== this.respuesta()) this.primerToqueErrado = opcion;
     }
 
     if (opcion === this.respuesta()) {
@@ -473,6 +571,9 @@ export class HanziNumbers implements OnInit, OnDestroy {
       }
       // Puso todas las piezas y no se lee (三五, o el orden está al revés): es un
       // callejón sin salida. La duda apunta al 十, que es lo que casi siempre falta.
+      // 3.1 · Cada callejón cuenta: es el "reinicio por orden inválido" del criterio de
+      // error —no cada toque, que eso es exploración—.
+      this.callejones++;
       this.quitarDudaPorPausa();
       this.dudar('hn.duda.dieces', pieza);
       return;
@@ -503,6 +604,11 @@ export class HanziNumbers implements OnInit, OnDestroy {
     const diag = this.diagnostico();
     if (diag) {
       this.diagnostico.set({ respuestas: [...diag.respuestas, this.primerIntento() ?? false] });
+    } else {
+      // 3.1 · Datos honestos + 3.2 · el SRS se alimenta al cerrar, que es cuando se
+      // sabe si fue sola, con duda o con callejón. El diagnóstico no anota: es una
+      // prueba de ubicación, no una partida.
+      this.anotarRonda();
     }
 
     // Primero el número, entero, en chino: es la recompensa y la pronunciación de la
@@ -527,9 +633,89 @@ export class HanziNumbers implements OnInit, OnDestroy {
       return;
     }
 
-    this.later(() => {
-      if (!this.isOver()) this.generateProblem();
-    }, 2600);
+    // 3.4 · A los 6 años, una reflexión de un toque en lugar del avance automático:
+    // el juego espera su respuesta y ella decide qué viene. Los4 años y el
+    // diagnóstico siguen con el avance de siempre —el diagnóstico mide el primer
+    // toque de 3 preguntas, no es el momento de preguntarle cómo lo hizo—.
+    if ((this.activeProfile()?.age ?? 4) >= 6 && !diag) {
+      this.later(() => {
+        if (!this.isOver()) this.reflecting.set(true);
+      }, 1600);
+    } else {
+      this.later(() => {
+        if (!this.isOver()) this.generateProblem();
+      }, 2600);
+    }
+  }
+
+  /**
+   * 3.1 · Los datos honestos: UN intento por problema —no por toque, que tocar es
+   * explorar— y el mistake es la ayuda o el orden, nunca el error de una niña.
+   *
+   * Qué cuenta como "sola" (intento correcto):
+   *
+   *  - **reconocer:** acertó al PRIMER toque (si dudó, es que ya había fallado);
+   *  - **combinar:** sin callejón de orden inválido y sin duda sonada.
+   *
+   * Ese mismo "sola" es lo que premia el SRS (§5.4): sola sube de caja; con andamio
+   * no sube pero vuelve mañana; el callejón (orden inválido) vuelve a la 1.
+   */
+  private anotarRonda(): void {
+    const profile = this.activeProfile();
+    if (!profile) return;
+    const etapa = this.etapa();
+    const numero = etapa === 'reconocer' ? valorDe(this.respuesta()) : this.objetivo();
+    if (numero === null || numero === 0) return;
+
+    const sola =
+      etapa === 'reconocer' ? this.primerIntento() === true : this.callejones === 0 && !this.dudaDicha;
+    // El enunciado de reconocer puede ser dígito o glifo; el de combinar es siempre
+    // un dígito. Se anota lo que se MOSTRÓ, que es lo que hay que mirar.
+    const representation: RepresentationType =
+      etapa === 'combinar' || this.direccion() === 'numero-a-hanzi' ? 'digit' : 'kanji';
+    const skillId = etapa === 'reconocer' ? SKILL_RECONOCER : SKILL_COMBINAR;
+
+    this.skills.recordAttempt({
+      skillId,
+      contentId: String(numero),
+      correct: sola,
+      responseTimeMs: Date.now() - this.rondaEmpezadaEn,
+      difficulty: this.currentLevel(),
+      representation,
+      timestamp: Date.now(),
+      profileAge: profile.age,
+      profileId: profile.id,
+    });
+
+    if (etapa === 'reconocer' && this.primerIntento() === false) {
+      this.skills.recordMistake({
+        skillId,
+        contentId: String(numero),
+        expected: this.respuesta(),
+        answered: this.primerToqueErrado ?? '',
+        mistakeType: 'primer-toque',
+        representation,
+        timestamp: Date.now(),
+        profileId: profile.id,
+      });
+    } else if (!sola) {
+      // combinar: orden inválido (el callejón) o la duda por pausa. Nunca el toque.
+      this.skills.recordMistake({
+        skillId,
+        contentId: String(numero),
+        expected: piezasDe(numero).join(''),
+        answered: this.callejones > 0 ? 'orden' : 'ayuda',
+        mistakeType: this.callejones > 0 ? 'orden' : 'ayuda',
+        representation,
+        timestamp: Date.now(),
+        profileId: profile.id,
+      });
+    }
+
+    this.srs.review(HANZI_NUMBERS_DECK, String(numero), {
+      correct: etapa === 'reconocer' ? this.primerIntento() === true : this.callejones === 0,
+      ayuda: this.dudaDicha ? 1 : 0,
+    });
   }
 
   /**
@@ -586,6 +772,25 @@ export class HanziNumbers implements OnInit, OnDestroy {
   // ============================================
   // VISTA
   // ============================================
+
+  /**
+   * 3.4 · Cada botón hace lo que dice (patrón Q4 de kanji-compose):
+   *
+   *  - 🧠 "Lo sé de memoria" → el siguiente es uno que hoy no ha salido;
+   *  - 🖐️ "Lo conté" → el mismo número, para contarlo otra vez;
+   *  - 👂 "Me ayudó el audio" → el siguiente ENTRA diciendo el número (el ancla de
+   *    N1–N2, que aquí la pide ella).
+   *
+   * No se guarda la elección (eso es §5.11): lo que importa es que la respuesta
+   * **cambia algo** —una pregunta cuyos botones hacen todos lo mismo no es pregunta.
+   */
+  chooseReflection(que: 'nuevo' | 'repaso' | 'ancla'): void {
+    // Sin guard de `busy`: el problema acaba de terminar y `busy` sigue true hasta el
+    // siguiente `generateProblem` —que es justo lo que este toque pide.
+    if (this.isOver()) return;
+    this.modoReflexion = que;
+    this.generateProblem();
+  }
 
   /**
    * 2.4 · La tarjeta del puente se toca para seguir: la demostración queda vista y —solo
