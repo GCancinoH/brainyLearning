@@ -241,6 +241,17 @@ Orden libre; ninguna bloquea las anteriores.
 - **Nota**: la igualdad con el JSON exportado (`tools/narration/hanzi-numbers.json`) se valida en CI
   ejecutando `npx tsx tools/narration/export-hanzi.ts` y comparando el fichero.
 
+## ✅ Estado Fase 4 — ítem 1 (29 oct)
+
+- **CPA / bloques Dienes** en etapa combinar (N7+):
+  - Helper `descomponerCPA(numero)` en `hanzi-numbers-problem.ts` → `{ decenas, unidades }`.
+  - Computed `cpa()` en componente reactivo al objetivo.
+  - HTML: `.cpa` con `.cpa-decenas` (barras oro) y `.cpa-unidades` (cubos azules), `role="img"` + `aria-label`.
+  - CSS: `.cpa-barra` (48×10px, gradiente oro), `.cpa-cubo` (16×16px, gradiente azul).
+  - Solo visible en `etapa() === 'combinar'`; `reconocer` y diagnóstico no lo muestran.
+- **Verificación lab** (perfil 6 años, N7): objetivo 48 → 4 barras + 8 cubos; objetivo 58 → 5 barras + 8 cubos; `aria-label` correctos.
+- **Verificación**: suite 4 baseline / 390 passed, `ng build` limpio (mismos 2 warnings).
+
 ---
 
 ## Cerrado / no procede

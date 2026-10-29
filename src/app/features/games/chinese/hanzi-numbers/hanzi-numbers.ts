@@ -23,6 +23,7 @@ import {
   perillaCombinar,
   piezasDe,
   topeReconocer,
+  descomponerCPA,
 } from './hanzi-numbers-problem';
 
 /**
@@ -175,6 +176,13 @@ export class HanziNumbers implements OnInit, OnDestroy {
   readonly agarradas = signal<PiezaAgarrada[]>([]);
   /** El número que dice lo que lleva armado, o `null` si todavía no se lee. */
   readonly leido = computed(() => leer(this.agarradas().map(a => a.p)));
+
+  /** 4.1 · CPA / bloques Dienes: descomposición del objetivo en decenas y unidades.
+   *  Solo en etapa combinar (≥11). Ej: 35 → { decenas: 3, unidades: 5 }.
+   *  La niña ve 3 barras de 10 + 5 cubos y entiende por qué se escribe 三十五. */
+  readonly cpa = computed(() =>
+    this.etapa() === 'combinar' ? descomponerCPA(this.objetivo()) : { decenas: 0, unidades: 0 },
+  );
   /** ¿La pieza `i` de la bandeja está ya en la mano? */
   usada(i: number): boolean {
     return this.agarradas().some(a => a.i === i);

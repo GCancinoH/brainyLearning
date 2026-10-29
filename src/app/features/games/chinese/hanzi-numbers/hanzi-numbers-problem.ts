@@ -47,6 +47,17 @@ export const PIEZAS: readonly string[] = [
 const UNIDADES = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const DIEZ = '十';
 
+/**
+ * CPA (Concreto-Pictórico-Abstracto) / bloques Dienes para Números Hanzi.
+ * Devuelve { decenas, unidades } para un número 11–99.
+ * Ej: 35 → { decenas: 3, unidades: 5 }  (tres barras de 10 + cinco cubos).
+ * Solo tiene sentido en la etapa combinar (≥11).
+ */
+export function descomponerCPA(numero: number): { decenas: number; unidades: number } {
+  if (numero < 11 || numero > 99) return { decenas: 0, unidades: 0 };
+  return { decenas: Math.floor(numero / 10), unidades: numero % 10 };
+}
+
 export type Etapa = 'reconocer' | 'combinar';
 
 /**

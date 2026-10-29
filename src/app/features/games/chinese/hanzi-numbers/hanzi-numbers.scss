@@ -202,6 +202,44 @@ $rojo-hondo: #7f1d1d;
   }
 }
 
+// ---------- 4.1 · CPA / BLOQUES DIENES ----------
+// Representación concreta del objetivo: barras de decenas (10) y cubos de unidades (1).
+// Solo en etapa combinar. Ayuda a ver la posicionalidad: 35 = 3 barras + 5 cubos = 三十五.
+.cpa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0;
+  width: 100%;
+}
+
+.cpa-decenas,
+.cpa-unidades {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.cpa-barra {
+  width: 48px;
+  height: 10px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.9), rgba(251, 191, 36, 0.5));
+  border: 1px solid rgba(251, 191, 36, 0.7);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.cpa-cubo {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.5));
+  border: 1px solid rgba(59, 130, 246, 0.7);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 /**
  * Lo que lleva armado. El número de la derecha es LA LECTURA: si no es el objetivo, se
  * pone apagado y la niña compara. No hay "mal", hay otra cuenta.
