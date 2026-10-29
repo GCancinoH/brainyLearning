@@ -219,11 +219,27 @@ Orden libre; ninguna bloquea las anteriores.
 5. **Trazado de 一–十** — añadir esos 10 kanji a `KANJI_TRAZOS` (datos KanjiVG; **CC BY-SA 3.0 →
    la atribución visible ya montada para kanji-compose se reutiliza**) + `stroke-check`.
    Es el único punto que exige licencia con cuidado.
-6. **Spec de narración** — test que el manifiesto cubre los 6 clips es + 99 zh-CN y que todo
-   `numeroClip(n)` existe (evita roturas silenciosas al regenerar audio).
+6. **Spec de narración** — test que el manifiesto cubre los 7 clips es + 99 zh-CN y que todo
+   `numeroClip(n)` existe (evita roturas silenciosas al regenerar audio). ✅ **hecho (29 oct)**.
 7. **Botón 🔊 repetir** en ambos sentidos.
 8. **两 vs 二** — se mantiene **fuera** (decisión ya tomada en la spec: no mezclar variantes culturales
    en la validación); solo nota de diseño si acaso.
+
+---
+
+## ✅ Estado Fase 4 — ítem 6 (29 oct)
+
+- **Spec `hanzi-narration.spec.ts`** (7 tests):
+  - Cuenta correcta: 7 consignas es-MX + 99 números zh-CN = 106 claves.
+  - Las 7 claves es-MX son exactamente las esperadas (incluye `hn.puente`).
+  - Las 99 claves zh-CN son `hn.num.1 … hn.num.99`.
+  - `numeroClip(n)` existe en el manifiesto para todo n=1..99.
+  - Ningún clip contiene palabras veredicto prohibidas (FORBIDDEN_IN_NARRATION).
+  - TTS de números usa hanzi real (no dígitos ni pinyin).
+  - `CLIP_TEXT` cubre las 7 consignas es-MX; los 99 números se generan dinámicamente.
+- **Verificación**: suite 4 baseline / 390 passed, `ng build` limpio (mismos 2 warnings).
+- **Nota**: la igualdad con el JSON exportado (`tools/narration/hanzi-numbers.json`) se valida en CI
+  ejecutando `npx tsx tools/narration/export-hanzi.ts` y comparando el fichero.
 
 ---
 
