@@ -36,6 +36,12 @@
       <button class="repeat-btn" (click)="repeatLast()" aria-label="Repetir audio">
         🔊
       </button>
+      <!-- 4.5 · Botón ✏️ Trazado: abre el lienzo para practicar el trazo del número actual. -->
+      @if (!diagnostico() && !puente()) {
+        <button class="trace-btn" (click)="abrirTrazado()" aria-label="Practicar trazo">
+          ✏️
+        </button>
+      }
     </div>
   </header>
 
@@ -196,7 +202,7 @@
     <!-- 3.4 · REFLEXIÓN (6 años): un toque, y cada uno cambia algo -->
     <!-- ==================================================== -->
     @if (reflecting()) {
-      <div class="reflexion" role="dialog" aria-label="¿Cómo lo hiciste?">
+      <div id="reflexion-overlay" class="reflexion" role="dialog" aria-label="¿Cómo lo hiciste?">
         <p class="reflexion-titulo" aria-hidden="true">🤔 ¿Cómo lo hiciste?</p>
         <div class="reflexion-opciones">
           @for (r of reflexiones; track r.que) {
@@ -205,6 +211,49 @@
               <span class="reflexion-texto">{{ r.text }}</span>
             </button>
           }
+        </div>
+      </div>
+    }
+
+    <!-- Duda socrática: propone el siguiente movimiento, nunca juzga el anterior -->
+    @if (hint()) {
+      <p class="hint" aria-live="polite">{{ hint() }}</p>
+    }
+
+    <!-- ==================================================== -->
+    <!-- 3.4 · REFLEXIÓN (6 años): un toque, y cada uno cambia algo -->
+    <!-- ==================================================== -->
+    @if (reflecting()) {
+      <div id="reflexion-overlay" class="reflexion" role="dialog" aria-label="¿Cómo lo hiciste?">
+        <p class="reflexion-titulo" aria-hidden="true">🤔 ¿Cómo lo hiciste?</p>
+        <div class="reflexion-opciones">
+          @for (r of reflexiones; track r.que) {
+            <button class="reflexion-btn" (click)="chooseReflection(r.que)" [attr.aria-label]="r.aria">
+              <span class="reflexion-emoji" aria-hidden="true">{{ r.emoji }}</span>
+              <span class="reflexion-texto">{{ r.text }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ==================================================== -->
+    <!-- 4.5 · TRAZADO 一–十: lienzo para practicar el trazo   -->
+    <!-- ==================================================== -->
+    @if (trazando()) {
+      <div class="trazado" role="dialog" aria-label="Practica el trazo">
+        <div class="trazado-header">
+          <span class="trazado-kanji">{{ kanjiTrazado() }}</span>
+          <button class="trazado-cerrar" (click)="cerrarTrazado()" aria-label="Cerrar trazado">✕</button>
+        </div>
+        <div class="trazado-canvas-wrap">
+          <canvas #trazadoCanvas class="trazado-canvas" aria-label="Dibuja el trazo aquí"></canvas>
+          <div class="trazado-progreso">
+            Trazo {{ progresoTrazado().actual + 1 }} de {{ progresoTrazado().total }}
+          </div>
+        </div>
+        <div class="trazado-acciones">
+          <button class="trazado-btn" (click)="reiniciarTrazado()">🔄 Reiniciar</button>
         </div>
       </div>
     }

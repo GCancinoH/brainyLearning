@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import confetti from 'canvas-confetti';
 import { ProfileStateService } from '@core/services/profile-state';
@@ -6,6 +6,7 @@ import { GameSessionService } from '@core/games/game-session.service';
 import { GameAudioService } from '@core/games/game-audio.service';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { FeedbackState, SessionEvent } from '@core/games/game-types';
+import { TracingCanvas } from './tracing-canvas';
 import { CdkDrag, CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Narrator } from '@core/games/narrator.service';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
@@ -31,6 +32,7 @@ import {
   hanziPara,
   numerosParaFlash,
 } from './hanzi-numbers-problem';
+import { KANJI_TRAZOS, type KanjiTrazos } from '@core/learning/kanji-strokes';
 
 /**
  * ms sin tocar un montaje que no se lee antes de proponer el 十. Mientras le queden
@@ -207,6 +209,12 @@ export class HanziNumbers implements OnInit, OnDestroy {
     return this.agarradas().some(a => a.i === i);
   }
 
+  /** Valor numérico de la respuesta actual (dígito o hanzi → number). */
+  private valorRespuesta(): number {
+    const r = this.respuesta();
+    return /^\d+$/.test(r) ? Number(r) : (leer([r]) ?? 0);
+  }
+
   // ============================================
   // ESTADO · común
   // ============================================
@@ -221,12 +229,21 @@ export class HanziNumbers implements OnInit, OnDestroy {
    * y una demostración **antes** del primer problema real. Se ve una vez por perfil.
    */
   readonly puente = signal(false);
+
+  /** 4.5 · Modal de trazado 一–十: lienzo para practicar el trazo del número actual. */
+  readonly trazando = signal(false);
+
+  /** El kanji que se está trazando (el del número actual). */
+  readonly kanjiTrazado = computed(() => {
+    const n = this.etapa() === 'reconocer' ? this.valorRespuesta() : this.objetivo();
+    return n ? hanziPara(n) : '';
+  });
+
+  /** Progreso del trazado (trazo actual / total). */
+  readonly progresoTrazado = signal({ actual: 0, total: 0 });
+
   /**
    * Cambia en cada problema y va en el `track` de las piezas y las opciones.
-   *
-   * Sin él, Angular reutiliza los nodos que siguen presentes (la opción "3" de un
-   * problema es la "3" del siguiente) y esas no vuelven a entrar: la mitad de las
-   * opciones aparecerían de golpe y la otra mitad ya estaría quieta.
    */
   readonly problemaId = signal(0);
 
@@ -242,6 +259,10 @@ export class HanziNumbers implements OnInit, OnDestroy {
   private problemaActual: object = {};
   /** El temporizador de la duda por pausa, si hay uno armado. */
   private dudaPausaId: number | null = null;
+  /** Referencia al canvas de trazado (4.5). */
+  private readonly trazadoCanvas = viewChild.required<HTMLCanvasElement>('trazadoCanvas');
+  /** Instancia del canvas de trazado (4.5). */
+  private tracingCanvas: TracingCanvas | null = null;
   /** 3.1 · Cuántos callejones de orden inválido hubo en esta ronda de combinar. */
   private callejones = 0;
   /** 3.1 · La opción con la que FALLÓ el primer toque: va en el mistake, sin adivinar. */
@@ -907,6 +928,50 @@ private unsubscribeEvents?: () => void;
     this.tutorials.mark(this.GAME_ID, PUENTE_MODO);
     this.puente.set(false);
     this.generateProblem();
+  }
+
+  /** 4.5 · Abre el lienzo de trazado para el número actual. */
+  abrirTrazado(): void {
+    if (this.isOver() || this.busy()) return;
+    this.trazando.set(true);
+    // Inicializa el canvas en el siguiente tick (para que el DOM exista)
+    setTimeout(() => this.inicializarTrazado(), 0);
+  }
+
+  /** 4.5 · Cierra el lienzo de trazado. */
+  cerrarTrazado(): void {
+    this.trazando.set(false);
+    this.tracingCanvas = null;
+  }
+
+  /** 4.5 · Reinicia el trazado actual (borra lo dibujado). */
+  reiniciarTrazado(): void {
+    this.tracingCanvas?.reiniciar();
+    this.progresoTrazado.set({ actual: 0, total: 0 });
+  }
+
+  /** Inicializa el canvas de trazado con el kanji actual. */
+  private inicializarTrazado(): void {
+    const canvas = this.trazadoCanvas();
+    const kanji = this.kanjiTrazado();
+    if (!canvas || !kanji) return;
+    this.tracingCanvas = new TracingCanvas(canvas, kanji, (trazo, veredicto) => {
+      if (trazo >= 0 && veredicto) {
+        this.progresoTrazado.set({ actual: trazo, total: this.trazosKanji.length });
+      } else if (trazo === -1) {
+        // Todos los trazos completados
+        this.progresoTrazado.set({ actual: this.trazosKanji.length, total: this.trazosKanji.length });
+        // Pequeño feedback visual
+        this.hint.set('✨ ¡Completado!');
+        setTimeout(() => this.hint.set(''), 1500);
+      }
+    });
+    this.progresoTrazado.set({ actual: 0, total: this.trazosKanji.length });
+  }
+
+  private get trazosKanji(): readonly string[] {
+    const kanji = this.kanjiTrazado();
+    return kanji ? KANJI_TRAZOS[kanji]?.trazos ?? [] : [];
   }
 
   goBack(): void {

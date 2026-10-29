@@ -298,6 +298,15 @@ Orden libre; ninguna bloquea las anteriores.
 - **Sabio Long**: ya narra en español (guía) y los números en chino (contenido); el Flash refuerza su presencia como "el que repasa".
 - **Verificación**: suite 4 baseline / 390 passed, `ng build` limpio (mismos 2 warnings).
 
+## ✅ Estado Fase 4 — ítem 5 (29 oct)
+
+- **Trazado 一–十** (kanji de los números 1–10):
+  - Datos KanjiVG (CC BY-SA 3.0) añadidos a `KANJI_TRAZOS` en `kanji-strokes.ts` (10 kanji, 27 trazos total).
+  - Componente `TracingCanvas` puro (sin Angular) con validación suave vía `evaluarTrazo` (dirección del trazo, punto de entrada).
+  - Modal en juego (botón ✏️ en header): lienzo `canvas` con guía visual, progreso de trazos, botón reiniciar.
+  - Reutiliza `stroke-check.ts` y atribución KanjiVG ya existente en `kanji-compose`.
+- **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
+
 ---
 
 ## Cerrado / no procede

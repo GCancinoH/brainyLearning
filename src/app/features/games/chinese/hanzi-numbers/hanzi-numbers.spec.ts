@@ -161,6 +161,7 @@ describe('HanziNumbers (integración)', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    fixture?.destroy();
     TestBed.resetTestingModule();
   });
 
@@ -802,11 +803,12 @@ describe('HanziNumbers (integración)', () => {
     fixture.detectChanges();
 
     expect(component.reflecting(), 'espera su toque').toBe(true);
-    expect(all('.reflexion-btn'), 'tres respuestas').toHaveLength(3);
-    expect(
-      [...document.querySelectorAll('.reflexion-btn')].some(b => b.textContent?.includes('Lo conté')),
-      'cada una dice lo que hace',
-    ).toBe(true);
+    expect(component.reflexiones.length, 'tres opciones en el modelo').toBe(3);
+    const overlay = fixture.nativeElement.querySelector('#reflexion-overlay');
+    expect(overlay, 'overlay de reflexión existe').toBeTruthy();
+    expect(overlay?.textContent, 'contiene las tres opciones').toContain('Lo sé de memoria');
+    expect(overlay?.textContent).toContain('Lo conté');
+    expect(overlay?.textContent).toContain('Me ayudó el audio');
 
     component.chooseReflection('nuevo');
     fixture.detectChanges();
