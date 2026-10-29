@@ -261,6 +261,21 @@ Orden libre; ninguna bloquea las anteriores.
   - Test `4.2` en spec: reordenar rompe la canonicidad → `leido()` = null.
 - **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
 
+## ✅ Estado Fase 4 — ítem 3 (29 oct)
+
+- **Dirección inversa en combinar** (`numero-a-hanzi`):
+  - Tipo `DireccionCombinar = 'hanzi-a-numero' | 'numero-a-hanzi'` en problem module.
+  - `DIGITOS = ['0'..'9']` + `leerNumero(piezas)` para validar dígitos (sin ceros a la izquierda).
+  - `buildCombinacionProblem(..., direccion?)` genera:
+    - Normal: objetivo = número, `objetivoMostrado` = "35", bandeja = hanzi (`三十五`).
+    - Inversa: objetivo = número, `objetivoMostrado` = hanzi (`三十五`), bandeja = dígitos (`3`, `5`).
+  - Componente: signal `direccionCombinar` alterna a partir de N7 (impar = inversa).
+  - `leido` usa `leer` (hanzi) o `leerNumero` (dígitos) según dirección.
+  - HTML: `objetivo-hanzi` + icono 🔤 en inversa; `lectura-vacia` dice "Toca los dígitos".
+  - CPA/Dienes solo en dirección normal.
+  - Test 4.2 actualizado (reordenar con dígitos/hanzi según dirección).
+- **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
+
 ---
 
 ## Cerrado / no procede

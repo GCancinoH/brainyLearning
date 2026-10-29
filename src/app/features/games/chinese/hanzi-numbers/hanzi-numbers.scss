@@ -200,6 +200,14 @@ $rojo-hondo: #7f1d1d;
     color: $oro;
     text-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   }
+
+  .objetivo-hanzi {
+    font-size: clamp(3.6rem, 16vw, 6.5rem);
+    font-weight: 800;
+    line-height: 1;
+    color: $oro;
+    text-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  }
 }
 
 // ---------- 4.1 · CPA / BLOQUES DIENES ----------

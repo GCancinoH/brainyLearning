@@ -44,6 +44,9 @@ export const PIEZAS: readonly string[] = [
   '十',
 ];
 
+/** Dígitos para la dirección inversa de combinar (formar número arábigo). */
+export const DIGITOS: readonly string[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
 const UNIDADES = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const DIEZ = '十';
 
@@ -57,6 +60,13 @@ export function descomponerCPA(numero: number): { decenas: number; unidades: num
   if (numero < 11 || numero > 99) return { decenas: 0, unidades: 0 };
   return { decenas: Math.floor(numero / 10), unidades: numero % 10 };
 }
+
+/**
+ * Dirección de la etapa combinar.
+ * - 'hanzi-a-numero' (normal): objetivo = número (35), bandeja = hanzi (三十五) → formar hanzi.
+ * - 'numero-a-hanzi' (inversa): objetivo = hanzi (三十五), bandeja = dígitos (3, 5) → formar número.
+ */
+export type DireccionCombinar = 'hanzi-a-numero' | 'numero-a-hanzi';
 
 export type Etapa = 'reconocer' | 'combinar';
 
@@ -103,6 +113,21 @@ for (let n = 1; n <= 99; n++) POR_HANZI.set(hanziPara(n), n);
  */
 export function leer(piezas: readonly string[]): number | null {
   return POR_HANZI.get(piezas.join('')) ?? null;
+}
+
+/**
+ * Lee dígitos en orden y forma el número arábigo. Solo acepta secuencias que
+ * forman un número válido 1–99 sin ceros a la izquierda (salvo el 0 solo).
+ * Ej: ['3','5'] → 35; ['0'] → 0; ['0','5'] → null (cero a la izq).
+ */
+export function leerNumero(piezas: readonly string[]): number | null {
+  if (piezas.length === 0) return null;
+  // Solo dígitos permitidos
+  if (!piezas.every(p => /^[0-9]$/.test(p))) return null;
+  // No ceros a la izquierda salvo el "0" solo
+  if (piezas.length > 1 && piezas[0] === '0') return null;
+  const n = parseInt(piezas.join(''), 10);
+  return n >= 0 && n <= 99 ? n : null;
 }
 
 /** Las piezas con las que se escribe `numero`, en orden. 35 → ['三','十','五'] */
@@ -273,15 +298,15 @@ export function buildReconocerProblem(
 // ================================================================
 
 export interface CombinacionProblem {
-  /** El número que hay que recrear con los hanzis */
+  /** El número que hay que recrear */
   objetivo: number;
-  /** Las piezas en el orden en que hay que agarrarlas (la lectura canónica) */
+  /** Dirección: 'hanzi-a-numero' (normal) o 'numero-a-hanzi' (inversa) */
+  direccion: DireccionCombinar;
+  /** Lo que se muestra como objetivo (número o hanzi) */
+  objetivoMostrado: string;
+  /** Las piezas en el orden canónico (hanzi o dígitos según dirección) */
   solucion: string[];
-  /**
-   * La bandeja: piezas mezcladas. Trae la `solucion` completa —con sus repeticiones:
-   * 二十二 pide dos veces la 二— y de más, `perilla.distractores` piezas que no forman
-   * parte de la solución, un solo ejemplar de cada carácter. Nunca un segundo 十.
-   */
+  /** La bandeja: piezas mezcladas (hanzi o dígitos según dirección) */
   bandeja: string[];
 }
 
@@ -336,12 +361,14 @@ export function perillaCombinar(level: number, age: 4 | 6): PerillaCombinar {
 /**
  * 3.2 · `objetivoElegido` es el número vencido del SRS (dentro del rango del nivel; si
  * no lo está, se ignora y manda el azar del nivel, como siempre).
+ * 4.3 · `direccion`: 'hanzi-a-numero' (normal) o 'numero-a-hanzi' (inversa).
  */
 export function buildCombinacionProblem(
   level: number,
   age: 4 | 6,
   rng: Rng = Math.random,
   objetivoElegido?: number,
+  direccion: DireccionCombinar = 'hanzi-a-numero',
 ): CombinacionProblem {
   const perilla = perillaCombinar(level, age);
   const [min, max] = perilla.rango;
@@ -352,18 +379,41 @@ export function buildCombinacionProblem(
     objetivoElegido <= max
       ? objetivoElegido
       : randInt(min, max, rng);
-  const solucion = piezasDe(objetivo);
 
-  // Distractores: el resto de los diez caracteres. No pueden formar otra lectura del
-  // objetivo —`leer` solo admite la canónica— así que el conjunto distractor no rompe
-  // la unicidad; solo estorba.
-  const resto = shuffle(
-    PIEZAS.filter(p => !solucion.includes(p)),
-    rng,
-  );
-  const bandeja = shuffle([...solucion, ...resto.slice(0, perilla.distractores)], rng);
-
-  return { objetivo, solucion, bandeja };
+  if (direccion === 'hanzi-a-numero') {
+    // Normal: objetivo = número, bandeja = hanzi
+    const solucion = piezasDe(objetivo);
+    const resto = shuffle(
+      PIEZAS.filter(p => !solucion.includes(p)),
+      rng,
+    );
+    const bandeja = shuffle([...solucion, ...resto.slice(0, perilla.distractores)], rng);
+    return {
+      objetivo,
+      direccion: 'hanzi-a-numero',
+      objetivoMostrado: String(objetivo),
+      solucion,
+      bandeja,
+    };
+  } else {
+    // Inversa: objetivo = hanzi, bandeja = dígitos
+    const objetivoHanzi = hanziPara(objetivo);
+    const solucion = String(objetivo).split(''); // dígitos: '3','5'
+    // Distractores: dígitos que no están en la solución
+    const digitosEnSolucion = new Set(solucion);
+    const resto = shuffle(
+      DIGITOS.filter(d => !digitosEnSolucion.has(d)),
+      rng,
+    );
+    const bandeja = shuffle([...solucion, ...resto.slice(0, perilla.distractores)], rng);
+    return {
+      objetivo,
+      direccion: 'numero-a-hanzi',
+      objetivoMostrado: objetivoHanzi,
+      solucion,
+      bandeja,
+    };
+  }
 }
 
 // ================================================================

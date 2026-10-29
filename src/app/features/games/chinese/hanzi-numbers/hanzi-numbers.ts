@@ -21,10 +21,14 @@ import {
   buildReconocerProblem,
   etapaDeNivel,
   leer,
+  leerNumero,
   perillaCombinar,
   piezasDe,
   topeReconocer,
   descomponerCPA,
+  type DireccionCombinar,
+  DIGITOS,
+  hanziPara,
 } from './hanzi-numbers-problem';
 
 /**
@@ -173,17 +177,30 @@ export class HanziNumbers implements OnInit, OnDestroy {
   // ============================================
 
   readonly objetivo = signal(0);
+  /** 4.3 · Dirección de combinar: 'hanzi-a-numero' (normal) o 'numero-a-hanzi' (inversa). */
+  readonly direccionCombinar = signal<DireccionCombinar>('hanzi-a-numero');
   readonly bandeja = signal<string[]>([]);
   readonly agarradas = signal<PiezaAgarrada[]>([]);
-  /** El número que dice lo que lleva armado, o `null` si todavía no se lee. */
-  readonly leido = computed(() => leer(this.agarradas().map(a => a.p)));
+  /** El número que dice lo que lleva armado, o `null` si todavía no se lee.
+   *  Usa `leer` (hanzi) o `leerNumero` (dígitos) según la dirección. */
+  readonly leido = computed(() => {
+    const piezas = this.agarradas().map(a => a.p);
+    return this.direccionCombinar() === 'hanzi-a-numero'
+      ? leer(piezas)
+      : leerNumero(piezas);
+  });
 
   /** 4.1 · CPA / bloques Dienes: descomposición del objetivo en decenas y unidades.
-   *  Solo en etapa combinar (≥11). Ej: 35 → { decenas: 3, unidades: 5 }.
-   *  La niña ve 3 barras de 10 + 5 cubos y entiende por qué se escribe 三十五. */
+   *  Solo en etapa combinar (≥11) y dirección normal. */
   readonly cpa = computed(() =>
-    this.etapa() === 'combinar' ? descomponerCPA(this.objetivo()) : { decenas: 0, unidades: 0 },
+    this.etapa() === 'combinar' && this.direccionCombinar() === 'hanzi-a-numero'
+      ? descomponerCPA(this.objetivo())
+      : { decenas: 0, unidades: 0 },
   );
+
+  /** 4.3 · Hanzi del objetivo para la dirección inversa (se muestra en objetivo-hanzi). */
+  readonly objetivoHanzi = computed(() => hanziPara(this.objetivo()));
+
   /** ¿La pieza `i` de la bandeja está ya en la mano? */
   usada(i: number): boolean {
     return this.agarradas().some(a => a.i === i);
@@ -419,11 +436,19 @@ export class HanziNumbers implements OnInit, OnDestroy {
 
     const age = this.activeProfile()?.age ?? 4;
     const rango = perillaCombinar(nivel, age).rango;
+    // 4.3 · Dirección de combinar: alterna a partir del N7 (como reconocer en N3).
+    // La dirección normal 'hanzi-a-numero' (ver número → formar hanzi) y la inversa
+    // 'numero-a-hanzi' (ver hanzi → formar número con dígitos) se alternan.
+    const dirCombinar: DireccionCombinar =
+      nivel >= 7 && (nivel - 7) % 2 === 1 ? 'numero-a-hanzi' : 'hanzi-a-numero';
+    this.direccionCombinar.set(dirCombinar);
+
     const p = buildCombinacionProblem(
       nivel,
       age,
       Math.random,
       this.numeroPara(modo, rango, vencidos),
+      dirCombinar,
     );
     this.objetivo.set(p.objetivo);
     this.bandeja.set(p.bandeja);
@@ -435,8 +460,11 @@ export class HanziNumbers implements OnInit, OnDestroy {
     // acompaña el montaje (las piezas suenan al tocarlas), no lo entrega hecho. Salvo
     // que ella pida el audio en la reflexión (3.4): entonces el ancla vuelve una vez.
     this.linea.set('');
+    // En dirección inversa, el objetivoMostrado ya es el hanzi; narramos la consigna.
     void this.narrar(
-      this.anclaPedida ? ['hn.ask.combinar', numeroClip(p.objetivo)] : 'hn.ask.combinar',
+      this.anclaPedida
+        ? ['hn.ask.combinar', numeroClip(p.objetivo)]
+        : 'hn.ask.combinar',
     );
   }
 

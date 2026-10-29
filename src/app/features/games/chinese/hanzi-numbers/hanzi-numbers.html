@@ -95,36 +95,42 @@
     <!-- ==================================================== -->
     @if (etapa() === 'combinar' && !puente()) {
       <div class="objetivo">
-        <!-- 2.5 · Rótulo icono: "Forma" no es consigna para quien aún no lee. -->
-        <span class="objetivo-label" role="img" aria-label="Forma">🧱</span>
-        <span class="objetivo-numero" aria-live="polite">{{ objetivo() }}</span>
+        <!-- 2.5 / 4.3 · Rótulo icono: normal = "Forma" (🧱), inversa = "Lee" (🔤). -->
+        @if (direccionCombinar() === 'hanzi-a-numero') {
+          <span class="objetivo-label" role="img" aria-label="Forma">🧱</span>
+          <span class="objetivo-numero" aria-live="polite">{{ objetivo() }}</span>
+        } @else {
+          <span class="objetivo-label" role="img" aria-label="Lee">🔤</span>
+          <span class="objetivo-hanzi" aria-live="polite">{{ objetivoHanzi() }}</span>
+        }
       </div>
 
-      <!-- 4.1 · CPA / bloques Dienes: representación concreta del objetivo.
-           Solo se muestra en etapa combinar (ya guardado en `cpa()`). -->
-      <div class="cpa" aria-hidden="true">
-        @if (cpa().decenas > 0) {
-          <div class="cpa-decenas" role="img" [attr.aria-label]="'Decenas: ' + cpa().decenas">
-            @for (d of [].constructor(cpa().decenas); track $index) {
-              <div class="cpa-barra"></div>
-            }
-          </div>
-        }
-        @if (cpa().unidades > 0) {
-          <div class="cpa-unidades" role="img" [attr.aria-label]="'Unidades: ' + cpa().unidades">
-            @for (u of [].constructor(cpa().unidades); track $index) {
-              <div class="cpa-cubo"></div>
-            }
-          </div>
-        }
-      </div>
+      <!-- 4.1 · CPA / bloques Dienes: solo en dirección normal (hanzi-a-numero). -->
+      @if (direccionCombinar() === 'hanzi-a-numero') {
+        <div class="cpa" aria-hidden="true">
+          @if (cpa().decenas > 0) {
+            <div class="cpa-decenas" role="img" [attr.aria-label]="'Decenas: ' + cpa().decenas">
+              @for (d of [].constructor(cpa().decenas); track $index) {
+                <div class="cpa-barra"></div>
+              }
+            </div>
+          }
+          @if (cpa().unidades > 0) {
+            <div class="cpa-unidades" role="img" [attr.aria-label]="'Unidades: ' + cpa().unidades">
+              @for (u of [].constructor(cpa().unidades); track $index) {
+                <div class="cpa-cubo"></div>
+              }
+            </div>
+          }
+        </div>
+      }
 
       <!--
         Lo que lleva armado. Los chips se tocan para devolver la pieza, y el número de la
         derecha es LA LECTURA de lo armado: si no coincide con el objetivo, la niña lo ve
         y lo cambia. No hay un "incorrecto" en ningún sitio.
         4.2 · cdkDropList permite reordenar por arrastre; al soltar, reorderPieces()
-        actualiza el orden y `leer()` valida la nueva secuencia.
+        actualiza el orden y `leer()`/`leerNumero()` valida la nueva secuencia.
       -->
       <div
         class="lectura"
@@ -145,7 +151,11 @@
             {{ a.p }}
           </button>
         } @empty {
-          <span class="lectura-vacia">Toca los hanzis de abajo 👇</span>
+          @if (direccionCombinar() === 'hanzi-a-numero') {
+            <span class="lectura-vacia">Toca los hanzis de abajo 👇</span>
+          } @else {
+            <span class="lectura-vacia">Toca los dígitos de abajo 👇</span>
+          }
         }
 
         @if (leido() !== null) {
