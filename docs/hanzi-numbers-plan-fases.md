@@ -318,6 +318,26 @@ Orden libre; ninguna bloquea las anteriores.
 
 ---
 
+## 🐛 Bug fixes post-Fase 4 (29 oct)
+
+- **reorderPieces()**: ahora llama a `revisar()` al soltar; si el nuevo orden es canónico, cierra la ronda (antes se quedaba atascado tras arrastrar 三五十 → 三十五).
+- **iniciarFlash()**: quitado `isOver()` del bucle; envuelto en `untracked(async ...)` para que el effect no reaccione a `isOver()` durante la tanda. El Flash ya suena al fin de sesión.
+- **HTML duplicado**: eliminados bloques duplicados de `@if (reflecting())` y `@if (hint())` (commit del trazado introdujo duplicados con `id="reflexion-overlay"` repetido).
+- **Botón ✏️ trazado**: ahora solo aparece si `trazoCount(kanjiTrazado()) > 0` (evita crash en números 11–20 que no tienen trazos en `KANJI_TRAZOS`). Añadido `tieneTrazos()` y `trazoCount` importado desde `kanji-strokes`.
+
+---
+
+## ⚠️ Pendiente técnico (post-Fase 4)
+
+- **Trazos 一–十 reales (KanjiVG)**: los trazos actuales en `KANJI_TRAZOS` son líneas rectas escritas a mano, no datos extraídos de KanjiVG. Para cumplir la licencia CC BY-SA 3.0 y la atribución visible, ejecutar:
+  ```bash
+  node tools/narration/fetch-kanjivg.mjs
+  ```
+  (añadirá 一–十 con trazos reales de KanjiVG, manteniendo la atribución CC BY-SA 3.0 ya montada en `kanji-compose`).
+- **TracingCanvas**: la guía se dibuja con `new Path2D(path)` sin escalar al `viewBox`, y el canvas no aplica `devicePixelRatio`. Los puntos esperados y la guía visual no coinciden; conviene escalar ambos al tamaño real del canvas.
+
+---
+
 ## Cerrado / no procede
 
 - **ngsw `.m4a`** (obs. 5): el grupo `hanzi-numbers-audio` con prefetch ya cubre
