@@ -255,6 +255,8 @@ export class HanziNumbers implements OnInit, OnDestroy {
   private modoReflexion: 'nuevo' | 'repaso' | 'ancla' | null = null;
   /** 3.4 · Si el siguiente problema entra con el ancla pedida en la reflexión. */
   private anclaPedida = false;
+  /** 4.7 · Última narración reproducida (para botón 🔊 repetir). */
+  private _ultimaNarracion: string[] = [];
 
   // ============================================
   // DERIVADOS
@@ -869,9 +871,16 @@ export class HanziNumbers implements OnInit, OnDestroy {
   /** Habla una clave (o una secuencia de ellas) con la voz que pide el manifiesto. */
   private narrar(keys: string | string[] | null): Promise<boolean> {
     if (!keys) return Promise.resolve(false);
-    // El texto de reserva no va aquí (2.5): lo trae el manifiesto, y en su idioma.
-    // Pasarlo a mano era redundante —solo para el primer clip, además—.
-    return this.narrator.say(Array.isArray(keys) ? keys : [keys]);
+    const lista = Array.isArray(keys) ? keys : [keys];
+    this._ultimaNarracion = lista; // 4.7 · guardamos para el botón 🔊 repetir
+    return this.narrator.say(lista);
+  }
+
+  /** 4.7 · Repite la última narración (botón 🔊). */
+  repeatLast(): void {
+    if (this._ultimaNarracion.length > 0) {
+      void this.narrator.say(this._ultimaNarracion);
+    }
   }
 
   private isOver(): boolean {

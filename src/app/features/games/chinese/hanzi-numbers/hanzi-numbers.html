@@ -32,6 +32,10 @@
           <span [class.active]="s < consecutiveCorrect()">⭐</span>
         }
       </div>
+      <!-- 4.7 · Botón 🔊 repetir: reproduce la última narración. -->
+      <button class="repeat-btn" (click)="repeatLast()" aria-label="Repetir audio">
+        🔊
+      </button>
     </div>
   </header>
 

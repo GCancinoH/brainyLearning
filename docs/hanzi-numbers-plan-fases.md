@@ -276,6 +276,17 @@ Orden libre; ninguna bloquea las anteriores.
   - Test 4.2 actualizado (reordenar con dígitos/hanzi según dirección).
 - **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
 
+## ✅ Estado Fase 4 — ítem 7 (29 oct)
+
+- **Botón 🔊 repetir** en header (ambas etapas):
+  - `_ultimaNarracion: string[]` guardada en cada `narrar()`.
+  - Método `repeatLast()` → `this.narrator.say(_ultimaNarracion)`.
+  - HTML: `<button class="repeat-btn" (click)="repeatLast()" aria-label="Repetir audio">🔊</button>` en `.level-badge`.
+  - CSS: `.repeat-btn` con hover/active, tamaño 1.4rem, fondo semitransparente.
+  - Funciona en reconocer (consigna + número) y combinar (consigna + ancla opcional).
+- **Verificación lab** (perfil 4 años, N1): click 🔊 → carga `hn.ask.a-hanzi.m4a` + `hn.num.3.m4a`.
+- **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
+
 ---
 
 ## Cerrado / no procede
