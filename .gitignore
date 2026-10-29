@@ -35,6 +35,7 @@ lerna-debug.log*
 .settings/
 *.sublime-workspace
 .history/
+.opencode/
 
 # Visual Studio Code (Corrected syntax for exceptions)
 .vscode/
