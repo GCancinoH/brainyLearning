@@ -47,9 +47,12 @@
 
       <div class="opciones">
         @for (o of opciones(); track problemaId() + ':' + $index) {
+          <!-- La descartada se atenúa sin veredicto: la niña ve qué ya probó y qué le
+               queda (mismo patrón que `recall-option--no` en kanji-compose). -->
           <button
             class="opcion"
             [class.opcion--acierto]="solved() && o === respuesta()"
+            [class.opcion--no]="opcionesDescartadas().has(o)"
             (click)="elegir(o)"
             [attr.aria-label]="'Opción ' + o"
           >

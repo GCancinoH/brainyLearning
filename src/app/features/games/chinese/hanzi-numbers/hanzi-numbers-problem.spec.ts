@@ -7,8 +7,10 @@ import {
   etapaDeNivel,
   hanziPara,
   leer,
+  perillaCombinar,
   piezasDe,
   topeReconocer,
+  type ReconocerProblem,
 } from './hanzi-numbers-problem';
 
 function mulberry32(seed: number) {
@@ -122,11 +124,17 @@ describe('etapaDeNivel', () => {
     expect(etapaDeNivel(12)).toBe('combinar');
   });
 
-  it('el tramo de reconocer crece con el nivel hasta el 20', () => {
-    expect(topeReconocer(1)).toBe(5);
-    expect(topeReconocer(3)).toBe(10);
-    expect(topeReconocer(5)).toBe(15);
-    expect(topeReconocer(7)).toBe(20);
+  it('el tramo crece hasta el 20 en el nivel 4: dentro de la etapa, no después', () => {
+    // Antes el tope 20 llegaba con el nivel ≥ 7 —y la etapa terminaba en el 6—, así que
+    // 16–20 jamás se practicaba. Ahora cada nivel tiene su tramo y el 20 se juega en N4.
+    expect(topeReconocer(1), 'N1').toBe(5);
+    expect(topeReconocer(2), 'N2').toBe(10);
+    expect(topeReconocer(3), 'N3').toBe(15);
+    expect(topeReconocer(4), 'N4 llega al 20').toBe(20);
+    expect(topeReconocer(5), 'N5: el tope ya no sube, suben los distractores').toBe(20);
+    expect(topeReconocer(6), 'N6: ídem').toBe(20);
+    expect(topeReconocer(NIVEL_ULTIMO_RECONOCER), 'el techo sigue siendo el 20').toBe(20);
+    expect(topeReconocer(7), 'fuera de la etapa no rompe').toBe(20);
     expect(topeReconocer(99), 'el techo es el 20').toBe(20);
   });
 });
@@ -177,6 +185,60 @@ describe('buildReconocerProblem', () => {
   });
 });
 
+/** El valor numérico de una opción: dígito o hanzi. */
+function valorDeOpcion(o: string): number {
+  return /^\d+$/.test(o) ? Number(o) : (leer([o]) ?? NaN);
+}
+
+/** Los distractores de un problema: las opciones que no son la respuesta. */
+function distractores(p: ReconocerProblem): number[] {
+  return p.opciones.filter(o => o !== p.respuesta).map(valorDeOpcion);
+}
+
+/**
+ * Los distractores SON la perilla de N5–N6 (el tope ya es 20 y no se mueve): la
+ * dificultad pasa de "hasta qué número" a "qué tan parecidos son los equivocados".
+ */
+describe('los distractores de reconocer: una perilla por nivel', () => {
+  it('N1–N4: aleatorios del tramo — aquí la perilla es el tope', () => {
+    const rng = mulberry32(41);
+    let lejos = 0;
+    for (let i = 0; i < 300; i++) {
+      const p = buildReconocerProblem(4, rng);
+      for (const d of distractores(p)) {
+        if (Math.abs(d - p.numero) > 3) lejos++;
+      }
+    }
+    expect(lejos, 'con distractor aleatorio, alguno se aleja de verdad').toBeGreaterThan(0);
+  });
+
+  it('N5: los tres distractores son vecinos (±1..±3)', () => {
+    const rng = mulberry32(5);
+    for (let i = 0; i < 300; i++) {
+      const p = buildReconocerProblem(5, rng);
+      expect(p.numero).toBeLessThanOrEqual(20);
+      for (const d of distractores(p)) {
+        const dist = Math.abs(d - p.numero);
+        expect(dist, `${d} no es vecino de ${p.numero}`).toBeGreaterThanOrEqual(1);
+        expect(dist, `${d} se queda demasiado lejos de ${p.numero}`).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  it('N6: mixto — la trampa de la decena (el número sin el 十) y dos vecinos', () => {
+    const rng = mulberry32(6);
+    for (let i = 0; i < 300; i++) {
+      const p = buildReconocerProblem(6, rng);
+      const ds = distractores(p);
+
+      // Para 15 → 5, para 7 → 17: la confusión real de esta etapa es el 十 de más o de menos.
+      const trampas = ds.filter(d => Math.abs(d - p.numero) === 10);
+      expect(trampas, `para ${p.numero} falta la trampa de la decena`).toHaveLength(1);
+      expect(ds.filter(d => Math.abs(d - p.numero) <= 3), 'y el resto son vecinos').toHaveLength(2);
+    }
+  });
+});
+
 /**
  * Cuenta cuántas veces aparece cada carácter. Para comparar la bandeja con la solución:
  * 二十二 pide dos veces la 二, y esa repetición es legítima.
@@ -222,16 +284,23 @@ describe('buildCombinacionProblem', () => {
     }
   });
 
-  it('el objetivo respeta el tramo de su edad y su nivel', () => {
+  it('el objetivo respeta el rango de su nivel y la bandeja trae exactamente sus distractores', () => {
     const rng = mulberry32(9);
-    for (let i = 0; i < 400; i++) {
-      const c4 = buildCombinacionProblem(7, 4, rng);
-      expect(c4.objetivo).toBeGreaterThanOrEqual(11);
-      expect(c4.objetivo).toBeLessThanOrEqual(30);
-
-      const c6 = buildCombinacionProblem(12, 6, rng);
-      expect(c6.objetivo).toBeGreaterThanOrEqual(41);
-      expect(c6.objetivo).toBeLessThanOrEqual(99);
+    for (const age of [4, 6] as const) {
+      for (let lvl = 7; lvl <= 12; lvl++) {
+        const perilla = perillaCombinar(lvl, age);
+        const [min, max] = perilla.rango;
+        for (let i = 0; i < 150; i++) {
+          const p = buildCombinacionProblem(lvl, age, rng);
+          expect(p.objetivo, `${age}a·N${lvl}`).toBeGreaterThanOrEqual(min);
+          expect(p.objetivo, `${age}a·N${lvl}`).toBeLessThanOrEqual(max);
+          // La bandeja es la solución + sus distractores: ni una pieza de más.
+          expect(
+            p.bandeja.length,
+            `${age}a·N${lvl}: ${p.objetivo} se arma con ${p.solucion.length} + ${perilla.distractores}`,
+          ).toBe(p.solucion.length + perilla.distractores);
+        }
+      }
     }
   });
 
@@ -272,5 +341,45 @@ describe('buildCombinacionProblem', () => {
     const a = buildCombinacionProblem(9, 6, mulberry32(42));
     const b = buildCombinacionProblem(9, 6, mulberry32(42));
     expect(a).toEqual(b);
+  });
+});
+
+describe('perillaCombinar', () => {
+  // La tabla. Indexada con `level − NIVEL_ULTIMO_RECONOCER` (1..6): antes ramificaba con
+  // `lvl <= 4`, que nadie alcanzaba, y los niveles 7–12 salían todos iguales.
+  const RANGOS = {
+    4: [[11, 20], [11, 20], [11, 30], [11, 30], [15, 30], [11, 30]],
+    6: [[21, 60], [21, 60], [41, 99], [41, 99], [11, 99], [11, 99]],
+  } as const;
+  const DISTRACTORES = { 4: [0, 1, 1, 2, 2, 3], 6: [1, 2, 2, 3, 3, 4] } as const;
+
+  it('cada nivel de combinar tiene SU rango y SU número de distractores', () => {
+    for (const age of [4, 6] as const) {
+      for (let lvl = 7; lvl <= 12; lvl++) {
+        const perilla = perillaCombinar(lvl, age);
+        expect(perilla.rango, `${age}a·N${lvl}`).toEqual(RANGOS[age][lvl - 7]);
+        expect(perilla.distractores, `${age}a·N${lvl}`).toBe(DISTRACTORES[age][lvl - 7]);
+      }
+    }
+  });
+
+  it('un salto, una perilla: cada nivel cambia respecto al anterior', () => {
+    for (const age of [4, 6] as const) {
+      for (let lvl = 8; lvl <= 12; lvl++) {
+        expect(
+          perillaCombinar(lvl, age),
+          `${age}a·N${lvl} debe distinguirse de N${lvl - 1}`,
+        ).not.toEqual(perillaCombinar(lvl - 1, age));
+      }
+    }
+  });
+
+  it('fuera de 7–12 se recorta a la tabla, no rompe', () => {
+    expect(perillaCombinar(1, 6), 'antes de la etapa = su primer nivel').toEqual(
+      perillaCombinar(7, 6),
+    );
+    expect(perillaCombinar(99, 4), 'después de la etapa = su último nivel').toEqual(
+      perillaCombinar(12, 4),
+    );
   });
 });

@@ -95,6 +95,12 @@ voz por acierto.
 combinar se distingue del anterior; el primer intento queda registrado; no hay doble audio ni
 premio solapado con el level-up.
 
+**Estado (28 oct): ✅ completada.** Suite en baseline (4 fallos preexistentes ajenos al juego,
+355 verdes), `npx ng build` limpio y verificación en lab dev (puerto 4213): distractores N4–N6
+seguían la perilla (aleatorios ≤20 en N4, vecinos ±1..±3 en N5, trampa de decena + vecinos en N6),
+el 19 se practicó antes del nivel 7, y el N7 de combinar abrió con bandeja = solución exacta
+(0 distractores a los 4 años) y 0 errores de consola.
+
 ---
 
 ## Fase 2 — IMPORTANTE: andamio por edad y arranque

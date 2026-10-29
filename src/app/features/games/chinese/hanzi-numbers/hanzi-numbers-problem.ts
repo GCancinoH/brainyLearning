@@ -115,18 +115,85 @@ export interface ReconocerProblem {
 }
 
 /**
- * Hasta qué número llega la etapa de reconocer según el nivel.
+ * Una perilla por nivel: cuánto llega el tramo.
  *
- * Los niveles crecen el tramo: 1–5, 1–10, 1–15 y de ahí al 20, que es el techo que pide
- * el documento. El rango no depende de la edad: los dos empiezan igual, lo que cambia es
- * a qué nivel llega cada una (ese dato lo pone el perfil, no el generador).
+ * El tramo crece 1–5, 1–10, 1–15 y **1–20 en el nivel 4**, así que 16–20 se practica
+ * dentro de la etapa: antes el tope 20 llegaba con el nivel ≥ 7 —cuando la etapa ya
+ * había terminado en el 6— y 16–20 jamás se jugaba pese a la insignia "Aprende 1–20".
+ * En N5 y N6 el tope deja de moverse (son 1–20) y lo que sube es la dificultad de los
+ * distractores, que es su perilla.
+ *
+ * El rango no depende de la edad: los dos perfiles recorren la misma etapa, lo que
+ * cambia es a qué nivel llega cada una (ese dato lo pone el perfil, no el generador).
  */
+const TOPE_POR_NIVEL: readonly number[] = [5, 10, 15, 20, 20, 20];
+
 export function topeReconocer(level: number): number {
-  const lvl = Math.max(1, Math.min(level, 10));
-  if (lvl <= 2) return 5;
-  if (lvl <= 4) return 10;
-  if (lvl <= 6) return 15;
-  return 20;
+  const lvl = Math.max(1, Math.min(level, NIVEL_ULTIMO_RECONOCER));
+  return TOPE_POR_NIVEL[lvl - 1];
+}
+
+/**
+ * Los 3 distractores de `numero`, con la perilla de su nivel.
+ *
+ *  - **N1–N4:** aleatorios del tramo. La perilla de estos niveles es el tope: con un
+ *    tramo de cinco números las cuatro opciones son casi todo el tramo, que es lo que
+ *    hace que elegir cueste.
+ *  - **N5:** vecinos (±1..±3). Casi idénticos en valor, así que elegir obliga a mirar
+ *    el glifo, no el número de al lado.
+ *  - **N6:** mixto — dos vecinos y la **trampa de la decena**: el mismo número sin el 十
+ *    (5 para 15, 7 para 17). Es la confusión real de esta etapa y solo aparece en su
+ *    último nivel.
+ */
+function distractoresReconocer(
+  numero: number,
+  tope: number,
+  level: number,
+  rng: Rng,
+): number[] {
+  const lvl = Math.max(1, Math.min(level, NIVEL_ULTIMO_RECONOCER));
+  const enTramo = (n: number): boolean => n >= 1 && n <= tope && n !== numero;
+
+  const vecinos = (): number[] =>
+    [1, 2, 3, -1, -2, -3]
+      .map(d => numero + d)
+      .filter(enTramo);
+
+  /** Hasta `cuantos` de `candidatos` (mezclados), completando con aleatorios del tramo. */
+  const tomar = (candidatos: readonly number[], cuantos: number): number[] => {
+    const elegidos = new Set<number>();
+    for (const n of shuffle(candidatos, rng)) {
+      if (elegidos.size >= cuantos) break;
+      elegidos.add(n);
+    }
+    while (elegidos.size < cuantos) {
+      const n = randInt(1, tope, rng);
+      if (enTramo(n)) elegidos.add(n);
+    }
+    return [...elegidos];
+  };
+
+  if (lvl <= 4) {
+    // Aleatorios del tramo, como siempre: aquí la perilla es el tope.
+    const otrosNumeros = new Set<number>();
+    while (otrosNumeros.size < 3) {
+      const n = randInt(1, tope, rng);
+      if (enTramo(n)) otrosNumeros.add(n);
+    }
+    return [...otrosNumeros];
+  }
+
+  if (lvl === 5) return tomar(vecinos(), 3);
+
+  // N6 · mixto: la trampa de la decena manda (5 para 15; 15 para 5) y el resto son
+  // vecinos. Para cualquier número de 1–20 con tope 20 la trampa existe siempre: si el
+  // número es ≤ 10, su +10 cabe en el tramo; si es ≥ 11, su −10 también.
+  const trampa = [numero - 10, numero + 10].filter(enTramo);
+  const elegidos = new Set(tomar(trampa, Math.min(1, trampa.length)));
+  for (const n of tomar(vecinos().filter(v => !elegidos.has(v)), 3 - elegidos.size)) {
+    elegidos.add(n);
+  }
+  return [...elegidos];
 }
 
 export function buildReconocerProblem(level: number, rng: Rng = Math.random): ReconocerProblem {
@@ -140,16 +207,9 @@ export function buildReconocerProblem(level: number, rng: Rng = Math.random): Re
   const respuesta = esHanzi ? hanziPara(numero) : String(numero);
   const enunciado = esHanzi ? String(numero) : hanziPara(numero);
 
-  // Distractores: otros números del mismo tramo. Nunca se parecen poco: con un tramo de
-  // cinco números las cuatro opciones son casi todo el tramo, que es lo que hace que
-  // elegir cueste.
-  const otros = new Set<number>();
-  while (otros.size < 3) {
-    const n = randInt(1, tope, rng);
-    if (n !== numero) otros.add(n);
-  }
+  const distractores = distractoresReconocer(numero, tope, level, rng);
   const opciones = shuffle(
-    [respuesta, ...[...otros].map(n => (esHanzi ? hanziPara(n) : String(n)))],
+    [respuesta, ...distractores.map(n => (esHanzi ? hanziPara(n) : String(n)))],
     rng,
   );
 
@@ -167,31 +227,58 @@ export interface CombinacionProblem {
   solucion: string[];
   /**
    * La bandeja: piezas mezcladas. Trae la `solucion` completa —con sus repeticiones:
-   * 二十二 pide dos veces la 二— y de más, un solo ejemplar de cada carácter que no
-   * forma parte de la solución. Nunca un segundo 十.
+   * 二十二 pide dos veces la 二— y de más, `perilla.distractores` piezas que no forman
+   * parte de la solución, un solo ejemplar de cada carácter. Nunca un segundo 十.
    */
   bandeja: string[];
 }
 
 /**
- * Tramo de objetivos según nivel y edad.
+ * La perilla de un nivel de combinar: **una sola** cambia en cada salto, nunca dos.
  *
- * Los 4 se quedan en el 11–30: el 十 y las unidades, que es el primer montaje de verdad
- * (十五 = 十 + 五). Los 6 suben hasta el 99, que es donde se ven decenas de verdad.
+ * Se indexa con `level − NIVEL_ULTIMO_RECONOCER` (1..6), porque la etapa empieza en el
+ * 7: antes las tablas ramificaban con `lvl <= 4`, una rama que nadie alcanzaba, y los
+ * niveles 7–12 salían idénticos (11–30 con bandeja de 6 a los 4 años; 9–12 iguales y
+ * bandeja de 10 a los 6).
+ *
+ *  - `rango`: de qué números salen los objetivos. "mixto" es un tramo que mezcla lo
+ *    fácil y lo difícil —11–30 justo después de estrecharse a 15–30; 11–99 después de
+ *    las bandas 21–60 y 41–99—.
+ *  - `distractores`: piezas de más que trae la bandeja, además de las que pide la
+ *    escritura. Con 0 solo hay que acertar el orden; con 3–4 hay que buscar también.
  */
-function rangoObjetivo(level: number, age: 4 | 6): [number, number] {
-  const lvl = Math.max(1, Math.min(level, 12));
-  if (age === 4) return lvl <= 4 ? [11, 20] : [11, 30];
-  if (lvl <= 4) return [11, 30];
-  if (lvl <= 8) return [21, 60];
-  return [41, 99];
+export interface PerillaCombinar {
+  /** Tramo del que sale el objetivo. */
+  rango: readonly [number, number];
+  /** Piezas que trae la bandeja por encima de la solución. */
+  distractores: number;
 }
 
-/** Cuántas piezas trae la bandeja. Más piezas = más buscar, no más difícil de leer. */
-function tamanoBandeja(level: number, age: 4 | 6): number {
-  const lvl = Math.max(1, Math.min(level, 12));
-  if (age === 4) return lvl <= 4 ? 5 : 6;
-  return lvl <= 4 ? 7 : 10;
+const COMBINAR_POR_EDAD: Record<4 | 6, readonly PerillaCombinar[]> = {
+  // Edad 4 · el 十 y las unidades: primero 11–20 (el primer montaje de verdad,
+  // 十五 = 十 + 五), después 11–30.
+  4: [
+    { rango: [11, 20], distractores: 0 }, // N7 · solo lo que pide la escritura
+    { rango: [11, 20], distractores: 1 }, // N8
+    { rango: [11, 30], distractores: 1 }, // N9
+    { rango: [11, 30], distractores: 2 }, // N10
+    { rango: [15, 30], distractores: 2 }, // N11 · el tramo se estrecha: menos fácil
+    { rango: [11, 30], distractores: 3 }, // N12 · mixto: vuelve el 11–14
+  ],
+  // Edad 6 · sube a decenas de verdad y llega al 99.
+  6: [
+    { rango: [21, 60], distractores: 1 }, // N7
+    { rango: [21, 60], distractores: 2 }, // N8
+    { rango: [41, 99], distractores: 2 }, // N9
+    { rango: [41, 99], distractores: 3 }, // N10
+    { rango: [11, 99], distractores: 3 }, // N11 · mixto: vuelve lo fácil
+    { rango: [11, 99], distractores: 4 }, // N12
+  ],
+};
+
+export function perillaCombinar(level: number, age: 4 | 6): PerillaCombinar {
+  const lvl = Math.max(1, Math.min(level - NIVEL_ULTIMO_RECONOCER, NIVEL_ULTIMO_RECONOCER));
+  return COMBINAR_POR_EDAD[age][lvl - 1];
 }
 
 export function buildCombinacionProblem(
@@ -199,7 +286,8 @@ export function buildCombinacionProblem(
   age: 4 | 6,
   rng: Rng = Math.random,
 ): CombinacionProblem {
-  const [min, max] = rangoObjetivo(level, age);
+  const perilla = perillaCombinar(level, age);
+  const [min, max] = perilla.rango;
   const objetivo = randInt(min, max, rng);
   const solucion = piezasDe(objetivo);
 
@@ -210,8 +298,7 @@ export function buildCombinacionProblem(
     PIEZAS.filter(p => !solucion.includes(p)),
     rng,
   );
-  const faltan = Math.max(0, tamanoBandeja(level, age) - solucion.length);
-  const bandeja = shuffle([...solucion, ...resto.slice(0, faltan)], rng);
+  const bandeja = shuffle([...solucion, ...resto.slice(0, perilla.distractores)], rng);
 
   return { objetivo, solucion, bandeja };
 }
