@@ -287,6 +287,17 @@ Orden libre; ninguna bloquea las anteriores.
 - **Verificación lab** (perfil 4 años, N1): click 🔊 → carga `hn.ask.a-hanzi.m4a` + `hn.num.3.m4a`.
 - **Verificación**: suite 4 baseline / 391 passed, `ng build` limpio (mismos 2 warnings).
 
+## ✅ Estado Fase 4 — ítem 4 (29 oct)
+
+- **Ritual Flash (Sabio Long) + Pair/Flash** para Números Hanzi:
+  - Helper `numerosParaFlash(srs, deck, tope, limite, rng)` en problem module: devuelve hasta 5 números "introducidos" en el SRS (conocidos), barajados.
+  - Método `iniciarFlash()` en componente: show–say–hide a 1 s cada número (`linea` muestra "N 漢字", `narrator.play([{clip: numeroClip(n), pauseAfterMs: 250}])`), `busy=true` durante la tanda.
+  - Effect en componente: detecta fin de sesión (`isTimeUp || isCompleted`) solo si la sesión estuvo realmente activa (`sessionStartedAt`), evita disparo en init/tests.
+  - Se dispara al terminar la sesión (tiempo agotado o completado) si hay números conocidos.
+  - Reutiliza patrón exacto de `kanji-compose` (Flash §5.9): 5 formas, 1 s cada una, sin pregunta.
+- **Sabio Long**: ya narra en español (guía) y los números en chino (contenido); el Flash refuerza su presencia como "el que repasa".
+- **Verificación**: suite 4 baseline / 390 passed, `ng build` limpio (mismos 2 warnings).
+
 ---
 
 ## Cerrado / no procede

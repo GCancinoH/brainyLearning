@@ -417,6 +417,31 @@ export function buildCombinacionProblem(
 }
 
 // ================================================================
+// 4.4 · RITUAL FLASH (Sabio Long) — mostrar números conocidos rápido.
+// Mismo patrón que kanji-compose: show–say–hide, 1 s cada uno, sin pregunta.
+// Solo números que el SRS marca como "introducidos" (conocidos).
+// ================================================================
+
+/**
+ * Devuelve una tanda de números "conocidos" para el Flash.
+ * Usa el SRS: un número está "introducido" si tiene entrada en el mazo.
+ * `limite` = cuántos mostrar como máximo (default 5, como en kanji-compose).
+ */
+export function numerosParaFlash(
+  srs: { isIntroduced: (deck: string, id: string) => boolean },
+  deck: string,
+  tope: number,
+  limite = 5,
+  rng: Rng = Math.random,
+): number[] {
+  const candidatos = [];
+  for (let n = 1; n <= tope; n++) {
+    if (srs.isIntroduced(deck, String(n))) candidatos.push(n);
+  }
+  return shuffle(candidatos, rng).slice(0, limite);
+}
+
+// ================================================================
 
 function randInt(min: number, max: number, rng: Rng): number {
   return Math.floor(rng() * (max - min + 1)) + min;

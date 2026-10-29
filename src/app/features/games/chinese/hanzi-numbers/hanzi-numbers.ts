@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import confetti from 'canvas-confetti';
 import { ProfileStateService } from '@core/services/profile-state';
@@ -29,6 +29,7 @@ import {
   type DireccionCombinar,
   DIGITOS,
   hanziPara,
+  numerosParaFlash,
 } from './hanzi-numbers-problem';
 
 /**
@@ -258,6 +259,9 @@ export class HanziNumbers implements OnInit, OnDestroy {
   /** 4.7 · Última narración reproducida (para botón 🔊 repetir). */
   private _ultimaNarracion: string[] = [];
 
+  /** 4.4 · Tanda de números para el ritual Flash (Sabio Long). */
+  private _flashTanda: number[] = [];
+
   // ============================================
   // DERIVADOS
   // ============================================
@@ -280,6 +284,26 @@ export class HanziNumbers implements OnInit, OnDestroy {
     'level-up': ['🏆', '🎉'],
     'game-over': ['🌙', '👋'],
   };
+
+private unsubscribeEvents?: () => void;
+
+  // 4.4 · Al terminar la sesión (tiempo o completado), lanza el ritual Flash
+  // si hay números conocidos (Sabio Long repasa lo aprendido).
+  private _sesionActiva = false;
+  private readonly _flashEffect = effect(() => {
+    const s = this.session.state();
+    if (!s) return;
+    if (s.isTimeUp || s.isCompleted) {
+      if (this._sesionActiva) this.iniciarFlash();
+    } else if (s.sessionStartedAt) {
+      this._sesionActiva = true;
+    }
+  });
+
+  constructor() {
+    // Fuerza la evaluación del effect en el contexto de inyección
+    this._flashEffect;
+  }
 
   ngOnInit(): void {
     // Dónde viven los clips de este juego y qué dice cada uno. El manifiesto es también el
@@ -367,8 +391,6 @@ export class HanziNumbers implements OnInit, OnDestroy {
     this.session.endSession('user-exit');
   }
 
-  private unsubscribeEvents?: () => void;
-
   private handleSessionEvent(event: SessionEvent): void {
     if (event.type !== 'level-up') return;
     this.audio.playLevelUp();
@@ -378,6 +400,35 @@ export class HanziNumbers implements OnInit, OnDestroy {
     this.later(() => {
       if (!this.isOver()) this.generateProblem();
     }, 2500);
+  }
+
+  /**
+   * 4.4 · Inicia el ritual Flash (Sabio Long) — muestra números conocidos rápido.
+   * Mismo patrón que kanji-compose: show–say–hide, 1 s cada uno, sin pregunta.
+   * Se dispara al terminar la sesión (tiempo o completado) si hay números conocidos.
+   */
+  private async iniciarFlash(): Promise<void> {
+    if (this.destroyed) return;
+    const edad = this.activeProfile()?.age ?? 4;
+    const nivel = this.currentLevel();
+    const tope = etapaDeNivel(nivel) === 'reconocer' ? topeReconocer(nivel) : 20;
+
+    // 4.4 · Números "introducidos" en el SRS = conocidos.
+    this._flashTanda = numerosParaFlash(this.srs, HANZI_NUMBERS_DECK, tope, 5, Math.random);
+    if (!this._flashTanda.length) return;
+
+    this.localFeedback.set('idle');
+    this.hint.set('');
+    this.busy.set(true);
+
+    for (const n of this._flashTanda) {
+      if (this.destroyed || this.isOver()) return;
+      // Mostrar el número + su hanzi, sonar el clip, 1 s.
+      this.linea.set(`${n} ${hanziPara(n)}`);
+      await this.narrator.play([{ clip: numeroClip(n), pauseAfterMs: 250 }]);
+    }
+    this.linea.set('');
+    this.busy.set(false);
   }
 
   // ============================================
