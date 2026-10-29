@@ -196,6 +196,16 @@ números difíciles vuelven a aparecer; la reflexión es de un toque.
 
 ---
 
+## ✅ Estado Fase 3 (29 oct)
+
+- **3.1** `SkillProgressService` integrado: `recordAttempt`/`recordMistake` con criterio T1 (primer toque fallido en reconocer; duda-pausa = ayuda, callejón = orden en combinar). Catálogo `CHINESE_SKILLS` + `digit` en `RepresentationType` + `PlayerProgress.chinese` — los datos honestos quedan grabados y legibles por el futuro panel.
+- **3.2** SRS vía `SpacedRepetition` (mismo motor que kanji-compose): mazo `hanzi-numbers`, `due()` manda al generar, `review({correct, ayuda})` al cerrar. Builders aceptan número/objetivo forzado validado al tramo del nivel.
+- **3.3** Distractores intencionales N1–N4 (comparten glifo primero, estilo `distractoresFor`); N5 vecinos / N6 trampa intactos.
+- **3.4** Reflexión de un toque (6 años, post-acierto sin level-up, no en diagnóstico): velo `.reflexion`, 3 botones con `aria-label`, cada uno hace lo que dice (nuevo / repaso / ancla) y no se persiste (eso es §5.11).
+- **Verificación lab**: suite 4 baseline / 383 passed, `ng build` limpio, 0 consola en :4213 (perfil 6 años: diagnóstico sin reflexión → sesión con reflexión funcional; perfil 4 años: sin reflexión, auto-avance 2600 ms; SRS reaparece número vencido; storage muestra intentos y errores reales).
+
+---
+
 ## Fase 4 — MENOS IMPORTANTE: features nuevas
 
 Orden libre; ninguna bloquea las anteriores.
