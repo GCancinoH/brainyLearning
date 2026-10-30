@@ -444,17 +444,18 @@ private unsubscribeEvents?: () => void;
 
     // untracked: el effect que llama a este método ya reacciona a isOver();
     // aquí solo queremos ejecutar la tanda sin reaccionar a cambios.
-    untracked(async () => {
+    // await para esperar a que termine la tanda antes de limpiar linea/busy.
+    await untracked(async () => {
       for (const n of this._flashTanda) {
         if (this.destroyed) return;
         // Mostrar el número + su hanzi, sonar el clip, 1 s.
         this.linea.set(`${n} ${hanziPara(n)}`);
         await this.narrator.play([{ clip: numeroClip(n), pauseAfterMs: 250 }]);
       }
+      // Limpieza tras terminar la tanda (o si se rompió por destroyed).
+      this.linea.set('');
+      this.busy.set(false);
     });
-
-    this.linea.set('');
-    this.busy.set(false);
   }
 
   // ============================================

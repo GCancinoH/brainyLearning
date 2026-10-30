@@ -6,28 +6,38 @@
  * **Creative Commons Attribution-ShareAlike 3.0 (CC BY-SA 3.0)**
  * <https://creativecommons.org/licenses/by-sa/3.0/>.
  *
- * Este fichero es un derivado: los trazos son los de KanjiVG, sin cambiar el orden ni la
- * dirección, solo reempaquetados aquí. Por la cláusula *ShareAlike*, **todo lo derivado de
- * este fichero queda bajo esa misma licencia**, y la app está obligada a publicar la
- * atribución en algún sitio visible (créditos).
+ * Este fichero contiene DOS fuentes:
+ * 1. **KanjiVG (CC BY-SA 3.0)**: Kanji de composición japonesa (明, 休, 林, etc.).
+ *    Este fichero es un derivado: los trazos son los de KanjiVG, sin cambiar el orden ni la
+ *    dirección, solo reempaquetados aquí. Por la cláusula *ShareAlike*, **todo lo derivado de
+ *    esta parte queda bajo esa misma licencia**, y la app está obligada a publicar la
+ *    atribución en algún sitio visible (créditos).
+ *    Créditos: KanjiVG — Kanji Vector Graphics, copyright Ulrich Apel.
  *
- * Créditos: KanjiVG — Kanji Vector Graphics, copyright Ulrich Apel.
+ * 2. **Trazos propios (CC0 / dominio público)**: Números chinos 1–10 (一–十).
+ *    Estos NO son de KanjiVG: son líneas rectas simples escritas a mano para el juego
+ *    "Números Hanzi", sin datos de KanjiVG. Se publican bajo CC0 (dominio público)
+ *    para que cualquiera los use sin restricciones.
+ *
  * ============================================
  *
- * \`trazos\` está en orden: el índice 0 es el trazo 1. La dirección la da el propio
- * \`d\`, que empieza por el punto de entrada — es lo que permite animar el trazo y saber
+ * `trazos` está en orden: el índice 0 es el trazo 1. La dirección la da el propio
+ * `d`, que empieza por el punto de entrada — es lo que permite animar el trazo y saber
  * si el dedo fue en la buena dirección.
  *
- * No se edita a mano: lo genera \`tools/narration/fetch-kanjivg.mjs\`.
+ * KanjiVG: no se edita a mano: lo genera `tools/narration/fetch-kanjivg.mjs`.
+ * Números: se editan a mano (líneas rectas simples).
  */
 
-/** Un kanji con sus trazos, en orden, en el sistema de coordenadas de \`vb\`. */
 export interface KanjiTrazos {
   readonly vb: string;
   readonly trazos: readonly string[];
 }
 
-export const KANJI_TRAZOS: Readonly<Record<string, KanjiTrazos>> = {
+// ============================================
+// 1. KANJI DE KANJIVG (CC BY-SA 3.0)
+// ============================================
+export const KANJI_TRAZOS_KANJIVG: Readonly<Record<string, KanjiTrazos>> = {
   '明': {
     vb: '0 0 109 109',
     trazos: [
@@ -61,7 +71,7 @@ export const KANJI_TRAZOS: Readonly<Record<string, KanjiTrazos>> = {
       'M35.25,48.75c3.5,2,7.25,6,9.25,9.5',
       'M50.62,37.39c0.94,0.34,2.96,0.59,5.44,0.34c8.2-0.84,18.68-2.6,27.97-3.04c2.49-0.12,4.65-0.34,6.21,0',
       'M67,13.5c1.25,1.25,1.75,3,1.75,4.5c0,0.85,0.07,47.55-0.12,67.75c-0.04,4.32-0.08,7.4-0.13,8.5',
-      'M68,38.25c0,1-0.64,2.87-1.39,4.58C61.25,55,55.38,66.38,45.5,77',
+      'M68,38.08c0,1-0.64,2.87-1.39,4.58C61.25,55,55.38,66.38,45.5,77',
       'M69.5,37.75c6.62,12.62,15.94,25.68,22.32,32.52c1.78,1.91,4.12,4.6,6.68,5.48',
     ],
   },
@@ -199,8 +209,14 @@ export const KANJI_TRAZOS: Readonly<Record<string, KanjiTrazos>> = {
       'M57.2,91.49c5.94-0.55,14.67-1.24,23.54-1.76c1.3-0.08,2.63-0.13,3.97-0.2',
     ],
   },
+};
 
-  // ===== NÚMEROS 1–10 (para trazado en Números Hanzi) =====
+// ============================================
+// 2. NÚMEROS CHINOS 1–10 (CC0 / dominio público)
+// ============================================
+// Estos NO son de KanjiVG: son líneas rectas simples escritas a mano.
+// Se publican bajo CC0 (dominio público) para uso libre sin restricciones.
+export const KANJI_TRAZOS_NUMEROS: Readonly<Record<string, KanjiTrazos>> = {
   '一': {
     vb: '0 0 109 109',
     trazos: ['M19.5,54.5c0,0,53,0,70,0'],
@@ -276,6 +292,14 @@ export const KANJI_TRAZOS: Readonly<Record<string, KanjiTrazos>> = {
       'M54.5,19.5c0,0,0,53,0,70',
     ],
   },
+};
+
+// ============================================
+// EXPORTACIÓN UNIFICADA (compatibilidad hacia atrás)
+// ============================================
+export const KANJI_TRAZOS: Readonly<Record<string, KanjiTrazos>> = {
+  ...KANJI_TRAZOS_KANJIVG,
+  ...KANJI_TRAZOS_NUMEROS,
 };
 
 /** Cuántos trazos tiene. Es la validación más barata y la más útil: 0 si no está. */

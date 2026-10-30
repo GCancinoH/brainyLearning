@@ -22,6 +22,7 @@ export class TracingCanvas {
   private trazosDibujados: TrazoDibujado[] = [];
   private readonly onCambio: (trazo: number, veredicto: Veredicto | null) => void;
   private dibujando = false;
+  private readonly dpr: number;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -39,6 +40,7 @@ export class TracingCanvas {
     this.kanji = kanji;
     this.trazosKanji = datos.trazos;
     this.vb = datos.vb;
+    this.dpr = window.devicePixelRatio || 1;
 
     this.configurarCanvas();
     this.dibujarGuia();
@@ -47,9 +49,10 @@ export class TracingCanvas {
 
   private configurarCanvas(): void {
     const { width, height } = this.canvas.getBoundingClientRect();
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    this.canvas.width = width * this.dpr;
+    this.canvas.height = height * this.dpr;
+    // Escalamos el contexto para trabajar en coordenadas CSS (1 px = 1 px CSS)
+    this.ctx.scale(this.dpr, this.dpr);
   }
 
   private parseVB(): { x: number; y: number; w: number; h: number } {
@@ -57,50 +60,108 @@ export class TracingCanvas {
     return { x, y, w, h };
   }
 
+  /** Convierte coordenadas del viewBox (0..109) a coordenadas CSS del canvas (0..width). */
   private puntoVBScaled(x: number, y: number): { x: number; y: number } {
     const vb = this.parseVB();
-    const ratioX = this.canvas.width / vb.w;
-    const ratioY = this.canvas.height / vb.h;
+    const { width, height } = this.canvas.getBoundingClientRect();
+    const ratioX = width / vb.w;
+    const ratioY = height / vb.h;
     return {
       x: (x - vb.x) * ratioX,
       y: (y - vb.y) * ratioY,
     };
   }
 
+  /** Convierte un path SVG (M, L, C, Q, Z) a puntos muestreados en coordenadas CSS del canvas. */
   private pathToPuntos(path: string): Punto[] {
-    // Convierte un path SVG simple (solo M y C/L) a puntos muestreados
-    // Nota: simplificado para trazos lineales; KanjiVG usa curvas Bézier
     const puntos: Punto[] = [];
-    const regex = /([MLC])([^MLC]*)/g;
+    // Regex que captura comandos SVG path y sus coordenadas
+    const regex = /([MLCQZH])([^MLCQZH]*)/gi;
     let match;
     let lastX = 0;
     let lastY = 0;
+    let startX = 0;
+    let startY = 0;
 
-    while ((match = regex.exec(this.trazosKanji[this.trazoActual])) !== null) {
-      const tipo = match[1];
-      const coords = match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    while ((match = regex.exec(path)) !== null) {
+      const tipo = match[1].toUpperCase();
+      const coordsStr = match[2].trim();
+      if (!coordsStr) continue;
+      const coords = coordsStr.split(/[\s,]+/).filter(Boolean).map(Number);
+
       if (tipo === 'M') {
-        lastX = coords[0];
-        lastY = coords[1];
-      } else if (tipo === 'L' || tipo === 'C') {
-        // Para simplicidad: muestreamos 10 puntos por segmento
+        // Move to absolute
+        if (coords.length >= 2) {
+          lastX = coords[0];
+          lastY = coords[1];
+        }
+        startX = lastX;
+        startY = lastY;
+      } else if (tipo === 'L') {
+        // Line to absolute - muestreamos 10 puntos
         for (let i = 0; i <= 10; i++) {
           const t = i / 10;
-          // Aproximación lineal (KanjiVG usa curvas, pero esto sirve para dirección)
-          const x = lastX + (coords[coords.length - 2] - lastX) * t;
-          const y = lastY + (coords[coords.length - 1] - lastY) * t;
+          const x = lastX + (coords[0] - lastX) * t;
+          const y = lastY + (coords[1] - lastY) * t;
           const p = this.puntoVBScaled(x, y);
           puntos.push({ x: p.x, y: p.y });
         }
-        lastX = coords[coords.length - 2];
-        lastY = coords[coords.length - 1];
+        lastX = coords[0];
+        lastY = coords[1];
+      } else if (tipo === 'C') {
+        // Cubic Bézier - 3 puntos de control + final
+        // Muestreamos 20 puntos a lo largo de la curva
+        const x1 = coords[0], y1 = coords[1];
+        const x2 = coords[2], y2 = coords[3];
+        const x3 = coords[4], y3 = coords[5];
+        for (let i = 0; i <= 20; i++) {
+          const t = i / 20;
+          const u = 1 - t;
+          const uu = u * u;
+          const uuu = uu * u;
+          const tt = t * t;
+          const ttt = tt * t;
+          const x = uuu * lastX + 3 * uu * t * x1 + 3 * u * tt * x2 + ttt * coords[4];
+          const y = uuu * lastY + 3 * uu * t * y1 + 3 * u * tt * y2 + ttt * coords[5];
+          const p = this.puntoVBScaled(x, y);
+          puntos.push({ x: p.x, y: p.y });
+        }
+        lastX = coords[4];
+        lastY = coords[5];
+      } else if (tipo === 'Q') {
+        // Quadratic Bézier
+        const x1 = coords[0], y1 = coords[1];
+        for (let i = 0; i <= 15; i++) {
+          const t = i / 15;
+          const u = 1 - t;
+          const x = u * u * lastX + 2 * u * t * x1 + t * t * coords[2];
+          const y = u * u * lastY + 2 * u * t * y1 + t * t * coords[3];
+          const p = this.puntoVBScaled(x, y);
+          puntos.push({ x: p.x, y: p.y });
+        }
+        lastX = coords[2];
+        lastY = coords[3];
+      } else if (tipo === 'Z') {
+        // Close path - línea al inicio
+        for (let i = 0; i <= 5; i++) {
+          const t = i / 5;
+          const x = lastX + (startX - lastX) * t;
+          const y = lastY + (startY - lastY) * t;
+          const p = this.puntoVBScaled(x, y);
+          puntos.push({ x: p.x, y: p.y });
+        }
+        lastX = startX;
+        lastY = startY;
       }
     }
     return puntos;
   }
 
   private dibujarGuia(): void {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const { width, height } = this.canvas.getBoundingClientRect();
+    this.ctx.clearRect(0, 0, width, height);
+
+    // Dibuja la guía (trazo esperado) en coordenadas CSS
     this.ctx.strokeStyle = 'rgba(0,0,0,0.08)';
     this.ctx.lineWidth = 6;
     this.ctx.lineCap = 'round';
@@ -108,12 +169,18 @@ export class TracingCanvas {
 
     for (let i = 0; i < this.trazosKanji.length; i++) {
       const path = this.trazosKanji[i];
-      this.ctx.beginPath();
-      // Dibuja el path SVG directamente (simplificado)
-      this.ctx.stroke(new Path2D(path));
+      const puntos = this.pathToPuntos(this.trazosKanji[i]);
+      if (puntos.length > 1) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(puntos[0].x, puntos[0].y);
+        for (let j = 1; j < puntos.length; j++) {
+          this.ctx.lineTo(puntos[j].x, puntos[j].y);
+        }
+        this.ctx.stroke();
+      }
     }
 
-    // Dibuja trazos ya completados
+    // Dibuja trazos ya completados (verdes)
     this.ctx.strokeStyle = '#22c55e';
     this.ctx.lineWidth = 5;
     for (const t of this.trazosDibujados) {
@@ -127,7 +194,7 @@ export class TracingCanvas {
       }
     }
 
-    // Dibuja trazo actual en curso
+    // Dibuja trazo actual en curso (amarillo)
     if (this.puntos.length > 1) {
       this.ctx.strokeStyle = '#fde047';
       this.ctx.lineWidth = 5;
@@ -145,8 +212,8 @@ export class TracingCanvas {
       if (!this.dibujando) return;
       const rect = this.canvas.getBoundingClientRect();
       this.puntos.push({
-        x: (e.clientX - rect.left) * window.devicePixelRatio,
-        y: (e.clientY - rect.top) * window.devicePixelRatio,
+        x: (e.clientX - rect.left) * this.dpr,
+        y: (e.clientY - rect.top) * this.dpr,
       });
       this.dibujarGuia();
     };
@@ -156,8 +223,8 @@ export class TracingCanvas {
       this.puntos = [];
       const rect = this.canvas.getBoundingClientRect();
       this.puntos.push({
-        x: (e.clientX - rect.left) * window.devicePixelRatio,
-        y: (e.clientY - rect.top) * window.devicePixelRatio,
+        x: (e.clientX - rect.left) * this.dpr,
+        y: (e.clientY - rect.top) * this.dpr,
       });
     };
 
@@ -192,7 +259,6 @@ export class TracingCanvas {
       this.trazoActual++;
       this.puntos = [];
       if (this.trazoActual >= this.trazosKanji.length) {
-        // Todos los trazos completados
         this.onCambio(-1, null); // señal de fin
       }
     }
