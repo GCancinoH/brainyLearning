@@ -808,7 +808,9 @@ private unsubscribeEvents?: () => void;
     // El enunciado de reconocer puede ser dígito o glifo; el de combinar es siempre
     // un dígito. Se anota lo que se MOSTRÓ, que es lo que hay que mirar.
     const representation: RepresentationType =
-      etapa === 'combinar' || this.direccion() === 'numero-a-hanzi' ? 'digit' : 'kanji';
+      etapa === 'reconocer'
+        ? this.direccion() === 'numero-a-hanzi' ? 'digit' : 'kanji'
+        : this.direccionCombinar() === 'numero-a-hanzi' ? 'kanji' : 'digit';
     const skillId = etapa === 'reconocer' ? SKILL_RECONOCER : SKILL_COMBINAR;
 
     this.skills.recordAttempt({
