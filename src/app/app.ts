@@ -11,13 +11,15 @@ import { Theme, parseGameUrl } from '@core/services/theme-time';
 import { GameSessionService } from '@core/games/game-session.service';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { APP_BUILD_TOKEN } from './build-token';
+import { InstallPromptComponent } from '@shared/game-ui/install-prompt/install-prompt.component';
 
 @Component({
   imports: [
     RouterOutlet,
     SplashScreenComponent,
     UpdateDialog,
-    GameClockComponent
+    GameClockComponent,
+    InstallPromptComponent
   ],
   selector: 'app-root',
   styleUrl: './app.scss',

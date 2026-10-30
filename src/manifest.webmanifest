@@ -1,0 +1,42 @@
+{
+  "name": "Brainy Learning",
+  "short_name": "Brainy",
+  "description": "Juegos educativos para niñas de 4–6 años: matemáticas, japonés, chino y más.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#fbaf24",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "games"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Números Hanzi",
+      "short_name": "Hanzi",
+      "description": "Aprende números chinos 1–99",
+      "url": "/games/chinese/hanzi-numbers",
+      "icons": [{ "src": "/assets/icon-hanzi-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Kanji Compose",
+      "short_name": "Kanji",
+      "description": "Escribe kanji japoneses",
+      "url": "/games/japanese/kanji-compose",
+      "icons": [{ "src": "/assets/icon-kanji-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

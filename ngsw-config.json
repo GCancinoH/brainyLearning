@@ -25,6 +25,18 @@
       }
     },
     {
+      "name": "game-data",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/assets/data/**/*.json",
+          "/assets/data/**/*.ts",
+          "/assets/i18n/**/*.json"
+        ]
+      }
+    },
+    {
       "name": "kanji-compose-audio",
       "installMode": "prefetch",
       "updateMode": "prefetch",
@@ -65,6 +77,18 @@
         "files": [
           "/lottie/*.lottie"
         ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-sync",
+      "urls": ["/api/**"],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 50,
+        "maxAge": "1d",
+        "timeout": "10s"
       }
     }
   ]
