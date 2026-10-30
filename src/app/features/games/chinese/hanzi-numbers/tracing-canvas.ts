@@ -212,8 +212,8 @@ export class TracingCanvas {
       if (!this.dibujando) return;
       const rect = this.canvas.getBoundingClientRect();
       this.puntos.push({
-        x: (e.clientX - rect.left) * this.dpr,
-        y: (e.clientY - rect.top) * this.dpr,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
       });
       this.dibujarGuia();
     };
@@ -223,8 +223,8 @@ export class TracingCanvas {
       this.puntos = [];
       const rect = this.canvas.getBoundingClientRect();
       this.puntos.push({
-        x: (e.clientX - rect.left) * this.dpr,
-        y: (e.clientY - rect.top) * this.dpr,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
       });
     };
 
