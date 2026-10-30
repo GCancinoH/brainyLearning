@@ -918,6 +918,95 @@ describe('HanziNumbers (integración)', () => {
     expect(component.leido(), 'nuevo orden: 十二九 no es canónico → null').toBeNull();
   });
 
+  it('4.2 · reorderPieces cierra la ronda si el nuevo orden es canónico', () => {
+    mount(6, 7);
+    component.objetivo.set(35);
+    component.agarradas.set([
+      { i: 0, p: '十' },
+      { i: 1, p: '三' },
+      { i: 2, p: '五' },
+    ]);
+    fixture.detectChanges();
+    expect(component.leido(), 'orden incorrecto: 十三五 no es canónico').toBeNull();
+
+    component.reorderPieces({
+      previousIndex: 1,
+      currentIndex: 0,
+      container: { data: component.agarradas() } as any,
+      item: { data: 1 } as any,
+      isPointerOverContainer: true,
+      distance: { x: 0, y: 0 },
+      dropPoint: { x: 0, y: 0 },
+      event: new Event('drop'),
+    } as any);
+    fixture.detectChanges();
+
+    expect(component.leido(), 'orden correcto: 三十五 = 35').toBe(35);
+    expect(component.feedbackState(), 'ronda cerrada con éxito').toBe('success');
+    expect(component.consecutiveCorrect(), 'racha sube').toBe(1);
+  });
+
+  // ============================================
+  // FASE 4 · ITEM 4: FLASH FINAL
+  // ============================================
+
+  it('4.4 · iniciarFlash reproduce la tanda completa y limpia busy/linea al final', async () => {
+    mount(6, 7);
+    vi.spyOn(TestBed.inject(SpacedRepetition), 'isIntroduced').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(SpacedRepetition), 'due').mockReturnValue(['11', '12', '13', '14', '15']);
+
+    // Simular fin de sesión usando el servicio público
+    TestBed.inject(GameSessionService).endSession('time-up');
+    fixture.detectChanges();
+
+    await vi.advanceTimersByTimeAsync(7000);
+    fixture.detectChanges();
+
+    expect(component.busy(), 'busy liberado al terminar Flash').toBe(false);
+    expect(component.linea(), 'linea limpiada al terminar').toBe('');
+    expect(component.feedbackState(), 'feedback idle').toBe('idle');
+  });
+
+  // ============================================
+  // FASE 4 · ITEM 5: TRAZADO
+  // ============================================
+
+  it('4.5 · abrirTrazado abre el modal y prepara el canvas', () => {
+    mount(6, 7);
+    component.objetivo.set(7);
+    component.direccionCombinar.set('hanzi-a-numero');
+    fixture.detectChanges();
+
+    component.abrirTrazado();
+    fixture.detectChanges();
+
+    // El modal se abre sincrónicamente
+    expect(component.trazando(), 'modal abierto').toBe(true);
+    expect(component.kanjiTrazado(), 'kanji del objetivo').toBe('七');
+    // El canvas se inicializa en el siguiente tick (setTimeout)
+    // El progreso empieza en 0
+    expect(component.progresoTrazado().actual, 'empieza en 0').toBe(0);
+  });
+
+  it('4.5 · progresoTrazado se actualiza al completar trazos', () => {
+    mount(6, 7);
+    component.objetivo.set(7);
+    component.direccionCombinar.set('hanzi-a-numero');
+    fixture.detectChanges();
+
+    component.trazando.set(true);
+    component.progresoTrazado.set({ actual: 0, total: 2 });
+    fixture.detectChanges();
+
+    component.progresoTrazado.set({ actual: 1, total: 2 });
+    fixture.detectChanges();
+    expect(component.progresoTrazado().actual).toBe(1);
+
+    component.progresoTrazado.set({ actual: 2, total: 2 });
+    fixture.detectChanges();
+    expect(component.progresoTrazado().actual).toBe(2);
+  });
+
   // ============================================
   // INFRAESTRUCTURA
   // ============================================
