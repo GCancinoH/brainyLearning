@@ -113,8 +113,8 @@ export class DashboardComponent {
     this.router.navigate(['/games', subjectId]);
   }
 
-  openStickerAlbum(): void {
-    this.router.navigate(['/stickers']);
+  openAlbum(): void {
+    this.router.navigate(['/album']);
   }
 
   switchProfile(): void {

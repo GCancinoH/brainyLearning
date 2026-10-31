@@ -1,0 +1,167 @@
+<div class="album">
+  <!-- Header -->
+  <header class="album-header">
+    <button class="back-btn" (click)="router.navigate(['/dashboard'])">
+      ⬅ Volver
+    </button>
+
+    <h1>{{ activeTab() === 'badges' ? '🏅 Insignias' : '🎴 Pegatinas' }}</h1>
+
+    <div class="tab-bar" role="tablist" aria-label="Contenido del álbum">
+      <button
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'badges'"
+        [class.active]="activeTab() === 'badges'"
+        (click)="setTab('badges')"
+      >
+        🏅 Insignias
+      </button>
+      <button
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'stickers'"
+        [class.active]="activeTab() === 'stickers'"
+        (click)="setTab('stickers')"
+      >
+        🎴 Pegatinas
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENIDO: INSIGNIAS -->
+  @if (activeTab() === 'badges') {
+    <main class="album-content">
+      @for (group of badgeGroups(); track group.category) {
+        <section class="world-section">
+          <header class="world-header" [style.background]="CATEGORY_META[group.category].bgGradient">
+            <span class="world-icon">{{ CATEGORY_META[group.category].icon }}</span>
+            <h2>{{ CATEGORY_META[group.category].worldName }}</h2>
+            <span class="mascot">{{ CATEGORY_META[group.category].mascot }} {{ CATEGORY_META[group.category].mascotName }}</span>
+          </header>
+
+          <!-- Insignias de categoría (mundo) -->
+          @if (group.categoryBadges.length) {
+            <div class="badge-row category-badges">
+              @for (badge of group.categoryBadges; track badge.id) {
+                <button
+                  class="album-badge"
+                  [class]="badgeClass(badge)"
+                  [attr.aria-label]="badgeAriaLabel(badge)"
+                  (click)="openBadge(badge)"
+                  [disabled]="!isBadgeUnlocked(badge)"
+                >
+                  <badge-art [badge]="badge" size="md" />
+                  @if (isBadgeUnlocked(badge)) {
+                    <span class="badge-name">{{ badge.name }}</span>
+                  } @else {
+                    <span class="badge-name locked">???</span>
+                  }
+                  @if (isBadgeNew(badge)) {
+                    <span class="new-dot" aria-label="Nueva insignia"></span>
+                  }
+                </button>
+              }
+            </div>
+          }
+
+          <!-- Insignias por juego -->
+          @if (group.gameBadges.length) {
+            @for (gameGroup of gameBadgesByGame(group.gameBadges); track gameGroup.gameId) {
+              <div class="game-group">
+                <h3 class="game-title">{{ getGameTitle(gameGroup.gameId) }} <span class="game-icon">{{ getGameIcon(gameGroup.gameId) }}</span></h3>
+                <div class="badge-row game-badges">
+                  @for (badge of gameGroup.badges; track badge.id) {
+                    <button
+                      class="album-badge"
+                      [class]="badgeClass(badge)"
+                      [attr.aria-label]="badgeAriaLabel(badge)"
+                      (click)="openBadge(badge)"
+                      [disabled]="!isBadgeUnlocked(badge)"
+                    >
+                      <badge-art [badge]="badge" size="sm" />
+                      @if (isBadgeUnlocked(badge)) {
+                        <span class="badge-name">{{ badge.tier ? TIER_LABEL[badge.tier] : badge.name }}</span>
+                      } @else {
+                        <span class="badge-name locked">{{ badge.tier ? TIER_LABEL[badge.tier] : badge.name }}</span>
+                      }
+                      @if (isBadgeNew(badge)) {
+                        <span class="new-dot" aria-label="Nueva insignia"></span>
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </section>
+      } @empty {
+        <div class="empty-state">
+          <span class="empty-emoji">🏅</span>
+          <p>Juega para ganar tus primeras insignias.</p>
+          <p class="empty-hint">Cada juego tiene 4 niveles: 🌱 🥉 🥈 🥇</p>
+        </div>
+      }
+    </main>
+  }
+
+  <!-- CONTENIDO: PEGATINAS -->
+  @if (activeTab() === 'stickers') {
+    <main class="album-content stickers-content">
+      @for (group of stickerGroups(); track group.category) {
+        <section class="sticker-section">
+          <h3 class="sticker-category-title">{{ stickerCategoryLabel(group.category) }}</h3>
+          <div class="sticker-grid">
+            @for (sticker of group.stickers; track sticker.id) {
+              <div class="sticker-card" [style.background-image]="'url(' + sticker.imageUrl + ')'">
+                <span class="sticker-name">{{ sticker.name }}</span>
+              </div>
+            } @empty {
+              <p class="no-stickers">Aún no tienes pegatinas en este tema.</p>
+            }
+          </div>
+        </section>
+      } @empty {
+        <div class="empty-state">
+          <span class="empty-emoji">🎴</span>
+          <p>Las pegatinas aparecen al completar actividades especiales.</p>
+        </div>
+      }
+    </main>
+  }
+
+  <!-- RESUMEN DE FIN DE SESIÓN (carrusel) -->
+  @if (showSessionSummary() && sessionNewBadges().length) {
+    <div class="session-summary-backdrop" role="dialog" aria-modal="true" aria-label="Resumen de sesión">
+      <div class="session-summary" #carousel>
+        <header class="summary-header">
+          <h2>🎉 ¡Nuevas insignias!</h2>
+          <button class="close-summary" (click)="dismissSessionSummary()" aria-label="Cerrar resumen">✕</button>
+        </header>
+
+        <div class="summary-carousel">
+          @for (earned of sessionNewBadges(); track earned.id) {
+            @if (getBadgeById(earned.id); as summaryBadge) {
+              <div class="summary-badge">
+                <badge-art [badge]="summaryBadge" size="lg" />
+                <h3>{{ summaryBadge.name }}</h3>
+              </div>
+            }
+          }
+        </div>
+
+        <div class="summary-actions">
+          <button class="btn-view-album" (click)="dismissSessionSummary()">Ver en el álbum</button>
+          <button class="btn-continue" (click)="router.navigate(['/dashboard'])">Seguir jugando</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- DIÁLOGO DE INSIGNIA -->
+  <badge-dialog
+    #dialog
+    [badge]="selectedBadge()"
+    [isVisible]="dialogVisible()"
+    [age]="activeProfile()?.age ?? 4"
+    (dismiss)="closeBadge()"
+  />
+</div>

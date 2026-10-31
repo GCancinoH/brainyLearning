@@ -103,6 +103,16 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/dev/badge-lab/badge-lab').then(m => m.BadgeLab)
   },
   {
+    // Álbum de insignias y pegatinas
+    path: 'album',
+    loadComponent: () => import('@features/album/album').then(m => m.AlbumComponent)
+  },
+  {
+    // Redirección legacy: /stickers → /album
+    path: 'stickers',
+    redirectTo: 'album'
+  },
+  {
     path: '**',
     redirectTo: ''
   }
