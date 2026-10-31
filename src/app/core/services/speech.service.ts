@@ -87,6 +87,10 @@ export class SpeechService {
     if (typeof speechSynthesis === 'undefined') return;
 
     const load = () => {
+      // El entorno puede perder `speechSynthesis` entre el arranque y el reintento
+      // (tests, navegadores que lo retiran). Sin esta guarda, el intervalo lanza
+      // `ReferenceError` fuera de cualquier try/catch.
+      if (typeof speechSynthesis === 'undefined') return;
       const voices = speechSynthesis.getVoices() ?? [];
       // localService no existe en todos los navegadores; se trata como local salvo que diga false
       this._localVoices.set(voices.filter(v => v.localService !== false));
@@ -100,7 +104,10 @@ export class SpeechService {
     // Y si el evento no llega (Safari a veces no lo emite), reintento un par de veces
     let tries = 0;
     const retry = setInterval(() => {
-      if (this._ready() || ++tries > 10) return clearInterval(retry);
+      if (typeof speechSynthesis === 'undefined' || this._ready() || ++tries > 10) {
+        clearInterval(retry);
+        return;
+      }
       load();
     }, 500);
   }

@@ -20,7 +20,8 @@ export interface Badge {
   scope: BadgeScope;
   /** Solo si `scope === 'game'` */
   gameId?: string;
-  category: LearningCategory;
+  /** Mundo al que pertenece. Las de esfuerzo son transversales y no tienen. */
+  category?: LearningCategory;
   tier?: BadgeTier;
   /** Emoji o id de arte. Hoy se compone con el icono del juego. */
   icon: string;
@@ -59,6 +60,25 @@ export interface BadgeStats {
   firstTryCorrect?: number;
   /** Fase 3: ayudas usadas y luego acertadas */
   helpUsed?: number;
+}
+
+const TIER_VALUE: Record<BadgeTier, number> = {
+  seed: 1,
+  bronze: 2,
+  silver: 3,
+  gold: 4,
+};
+
+/**
+ * Valor relativo de una insignia para decidir cuál se muestra primero cuando se
+ * ganan varias a la vez (política §5.3: "la de más valor").
+ *
+ * No es una puntuación para la niña ni se guarda: solo ordena la cola del diálogo.
+ * Un mundo vale un poco más que el juego que lo desbloquea; el esfuerzo espera su turno.
+ */
+export function badgeValue(badge: Badge): number {
+  const tier = badge.tier ? TIER_VALUE[badge.tier] : 1.5;
+  return tier * 10 + (badge.scope === 'category' ? 5 : 0);
 }
 
 export const EMPTY_BADGE_STATS: BadgeStats = {

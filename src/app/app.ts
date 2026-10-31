@@ -12,6 +12,7 @@ import { GameSessionService } from '@core/games/game-session.service';
 import { GameProgressService } from '@core/games/game-progress.service';
 import { APP_BUILD_TOKEN } from './build-token';
 import { InstallPromptComponent } from '@shared/game-ui/install-prompt/install-prompt.component';
+import { BadgeHost } from '@shared/game-ui/badge-host/badge-host';
 
 @Component({
   imports: [
@@ -19,7 +20,8 @@ import { InstallPromptComponent } from '@shared/game-ui/install-prompt/install-p
     SplashScreenComponent,
     UpdateDialog,
     GameClockComponent,
-    InstallPromptComponent
+    InstallPromptComponent,
+    BadgeHost
   ],
   selector: 'app-root',
   styleUrl: './app.scss',

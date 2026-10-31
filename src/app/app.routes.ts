@@ -97,6 +97,12 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/dev/kanji-compose-lab/kanji-compose-lab').then(m => m.KanjiComposeLab)
   },
   {
+    // Laboratorio de insignias: todas las variantes sin jugar 15 juegos
+    path: 'lab/badges',
+    canActivate: [devOnlyGuard],
+    loadComponent: () => import('@features/dev/badge-lab/badge-lab').then(m => m.BadgeLab)
+  },
+  {
     path: '**',
     redirectTo: ''
   }

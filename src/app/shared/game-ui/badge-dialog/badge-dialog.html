@@ -1,0 +1,37 @@
+@if (isVisible() && badge(); as b) {
+  <div
+    class="badge-backdrop"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="b.name"
+    (click)="onBackdrop()"
+    (keydown.tab)="$event.preventDefault()"
+  >
+    <div class="badge-card" [class.celebrate]="isCelebration()" [class.pre-reader]="!isReader()" (click)="$event.stopPropagation()">
+      <div class="sparkles" aria-hidden="true">✨</div>
+
+      <badge-art [badge]="b" size="lg" />
+
+      @if (isReader()) {
+        <h2>{{ b.name }}</h2>
+      }
+
+      <div class="mascot">
+        <span class="mascot-emoji" aria-hidden="true">{{ mascot().emoji }}</span>
+        @if (isReader()) {
+          <span class="mascot-name">{{ mascot().name }}</span>
+        }
+      </div>
+
+      @if (queueSize() > 1) {
+        <span class="queue" [attr.aria-label]="'Quedan ' + (queueSize() - 1) + ' insignias'">
+          ×{{ queueSize() }}
+        </span>
+      }
+
+      <button #saveButton type="button" class="save-btn" [attr.aria-label]="'Guardar ' + b.name" (click)="dismiss.emit()">
+        {{ saveLabel() }}
+      </button>
+    </div>
+  </div>
+}
