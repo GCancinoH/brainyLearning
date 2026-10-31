@@ -11,6 +11,7 @@ import { LearningContentService } from '@core/learning/learning-content.service'
 import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { CalendarGameEngine, CalendarQuestion, CalendarActivityType } from '@core/learning/calendar-engine';
 import { JapaneseWord } from '@core/learning/learning-content';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 @Component({
   selector: 'calendar-game',
@@ -32,7 +33,7 @@ export class CalendarGameComponent implements OnInit, OnDestroy {
   readonly activeProfile = this.profileState.activeProfile;
   readonly GAME_ID = 'japanese-calendar';
   readonly REQUIRED_CORRECT = 5;
-  readonly MAX_LEVEL = 10;
+  readonly MAX_LEVEL = gameMaxLevel('japanese-calendar');
   readonly TARGET_SKILLS = [
     'japanese.calendar.days',
     'japanese.calendar.kanji'

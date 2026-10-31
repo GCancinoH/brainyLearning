@@ -1,3 +1,9 @@
+import {
+  BadgeStats,
+  EarnedBadge,
+  createInitialBadgeStats,
+} from '../badges/badge-types';
+
 export type ThemePreference = 'space' | 'mushrooms' | 'ocean' | 'human-body';
 
 export interface Sticker {
@@ -43,7 +49,25 @@ export interface PlayerProfile {
   preferredTheme: ThemePreference;
   createdAt: string;
   stickers: Sticker[];
+  /** Logros ganados (no decorativos: ver `Sticker`). */
+  badges: EarnedBadge[];
+  /** Contadores acumulados que alimentan las insignias de esfuerzo. */
+  badgeStats: BadgeStats;
   progress: PlayerProgress;
+}
+
+function emptySubjectProgress(): GameSubjectProgress {
+  return { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] };
+}
+
+export function createInitialProgress(): PlayerProgress {
+  return {
+    math: emptySubjectProgress(),
+    spanish: emptySubjectProgress(),
+    english: emptySubjectProgress(),
+    japanese: emptySubjectProgress(),
+    chinese: emptySubjectProgress(),
+  };
 }
 
 // Perfil inicial por defecto según edad
@@ -56,12 +80,96 @@ export function createInitialProfile(name: string, age: 4 | 6, avatar: string, t
     preferredTheme: theme,
     createdAt: new Date().toISOString(),
     stickers: [],
+    badges: [],
+    badgeStats: createInitialBadgeStats(),
+    progress: createInitialProgress(),
+  };
+}
+
+// ============================================
+// MIGRACIÓN DE PERFILES VIEJOS
+// ============================================
+
+function uniqueStrings(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((v): v is string => typeof v === 'string' && v.length > 0))];
+}
+
+function nonNegativeInt(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : 0;
+}
+
+function migrateSubject(raw: unknown): GameSubjectProgress {
+  const base = emptySubjectProgress();
+  if (!raw || typeof raw !== 'object') return base;
+  const value = raw as Partial<GameSubjectProgress>;
+  return {
+    level: nonNegativeInt(value.level) || 1,
+    points: nonNegativeInt(value.points),
+    correctAnswers: nonNegativeInt(value.correctAnswers),
+    attempts: nonNegativeInt(value.attempts),
+    completedActivities: uniqueStrings(value.completedActivities),
+  };
+}
+
+function migrateBadgeStats(raw: unknown): BadgeStats {
+  const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<BadgeStats>;
+  return {
+    gamesPlayed: uniqueStrings(value.gamesPlayed),
+    daysPlayed: uniqueStrings(value.daysPlayed),
+    retrySuccess: nonNegativeInt(value.retrySuccess),
+    sessionsCompleted: nonNegativeInt(value.sessionsCompleted),
+    firstTryCorrect: nonNegativeInt(value.firstTryCorrect),
+    helpUsed: nonNegativeInt(value.helpUsed),
+  };
+}
+
+function migrateBadges(raw: unknown): EarnedBadge[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: EarnedBadge[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const badge = item as Partial<EarnedBadge>;
+    if (typeof badge.id !== 'string' || !badge.id || seen.has(badge.id)) continue;
+    seen.add(badge.id);
+    out.push({
+      id: badge.id,
+      earnedAt: typeof badge.earnedAt === 'string' ? badge.earnedAt : new Date().toISOString(),
+      seen: badge.seen === true,
+    });
+  }
+  return out;
+}
+
+/**
+ * Rellena los campos que no existían cuando se guardó el perfil.
+ *
+ * `loadProfilesFromStorage()` y la nube devuelven JSON viejo: sin esto, `badges` sería
+ * `undefined` y el álbum reventaría al leer `.length`. También cubre `progress.chinese`,
+ * que se añadió después de los primeros perfiles.
+ */
+export function migrateProfile(raw: Partial<PlayerProfile> & { id: string; name: string }): PlayerProfile {
+  const progress = (raw.progress && typeof raw.progress === 'object' ? raw.progress : {}) as Partial<PlayerProgress>;
+  return {
+    id: raw.id,
+    name: raw.name,
+    age: raw.age === 6 ? 6 : 4,
+    avatar: typeof raw.avatar === 'string' && raw.avatar ? raw.avatar : '🦊',
+    preferredTheme: raw.preferredTheme ?? 'space',
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
+    stickers: Array.isArray(raw.stickers) ? raw.stickers : [],
+    badges: migrateBadges(raw.badges),
+    badgeStats: migrateBadgeStats(raw.badgeStats),
     progress: {
-      math: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
-      spanish: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
-      english: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
-      japanese: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] },
-      chinese: { level: 1, points: 0, correctAnswers: 0, attempts: 0, completedActivities: [] }
-    }
+      math: migrateSubject(progress.math),
+      spanish: migrateSubject(progress.spanish),
+      english: migrateSubject(progress.english),
+      japanese: migrateSubject(progress.japanese),
+      chinese: migrateSubject(progress.chinese),
+    },
+    ...(raw.mathProgress ? { mathProgress: raw.mathProgress } : {}),
   };
 }

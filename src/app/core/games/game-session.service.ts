@@ -5,6 +5,7 @@
 
 import { Service, signal, computed, effect, OnDestroy } from '@angular/core';
 import { inject } from '@angular/core';
+import { Subject } from 'rxjs';
 import { GameSessionState, GameSessionConfig, SessionEvent, SessionEventType, ProfileGameConfig, getProfileGameConfig } from './game-types';
 import { ProfileStateService } from '../services/profile-state';
 
@@ -18,6 +19,15 @@ export class GameSessionService implements OnDestroy {
   private _sessionTimer: ReturnType<typeof setTimeout> | null = null;
   private _tickInterval: ReturnType<typeof setInterval> | null = null;
   private _eventListeners: Set<(event: SessionEvent) => void> = new Set();
+  /**
+   * Flujo global de eventos de sesión.
+   *
+   * `onEvent()` sigue existiendo para los juegos (se dan de baja al destruirse), pero
+   * los servicios de toda la app (insignias) necesitan una suscripción que no dependa
+   * de qué juego esté montado ni de cuándo se reinicie la sesión. Este Subject emite
+   * exactamente los mismos eventos, una sola vez.
+   */
+  readonly events = new Subject<SessionEvent>();
   private _pausedAt = signal<number | null>(null);
   readonly isPaused = computed(() => this._pausedAt() !== null);
 
@@ -97,7 +107,7 @@ export class GameSessionService implements OnDestroy {
     this._config = { ...config, sessionDurationMs: sessionDuration };
     this._state.set(newState);
     this._startTimers(sessionDuration);
-    this._emitEvent({ type: 'session-start', gameId: config.gameId, timestamp: now });
+    this._emitEvent({ type: 'session-start', gameId: config.gameId, timestamp: now, payload: { level: initialLevel } });
 
     return newState;
   }
@@ -341,6 +351,7 @@ export class GameSessionService implements OnDestroy {
     this._eventListeners.forEach(listener => {
       try { listener(event); } catch (e) { console.warn('Session event listener error:', e); }
     });
+    this.events.next(event);
   }
 
   // ============================================
@@ -363,6 +374,7 @@ export class GameSessionService implements OnDestroy {
   ngOnDestroy(): void {
     this._cleanupTimers();
     this._eventListeners.clear();
+    this.events.complete();
     this._state.set(null);
     this._config = null;
     this._pausedAt.set(null);

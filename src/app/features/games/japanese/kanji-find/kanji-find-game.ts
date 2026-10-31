@@ -11,6 +11,7 @@ import { LearningContentService } from '@core/learning/learning-content.service'
 import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { KanjiFindEngine, KanjiQuestion, KanjiModality } from '@core/learning/kanji-find-engine';
 import { JapaneseWord, RepresentationType } from '@core/learning/learning-content';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 @Component({
   selector: 'kanji-find-game',
@@ -32,7 +33,7 @@ export class KanjiFindGameComponent implements OnInit, OnDestroy {
   readonly activeProfile = this.profileState.activeProfile;
   readonly GAME_ID = 'japanese-kanji-find';
   readonly REQUIRED_CORRECT = 5;
-  readonly MAX_LEVEL = 10;
+  readonly MAX_LEVEL = gameMaxLevel('japanese-kanji-find');
   readonly TARGET_SKILLS = [
     'japanese.kanji.recognition',
     'japanese.kanji.reading',

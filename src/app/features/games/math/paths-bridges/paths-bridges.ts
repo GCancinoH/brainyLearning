@@ -9,6 +9,7 @@ import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { GNode, Puzzle, buildPuzzle, degrees, edgeBetween, oddNodes } from './graph-puzzle';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
  * "Caminos y puentes" (topología y grafos)
@@ -39,7 +40,7 @@ export class PathsBridges implements OnInit, OnDestroy {
 
   // Configuración
   readonly GAME_ID = 'paths-bridges';
-  readonly MAX_LEVEL = 10;
+  readonly MAX_LEVEL = gameMaxLevel('paths-bridges');
   readonly requiredCorrect = (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 4;
   readonly starSlots = Array.from({ length: this.requiredCorrect }, (_, i) => i);
 

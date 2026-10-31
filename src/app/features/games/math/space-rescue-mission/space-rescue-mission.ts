@@ -11,6 +11,7 @@ import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { REQUIRED_PER_LEVEL, RescueProblem, buildRescueProblem, starsFor } from './rescue-problem';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
  * "Misión de rescate" - Suma Espacial 4 (modo pareja, una sola pantalla)
@@ -60,7 +61,7 @@ export class SpaceRescueMission implements OnInit, OnDestroy {
 
   // Configuración
   readonly GAME_ID = 'space-rescue-mission';
-  readonly MAX_LEVEL = 10;
+  readonly MAX_LEVEL = gameMaxLevel('space-rescue-mission');
   readonly requiredCorrect = REQUIRED_PER_LEVEL;
   readonly stops = PLANETS.slice(0, REQUIRED_PER_LEVEL + 1);
 

@@ -9,6 +9,7 @@ import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
 import { ProblemPicker, ordered, Range } from '@core/games/problem-picker';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /** Rangos por nivel: minuendo (a); el sustraendo va de 1 a a-1 */
 const SUB_RANGES: ReadonlyArray<{ maxLevel: number; a: Range }> = [
@@ -44,7 +45,7 @@ export class SpaceSubtraction implements OnInit, OnDestroy {
 
   // Configuración del juego
   readonly REQUIRED_CORRECT = 5;
-  readonly MAX_LEVEL = 20;
+  readonly MAX_LEVEL = gameMaxLevel('space-subtraction');
   readonly GAME_ID = 'space-subtraction';
 
   // Selectores del session service

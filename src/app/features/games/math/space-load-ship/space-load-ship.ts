@@ -10,6 +10,7 @@ import { SpeechService } from '@core/services/speech.service';
 import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
  * "Carga la nave" - Suma Espacial 2
@@ -51,7 +52,7 @@ export class SpaceLoadShip implements OnInit, OnDestroy {
 
   // Configuración
   readonly GAME_ID = 'space-load-ship';
-  readonly MAX_LEVEL = 10;
+  readonly MAX_LEVEL = gameMaxLevel('space-load-ship');
   readonly requiredCorrect = (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 4;
   readonly starSlots = Array.from({ length: this.requiredCorrect }, (_, i) => i);
 

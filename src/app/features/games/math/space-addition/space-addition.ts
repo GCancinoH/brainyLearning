@@ -9,6 +9,7 @@ import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
 import { ProblemPicker, pairsOf, unordered, Range } from '@core/games/problem-picker';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /** Rangos por nivel: [a] + [b] */
 const ADD_RANGES: ReadonlyArray<{ maxLevel: number; a: Range; b: Range }> = [
@@ -44,7 +45,7 @@ export class SpaceAddition implements OnInit, OnDestroy {
 
   // Configuración del juego
   readonly REQUIRED_CORRECT = 5;
-  readonly MAX_LEVEL = 20;
+  readonly MAX_LEVEL = gameMaxLevel('space-addition');
   readonly GAME_ID = 'space-addition';
 
   // Selectores del session service

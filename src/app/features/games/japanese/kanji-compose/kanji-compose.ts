@@ -36,7 +36,6 @@ import {
   GuessProblem,
   KanjiComposition,
   KANJI_COMPOSITIONS,
-  MAX_LEVEL,
   pickLine,
   pieceData,
   poolFor,
@@ -68,6 +67,7 @@ import {
 } from '@core/learning/kanji-narration';
 import { PositionLab } from './position-lab';
 import { nearestSlot } from './slot-hit';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
  * "Construye el Kanji" — cómo se forman los caracteres compuestos.
@@ -186,7 +186,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
   // ============================================
 
   readonly GAME_ID = 'japanese-kanji-compose';
-  readonly MAX_LEVEL = MAX_LEVEL;
+  readonly MAX_LEVEL = gameMaxLevel('japanese-kanji-compose');
   /**
    * La skill que se anota. Los otros cuatro juegos japoneses ya escriben en
    * `japanese.kanji.*`; este era el único que no, con lo que el panel no veía nunca a

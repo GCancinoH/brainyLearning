@@ -10,7 +10,8 @@ import { FeedbackState, SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { CoinShopGallery } from './coin-shop-gallery.service';
-import { buildCoinProblem, CoinMode, comboKey, MAX_LEVEL, waysFor } from './coin-shop-problem';
+import { buildCoinProblem, CoinMode, comboKey, waysFor } from './coin-shop-problem';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
  * "La Tiendita de Monedas" - un solo juego, tres modos según edad y nivel.
@@ -71,7 +72,7 @@ export class CoinShop implements OnInit, OnDestroy {
   // ============================================
 
   readonly GAME_ID = 'coin-shop';
-  readonly MAX_LEVEL = MAX_LEVEL;
+  readonly MAX_LEVEL = gameMaxLevel('coin-shop');
   /** A los 4 años, 5 aciertos seguidos son demasiado exigentes */
   readonly requiredCorrect = (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 4;
   readonly starSlots = Array.from({ length: this.requiredCorrect }, (_, i) => i);

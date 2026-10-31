@@ -11,6 +11,7 @@ import { LearningContentService } from '@core/learning/learning-content.service'
 import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { NatureGameEngine, NatureQuestion, NatureActivityType } from '@core/learning/nature-engine';
 import { JapaneseWord } from '@core/learning/learning-content';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 @Component({
   selector: 'nature-game',
@@ -32,7 +33,7 @@ export class NatureGameComponent implements OnInit, OnDestroy {
   readonly activeProfile = this.profileState.activeProfile;
   readonly GAME_ID = 'japanese-nature';
   readonly REQUIRED_CORRECT = 5;
-  readonly MAX_LEVEL = 15;
+  readonly MAX_LEVEL = gameMaxLevel('japanese-nature');
   readonly TARGET_SKILLS = [
     'japanese.kanji.recognition',
     'japanese.kanji.reading',

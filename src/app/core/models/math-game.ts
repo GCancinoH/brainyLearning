@@ -1,9 +1,17 @@
+import { LearningCategory } from './learning-category';
+
 export interface MathGameInfo {
   id: string;
   title: string;
   description: string;
   icon: string;
   route: string;
+  /** Materia/mundo al que pertenece. */
+  category: LearningCategory;
+  /** Nivel máximo real del juego. La lógica del juego lo lee de aquí. */
+  maxLevel: number;
+  /** false = anunciado en el catálogo pero aún sin pantalla jugable. */
+  available?: boolean;
   cssClass: string; // 'addition', 'subtraction', 'multiplication'
   unlockRequirement: {
     requiredGameId: string;
@@ -17,6 +25,8 @@ export interface MathGameInfo {
 export const MATH_GAMES: MathGameInfo[] = [
   {
     id: 'space-addition',
+    category: 'math',
+    maxLevel: 20,
     title: 'Suma Espacial',
     description: '¡Aprende a sumar contando cohetes espaciales!',
     icon: '🛸',
@@ -28,6 +38,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'space-load-ship',
+    category: 'math',
+    maxLevel: 10,
     title: 'Carga la Nave',
     description: 'Arrastra los cohetes a la bahía, cuéntalos y descubre cuántos hay',
     icon: '📦',
@@ -43,6 +55,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'space-fuel-tank',
+    category: 'math',
+    maxLevel: 10,
     title: 'El Tanque de Combustible',
     description: 'Llena el tanque con bloques y descubre todas las formas de lograrlo',
     icon: '⛽',
@@ -58,6 +72,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'space-rescue-mission',
+    category: 'math',
+    maxLevel: 10,
     title: 'Misión de Rescate',
     description: 'Juego en pareja: una planea, la otra carga, y juntas cuentan las estrellas',
     icon: '🛟',
@@ -73,6 +89,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'space-subtraction',
+    category: 'math',
+    maxLevel: 20,
     title: 'Resta en la Estación',
     description: 'Despega asteroides y cuenta los que quedan',
     icon: '☄️',
@@ -87,6 +105,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'space-multiplication',
+    category: 'math',
+    maxLevel: 20,
     title: 'Multiplicación Espacial',
     description: 'Agrupa constelaciones y multiplica estrellas',
     icon: '⭐',
@@ -101,6 +121,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'logic-blocks',
+    category: 'math',
+    maxLevel: 10,
     title: 'Clasificador de Bloques',
     description: 'Clasifica figuras por color, forma y tamaño, y descubre qué hay en el medio del diagrama',
     icon: '🔷',
@@ -112,6 +134,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'paths-bridges',
+    category: 'math',
+    maxLevel: 10,
     title: 'Caminos y Puentes',
     description: 'Traza caminos con el dedo: lleva a la rana a casa y cruza todos los puentes una sola vez',
     icon: '🌉',
@@ -123,6 +147,8 @@ export const MATH_GAMES: MathGameInfo[] = [
   },
   {
     id: 'coin-shop',
+    category: 'math',
+    maxLevel: 10,
     title: 'La Tiendita de Monedas',
     description: 'Cuenta objetos de verdad y descubre cuántas formas hay de pagar con monedas',
     icon: '🪙',

@@ -1,5 +1,5 @@
 import { Service, inject, signal, computed, effect } from '@angular/core';
-import { PlayerProfile, GameProgress } from '../models/player-profile';
+import { PlayerProfile, GameProgress, migrateProfile } from '../models/player-profile';
 import { FirestoreService } from '@core/firebase/firebase.service';
 import { ALL_GAMES } from '@core/models/game-catalog';
 
@@ -49,11 +49,36 @@ export class ProfileStateService {
 
   // ACCIONES DE PERFIL
   addProfile(newProfile: PlayerProfile): void {
-    this.profiles.update(list => [...list, newProfile]);
-    this.setActiveProfile(newProfile.id);
+    const migrated = migrateProfile(newProfile);
+    this.profiles.update(list => [...list, migrated]);
+    this.setActiveProfile(migrated.id);
 
     // Guardar en Firestore en segundo plano
-    this.firestoreService.saveProfileToCloud(newProfile).catch(() => {});
+    this.firestoreService.saveProfileToCloud(migrated).catch(() => {});
+  }
+
+  /**
+   * Actualiza el perfil activo y lo sincroniza con la nube.
+   *
+   * Es el punto único para escribir cosas que no son progreso de juego (insignias,
+   * contadores de esfuerzo). Devuelve el perfil actualizado para que quien llama pueda
+   * seguir leyendo el estado nuevo sin esperar a otro ciclo.
+   */
+  updateActiveProfile(updater: (profile: PlayerProfile) => PlayerProfile): PlayerProfile | null {
+    const activeId = this.activeProfileId();
+    if (!activeId) return null;
+
+    let updated: PlayerProfile | null = null;
+    this.profiles.update(list => list.map(profile => {
+      if (profile.id !== activeId) return profile;
+      updated = migrateProfile(updater(profile));
+      return updated;
+    }));
+
+    if (updated) {
+      this.firestoreService.saveProfileToCloud(updated).catch(() => {});
+    }
+    return updated;
   }
 
   setActiveProfile(id: string): void {
@@ -163,14 +188,15 @@ export class ProfileStateService {
 
     const cloudProfile = await this.firestoreService.fetchProfileFromCloud(activeId);
     if (cloudProfile) {
+      const migrated = migrateProfile(cloudProfile);
       this.profiles.update(list => {
-        const index = list.findIndex(p => p.id === cloudProfile.id);
+        const index = list.findIndex(p => p.id === migrated.id);
         if (index !== -1) {
           const updated = [...list];
-          updated[index] = cloudProfile;
+          updated[index] = migrated;
           return updated;
         }
-        return [...list, cloudProfile];
+        return [...list, migrated];
       });
     }
   }
@@ -184,7 +210,10 @@ export class ProfileStateService {
 
       // Validación estricta para asegurar que sea un arreglo válido
       if (Array.isArray(parsed)) {
-        return parsed.filter(p => typeof p.id === 'string' && typeof p.name === 'string');
+        return parsed
+          .filter((p): p is { id: string; name: string } =>
+            !!p && typeof p === 'object' && typeof p.id === 'string' && typeof p.name === 'string')
+          .map(migrateProfile);
       }
       return [];
     } catch {

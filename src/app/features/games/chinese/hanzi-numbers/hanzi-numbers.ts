@@ -33,6 +33,7 @@ import {
   numerosParaFlash,
 } from './hanzi-numbers-problem';
 import { KANJI_TRAZOS, type KanjiTrazos, trazoCount } from '@core/learning/kanji-strokes';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
  * ms sin tocar un montaje que no se lee antes de proponer el 十. Mientras le queden
@@ -118,7 +119,7 @@ export class HanziNumbers implements OnInit, OnDestroy {
 
   readonly GAME_ID = 'hanzi-numbers';
   /** 1–6 reconocer, 7–12 combinar: seis niveles por etapa. */
-  readonly MAX_LEVEL = 12;
+  readonly MAX_LEVEL = gameMaxLevel('hanzi-numbers');
   /** A los 4 años, 5 aciertos seguidos son demasiado exigentes */
   readonly requiredCorrect = (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 4;
   readonly starSlots = Array.from({ length: this.requiredCorrect }, (_, i) => i);

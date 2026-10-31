@@ -14,6 +14,7 @@ import { JapaneseWord } from '@core/learning/learning-content';
 import { LevelUpDialog } from '@shared/game-ui/level-up-dialog/level-up-dialog';
 import { SpacedRepetition, JAPANESE_VOCAB_DECK } from '@core/learning/spaced-repetition';
 import { WordIntroCarousel } from '@shared/game-ui/word-intro-carousel/word-intro-carousel';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 type Phase = 'intro' | 'guided' | 'play' | 'review';
 
@@ -43,7 +44,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   readonly GAME_ID = 'japanese-listening';
   readonly requiredCorrect = computed(() => (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 5);
   readonly starSlots = computed(() => Array.from({ length: this.requiredCorrect() }, (_, i) => i));
-  readonly MAX_LEVEL = 10;
+  readonly MAX_LEVEL = gameMaxLevel('japanese-listening');
   readonly TARGET_SKILLS = ['japanese.listening', 'japanese.vocabulary'];
   readonly levelUpVisible = signal(false);
   readonly levelUpTarget = signal(1);

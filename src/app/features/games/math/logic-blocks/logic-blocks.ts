@@ -14,6 +14,7 @@ import { GhostHand } from '@shared/game-ui/ghost-hand/ghost-hand';
 import { Narrator } from '@core/games/narrator.service';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import { HintLadder, configForAge, type LadderLevel } from '@core/games/hint-ladder';
+import { gameMaxLevel } from '@core/models/game-catalog';
 import {
   Block, COLOR_HEX, Region, Round, blocksToPlace, buildRound, describeBlock, hintFor, label,
   matches, regionOf, vennRegionAt, type Attr
@@ -66,7 +67,7 @@ export class LogicBlocks implements OnInit, OnDestroy {
 
   // Configuración
   readonly GAME_ID = 'logic-blocks';
-  readonly MAX_LEVEL = 10;
+  readonly MAX_LEVEL = gameMaxLevel('logic-blocks');
   readonly requiredCorrect = (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 4;
   readonly starSlots = Array.from({ length: this.requiredCorrect }, (_, i) => i);
 

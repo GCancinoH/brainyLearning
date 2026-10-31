@@ -10,6 +10,7 @@ import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
 import { generateMultiplyProblem } from './multiply-problem';
 import { ProblemPicker } from '@core/games/problem-picker';
+import { gameMaxLevel } from '@core/models/game-catalog';
 
 @Component({
   selector: 'space-multiply',
@@ -43,7 +44,7 @@ export class SpaceMultiply implements OnInit, OnDestroy {
   // Mismo id que el catálogo (MATH_GAMES) para que el desbloqueo y el nivel guardado coincidan
   readonly GAME_ID = 'space-multiplication';
   readonly REQUIRED_CORRECT = 5;
-  readonly MAX_LEVEL = 20;
+  readonly MAX_LEVEL = gameMaxLevel('space-multiplication');
   readonly starSlots = Array.from({ length: this.REQUIRED_CORRECT }, (_, i) => i);
 
   // Selectores del session service

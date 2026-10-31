@@ -1,9 +1,17 @@
+import { LearningCategory } from './learning-category';
+
 export interface ChineseGameInfo {
   id: string;
   title: string;
   description: string;
   icon: string;
   route: string;
+  /** Materia/mundo al que pertenece. */
+  category: LearningCategory;
+  /** Nivel máximo real del juego. La lógica del juego lo lee de aquí. */
+  maxLevel: number;
+  /** false = anunciado en el catálogo pero aún sin pantalla jugable. */
+  available?: boolean;
   cssClass: string;
   unlockRequirement: {
     requiredGameId: string;
@@ -27,6 +35,8 @@ export interface ChineseGameInfo {
 export const CHINESE_GAMES: ChineseGameInfo[] = [
   {
     id: 'hanzi-numbers',
+    category: 'chinese',
+    maxLevel: 12,
     title: 'Números Hanzi',
     description: 'Aprende el 1 al 20 y forma números más grandes agarrando sus hanzis',
     icon: '🐉',

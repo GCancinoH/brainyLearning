@@ -1,9 +1,17 @@
+import { LearningCategory } from './learning-category';
+
 export interface JapaneseGameInfo {
   id: string;
   title: string;
   description: string;
   icon: string;
   route: string;
+  /** Materia/mundo al que pertenece. */
+  category: LearningCategory;
+  /** Nivel máximo real del juego. La lógica del juego lo lee de aquí. */
+  maxLevel: number;
+  /** false = anunciado en el catálogo pero aún sin pantalla jugable. */
+  available?: boolean;
   cssClass: string; // 'listening', 'kanji', 'nature', 'calendar', 'clock', 'word-builder'
   unlockRequirement: {
     requiredGameId: string;
@@ -17,6 +25,8 @@ export interface JapaneseGameInfo {
 export const JAPANESE_GAMES: JapaneseGameInfo[] = [
   {
     id: 'japanese-listening',
+    category: 'japanese',
+    maxLevel: 10,
     title: '¿Qué escuchaste?',
     description: 'Escucha palabras en japonés y elige la imagen correcta',
     icon: '👂',
@@ -28,6 +38,8 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
   },
   {
     id: 'japanese-kanji-compose',
+    category: 'japanese',
+    maxLevel: 10,
     title: 'Construye el Kanji',
     description: 'Descubre de qué piezas está hecho cada kanji, colócalas y luego dibújalo tú',
     icon: '🧩',
@@ -41,6 +53,8 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
   },
   {
     id: 'japanese-kanji-find',
+    category: 'japanese',
+    maxLevel: 10,
     title: 'Encuentra el Kanji',
     description: 'Relaciona kanji con su significado y lectura',
     icon: '🔍',
@@ -55,6 +69,8 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
   },
   {
     id: 'japanese-nature',
+    category: 'japanese',
+    maxLevel: 15,
     title: 'Kanji Naturaleza',
     description: '12 kanji de la naturaleza con actividades visuales',
     icon: '🌳',
@@ -70,6 +86,8 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
   },
   {
     id: 'japanese-calendar',
+    category: 'japanese',
+    maxLevel: 10,
     title: 'Calendario Japonés',
     description: 'Días de la semana, kanji, lectura y descomposición',
     icon: '📅',
@@ -84,6 +102,9 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
   },
   {
     id: 'japanese-clock',
+    category: 'japanese',
+    maxLevel: 10,
+    available: false,
     title: 'Reloj Japonés',
     description: 'Aprende a leer la hora en japonés',
     icon: '🕐',
@@ -98,6 +119,9 @@ export const JAPANESE_GAMES: JapaneseGameInfo[] = [
   },
   {
     id: 'japanese-word-builder',
+    category: 'japanese',
+    maxLevel: 10,
+    available: false,
     title: 'Construye Palabras',
     description: 'Escucha y construye palabras y horas',
     icon: '🧩',
