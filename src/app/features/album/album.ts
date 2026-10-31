@@ -7,18 +7,18 @@ import {
   ViewChild,
   ElementRef,
   OnDestroy,
+  OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Margin } from '@core/directives/margin';
 import { BadgeArt } from '@shared/game-ui/badge-art/badge-art';
 import { BadgeDialog } from '@shared/game-ui/badge-dialog/badge-dialog';
 import { ProfileStateService } from '@core/services/profile-state';
 import { BadgeService } from '@core/badges/badge.service';
 import { BadgeVoice } from '@core/badges/badge-voice';
-import { ALL_BADGES, CATEGORY_BADGES, GAME_BADGES, EFFORT_BADGES, badgesForCategory, badgesForGame, TIER_LABEL, badgeById } from '@core/badges/badge-catalog';
+import { ALL_BADGES, CATEGORY_BADGES, GAME_BADGES, EFFORT_BADGES, TIER_LABEL, badgeById } from '@core/badges/badge-catalog';
 import { CATEGORY_META, LearningCategory, CATEGORY_ORDER } from '@core/models/learning-category';
-import { Badge, BadgeScope, EarnedBadge } from '@core/badges/badge-types';
+import { Badge, EarnedBadge } from '@core/badges/badge-types';
 import { Sticker } from '@core/models/player-profile';
 import { ALL_GAMES } from '@core/models/game-catalog';
 
@@ -37,6 +37,30 @@ interface GameBadgeGroup {
   badges: Badge[];
 }
 
+/** Rompecabezas del mundo: cada insignia de categoría = 1 pieza */
+interface WorldPuzzle {
+  category: LearningCategory;
+  totalPieces: number;
+  earnedPieces: number;
+  pieces: { id: string; earned: boolean; badge?: Badge }[];
+}
+
+/** Sellos de la semana (cartulina 7 días) */
+interface WeeklyStamps {
+  days: { date: string; earned: boolean }[];
+  currentStreak: number;
+  completedThisWeek: boolean;
+}
+
+/** Marco de perfil desbloqueable */
+interface ProfileFrame {
+  id: string;
+  name: string;
+  gameId: string;
+  icon: string;
+  earned: boolean;
+}
+
 @Component({
   selector: 'app-album',
   standalone: true,
@@ -44,7 +68,7 @@ interface GameBadgeGroup {
   templateUrl: './album.html',
   styleUrl: './album.scss',
 })
-export class AlbumComponent implements OnDestroy {
+export class AlbumComponent implements OnDestroy, OnInit {
   private readonly profileState = inject(ProfileStateService);
   private readonly badgeService = inject(BadgeService);
   private readonly badgeVoice = inject(BadgeVoice);
@@ -72,6 +96,10 @@ export class AlbumComponent implements OnDestroy {
   readonly showSessionSummary = signal(false);
   private carouselTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** Insignia de bienvenida (se muestra una vez al crear perfil) */
+  readonly showWelcomeBadge = signal(false);
+  private welcomeShown = false;
+
   /** Agrupación: mundo → insignias de categoría + por juego */
   readonly badgeGroups = computed<BadgeGroup[]>(() => {
     const profile = this.activeProfile();
@@ -94,6 +122,85 @@ export class AlbumComponent implements OnDestroy {
       groups.push({ category, gameBadges, categoryBadges });
     }
     return groups;
+  });
+
+  /** Rompecabezas del mundo: cada insignia de categoría ganada = pieza */
+  readonly worldPuzzles = computed<WorldPuzzle[]>(() => {
+    const profile = this.activeProfile();
+    if (!profile) return [];
+
+    const earnedIds = new Set(profile.badges.map(b => b.id));
+    const puzzles: WorldPuzzle[] = [];
+
+    for (const category of CATEGORY_ORDER) {
+      const meta = CATEGORY_META[category];
+      if (!meta.available) continue;
+
+      const categoryBadges = CATEGORY_BADGES.filter(b => b.category === category);
+      const pieces = categoryBadges.map(badge => ({
+        id: badge.id,
+        earned: earnedIds.has(badge.id),
+        badge,
+      }));
+      const earnedPieces = pieces.filter(p => p.earned).length;
+
+      if (pieces.length > 0) {
+        puzzles.push({ category, totalPieces: pieces.length, earnedPieces, pieces });
+      }
+    }
+    return puzzles;
+  });
+
+  /** Sellos de la semana (cartulina 7 días) */
+  readonly weeklyStamps = computed<WeeklyStamps>(() => {
+    const profile = this.activeProfile();
+    if (!profile) return { days: [], currentStreak: 0, completedThisWeek: false };
+
+    const today = new Date();
+    const days: { date: string; earned: boolean }[] = [];
+    let currentStreak = 0;
+    let streakBroken = false;
+
+    // Últimos 7 días (hoy + 6 anteriores)
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const earned = profile.badgeStats?.daysPlayed?.includes(key) ?? false;
+      days.push({ date: key, earned });
+      if (earned && !streakBroken) {
+        currentStreak++;
+      } else {
+        streakBroken = true;
+      }
+    }
+
+    const completedThisWeek = days.every(d => d.earned);
+    return { days, currentStreak, completedThisWeek };
+  });
+
+  /** Marcos de perfil desbloqueables (1 por juego al lograr Oro) */
+  readonly profileFrames = computed<ProfileFrame[]>(() => {
+    const profile = this.activeProfile();
+    if (!profile) return [];
+
+    const earnedIds = new Set(profile.badges.map(b => b.id));
+    const frames: ProfileFrame[] = [];
+
+    for (const game of ALL_GAMES) {
+      const goldBadgeId = `${game.id}.gold`;
+      const earned = earnedIds.has(goldBadgeId);
+      if (earned || game.available !== false) {
+        frames.push({
+          id: `frame-${game.id}`,
+          name: `Marco: ${game.title}`,
+          gameId: game.id,
+          icon: game.icon,
+          earned,
+        });
+      }
+    }
+    return frames;
   });
 
   /** Pegatinas agrupadas por tema visual */
@@ -127,6 +234,15 @@ export class AlbumComponent implements OnDestroy {
         this.showSessionSummary.set(true);
       }
     });
+  }
+
+  ngOnInit(): void {
+    // Insignia de bienvenida: se muestra una vez por perfil
+    const profile = this.activeProfile();
+    if (profile && !this.welcomeShown && !profile.badges.some(b => b.id === 'welcome')) {
+      this.showWelcomeBadge.set(true);
+      this.welcomeShown = true;
+    }
   }
 
   ngOnDestroy(): void {
@@ -187,6 +303,28 @@ export class AlbumComponent implements OnDestroy {
     return labels[category] ?? category;
   }
 
+  /** Obtiene el rompecabezas para una categoría */
+  getWorldPuzzle(category: LearningCategory): WorldPuzzle | undefined {
+    return this.worldPuzzles().find(p => p.category === category);
+  }
+
+  /** Formato corto para etiqueta de día (Lun, Mar, etc.) */
+  formatDayLabel(dateStr: string): string {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('es-ES', { weekday: 'short' }).slice(0, 3);
+  }
+
+  /** Categoría del juego para el gradiente del marco */
+  getGameCategory(gameId: string): LearningCategory | undefined {
+    return ALL_GAMES.find(g => g.id === gameId)?.category;
+  }
+
+  /** Gradiente para el marco de perfil (con fallback) */
+  getFrameGradient(gameId: string): string {
+    const cat = this.getGameCategory(gameId);
+    return cat ? CATEGORY_META[cat].bgGradient : 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)';
+  }
+
   setTab(tab: AlbumTab): void {
     this.activeTab.set(tab);
   }
@@ -215,6 +353,12 @@ export class AlbumComponent implements OnDestroy {
   dismissSessionSummary(): void {
     this.showSessionSummary.set(false);
     this.sessionNewBadges.set([]);
+  }
+
+  /** Cierra la insignia de bienvenida y la otorga */
+  dismissWelcomeBadge(): void {
+    this.showWelcomeBadge.set(false);
+    this.badgeService.awardBadge('welcome');
   }
 
   /** Navega a un juego */

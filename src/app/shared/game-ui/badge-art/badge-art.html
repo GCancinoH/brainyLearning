@@ -1,6 +1,4 @@
-<div class="badge-art" [class]="size()" [style.--ribbon]="ribbon()" aria-hidden="true">
-  <div class="badge-shape" [class]="shapeClass()">
-    <span class="badge-icon">{{ badge().icon }}</span>
-  </div>
+<div class="badge-art" [class]="size()" [style.--ribbon]="ribbon()" [class.pop]="entranceClass()" aria-hidden="true">
+  <div class="badge-svg" [innerHTML]="svgHtml()"></div>
   <span class="badge-tier">{{ tierIcon() }}</span>
 </div>

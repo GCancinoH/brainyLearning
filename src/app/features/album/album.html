@@ -63,6 +63,33 @@
             </div>
           }
 
+          <!-- Rompecabezas del mundo -->
+          @if (getWorldPuzzle(group.category); as puzzle) {
+            <div class="world-puzzle">
+              <h3 class="puzzle-title">
+                🧩 Rompecabezas de {{ CATEGORY_META[group.category].worldName }}
+                <span class="puzzle-progress">{{ puzzle.earnedPieces }} / {{ puzzle.totalPieces }}</span>
+              </h3>
+              <div class="puzzle-grid">
+                @for (piece of puzzle.pieces; track piece.id) {
+                  <div class="puzzle-piece" [class.earned]="piece.earned" [class.empty]="!piece.earned">
+                    @if (piece.earned && piece.badge) {
+                      <badge-art [badge]="piece.badge" size="sm" />
+                    } @else {
+                      <div class="piece-silhouette">?</div>
+                    }
+                  </div>
+                }
+              </div>
+              @if (puzzle.earnedPieces === puzzle.totalPieces && puzzle.totalPieces > 0) {
+                <div class="puzzle-complete">
+                  <span class="complete-emoji">✨</span>
+                  <span>¡Escena completa! El mundo brilla.</span>
+                </div>
+              }
+            </div>
+          }
+
           <!-- Insignias por juego -->
           @if (group.gameBadges.length) {
             @for (gameGroup of gameBadgesByGame(group.gameBadges); track gameGroup.gameId) {
@@ -99,6 +126,53 @@
           <p>Juega para ganar tus primeras insignias.</p>
           <p class="empty-hint">Cada juego tiene 4 niveles: 🌱 🥉 🥈 🥇</p>
         </div>
+      }
+
+      <!-- Sellos de la semana (cartulina 7 días) -->
+      <section class="weekly-stamps-section">
+        <h2 class="section-title">📅 Sellos de la semana</h2>
+        <div class="weekly-stamps-card">
+          @for (day of weeklyStamps().days; track day.date; let i = $index) {
+            <div class="stamp-day" [class.earned]="day.earned" [class.today]="i === 6">
+              <span class="stamp-day-label">{{ formatDayLabel(day.date) }}</span>
+              <div class="stamp-slot" [class.stamped]="day.earned">
+                @if (day.earned) {
+                  <span class="stamp-icon">✨</span>
+                }
+              </div>
+            </div>
+          }
+          <div class="stamps-summary">
+            <span class="streak-info">🔥 Racha actual: {{ weeklyStamps().currentStreak }} día{{ weeklyStamps().currentStreak !== 1 ? 's' : '' }}</span>
+            @if (weeklyStamps().completedThisWeek) {
+              <span class="week-complete">🏆 ¡Semana completa!</span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Marcos de perfil -->
+      @if (profileFrames().length) {
+        <section class="profile-frames-section">
+          <h2 class="section-title">🖼️ Marcos de perfil</h2>
+          <p class="frames-hint">Consigue 🥇 en un juego para desbloquear su marco</p>
+          <div class="frames-grid">
+            @for (frame of profileFrames(); track frame.id) {
+              <div class="frame-card" [class.earned]="frame.earned" [class.locked]="!frame.earned">
+                <div class="frame-preview" [style.background]="getFrameGradient(frame.gameId)">
+                  <span class="frame-icon">{{ frame.icon }}</span>
+                  @if (!frame.earned) {
+                    <span class="frame-lock">🔒</span>
+                  }
+                </div>
+                <span class="frame-name">{{ frame.name }}</span>
+                @if (frame.earned) {
+                  <span class="frame-badge">✓ Desbloqueado</span>
+                }
+              </div>
+            }
+          </div>
+        </section>
       }
     </main>
   }
@@ -152,6 +226,22 @@
           <button class="btn-view-album" (click)="dismissSessionSummary()">Ver en el álbum</button>
           <button class="btn-continue" (click)="router.navigate(['/dashboard'])">Seguir jugando</button>
         </div>
+      </div>
+    </div>
+  }
+
+  <!-- INSIGNIA DE BIENVENIDA -->
+  @if (showWelcomeBadge()) {
+    <div class="welcome-backdrop" role="dialog" aria-modal="true" aria-label="¡Bienvenida!">
+      <div class="welcome-dialog">
+        <div class="welcome-content">
+          <span class="welcome-emoji">🎁</span>
+          <h2>¡Bienvenida a Brainy Learning!</h2>
+          <p>Esta es tu primera insignia. ¡Toca para verla!</p>
+          <badge-art [badge]="getBadgeById('welcome')!" size="lg" />
+          <p class="welcome-name">{{ getBadgeById('welcome')?.name }}</p>
+        </div>
+        <button class="btn-welcome" (click)="dismissWelcomeBadge()">¡Empezar a explorar! 🚀</button>
       </div>
     </div>
   }

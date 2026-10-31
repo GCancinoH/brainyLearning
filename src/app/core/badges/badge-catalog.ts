@@ -52,7 +52,7 @@ export function categoryBadgeId(
   return `cat.${category}.${kind}`;
 }
 
-export function effortBadgeId(kind: 'retry' | 'explorer' | 'days' | 'calm' | 'firstTry' | 'help' | 'perfect', threshold?: number): string {
+export function effortBadgeId(kind: 'retry' | 'explorer' | 'days' | 'calm' | 'firstTry' | 'help' | 'perfect' | 'welcome', threshold?: number): string {
   return threshold === undefined ? `effort.${kind}` : `effort.${kind}.${threshold}`;
 }
 
@@ -142,7 +142,7 @@ function categoryBadges(): Badge[] {
 const EFFORT_GRADIENT = 'linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%)';
 
 function effortBadge(
-  kind: 'retry' | 'explorer' | 'days' | 'calm' | 'firstTry' | 'help' | 'perfect',
+  kind: 'retry' | 'explorer' | 'days' | 'calm' | 'firstTry' | 'help' | 'perfect' | 'welcome',
   threshold: number | undefined,
   icon: string,
   name: string,
@@ -181,6 +181,8 @@ function effortBadges(): Badge[] {
     effortBadge('perfect', 1, '🧠', 'Memoria de dragón', '¡Una ronda perfecta sin ayuda ni errores!'),
     effortBadge('perfect', 3, '🧠', 'Memoria de dragón · 3', '¡Tres rondas perfectas!'),
     effortBadge('perfect', 10, '🧠', 'Memoria de dragón · 10', '¡Diez rondas perfectas!'),
+    // Fase 4: Insignia de bienvenida
+    effortBadge('welcome', undefined, '🎁', '¡Bienvenida a Brainy!', '¡Bienvenida a tu aventura de aprendizaje!'),
   ];
 }
 

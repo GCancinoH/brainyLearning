@@ -36,6 +36,7 @@ describe('migración de perfiles', () => {
       sessionsCompleted: 0,
       firstTryCorrect: 0,
       helpUsed: 0,
+      perfectRounds: 0,
     });
     expect(migrado.progress.chinese).toEqual({
       level: 1,

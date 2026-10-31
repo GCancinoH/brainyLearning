@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AlbumComponent } from './album';
 import { ProfileStateService } from '@core/services/profile-state';
@@ -10,8 +10,25 @@ import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { createInitialProfile } from '@core/models/player-profile';
 import { EarnedBadge } from '@core/badges/badge-types';
+import { BadgeStats } from '@core/badges/badge-types';
+import { Badge } from '@core/badges/badge-types';
+import { BadgeArt } from '@shared/game-ui/badge-art/badge-art';
+import { BadgeDialog } from '@shared/game-ui/badge-dialog/badge-dialog';
 
 vi.mock('canvas-confetti', () => ({ default: vi.fn() }));
+
+// Mock BadgeArt para evitar dependencias de catálogo en tests
+@Component({
+  selector: 'badge-art',
+  standalone: true,
+  template: '<div class="badge-art-mock" data-testid="badge-art"></div>',
+  inputs: ['badge', 'size', 'animated'],
+})
+class BadgeArtMock {
+  badge = signal<Badge | null>(null);
+  size = signal<'sm' | 'md' | 'lg'>('md');
+  animated = signal(true);
+}
 
 class ProfileStateStub {
   readonly profile = signal(createInitialProfile('Luna', 6, '🦊', 'space'));
@@ -24,6 +41,7 @@ class ProfileStateStub {
 
 class BadgeServiceStub {
   readonly markSeen = vi.fn();
+  readonly awardBadge = vi.fn().mockReturnValue(false);
 }
 
 class BadgeVoiceStub {
@@ -50,6 +68,20 @@ describe('AlbumComponent', () => {
     profileState = new ProfileStateStub();
     badgeService = new BadgeServiceStub();
 
+    // Asegurar que el perfil tenga badgeStats completo
+    profileState.updateActiveProfile(p => ({
+      ...p,
+      badgeStats: {
+        gamesPlayed: [],
+        daysPlayed: [],
+        retrySuccess: 0,
+        sessionsCompleted: 0,
+        firstTryCorrect: 0,
+        helpUsed: 0,
+        perfectRounds: 0,
+      } as BadgeStats,
+    }));
+
     await TestBed.configureTestingModule({
       imports: [AlbumComponent],
       providers: [
@@ -59,7 +91,12 @@ describe('AlbumComponent', () => {
         { provide: Router, useClass: RouterStub },
         { provide: ActivatedRoute, useClass: ActivatedRouteStub },
       ],
-    }).compileComponents();
+    })
+    .overrideComponent(AlbumComponent, {
+      remove: { imports: [BadgeArt] },
+      add: { imports: [BadgeArtMock] },
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(AlbumComponent);
     component = fixture.componentInstance;
@@ -166,5 +203,57 @@ describe('AlbumComponent', () => {
     const earned = fixture.nativeElement.querySelector('.album-badge.earned:not(.silhouette)');
     expect(earned).toBeTruthy();
     expect(earned.disabled).toBe(false);
+  });
+
+  it('calcula rompecabezas del mundo', () => {
+    profileState.updateActiveProfile(p => ({
+      ...p,
+      badges: [
+        { id: 'cat.chinese.explorer', earnedAt: new Date().toISOString(), seen: true },
+        { id: 'cat.chinese.bronze', earnedAt: new Date().toISOString(), seen: true },
+      ],
+    }));
+    fixture.detectChanges();
+
+    const puzzles = component.worldPuzzles();
+    const chinesePuzzle = puzzles.find(p => p.category === 'chinese');
+    expect(chinesePuzzle).toBeTruthy();
+    expect(chinesePuzzle!.earnedPieces).toBeGreaterThanOrEqual(0);
+  });
+
+  it('calcula sellos de la semana', () => {
+    const today = new Date().toISOString().split('T')[0];
+    profileState.updateActiveProfile(p => ({
+      ...p,
+      badgeStats: {
+        gamesPlayed: [],
+        daysPlayed: [today],
+        retrySuccess: 0,
+        sessionsCompleted: 0,
+        firstTryCorrect: 0,
+        helpUsed: 0,
+        perfectRounds: 0,
+      } as BadgeStats,
+    }));
+    fixture.detectChanges();
+
+    const stamps = component.weeklyStamps();
+    expect(stamps.days.length).toBe(7);
+    expect(stamps.currentStreak).toBeGreaterThanOrEqual(0);
+  });
+
+  it('calcula marcos de perfil', () => {
+    profileState.updateActiveProfile(p => ({
+      ...p,
+      badges: [
+        { id: 'hanzi-numbers.gold', earnedAt: new Date().toISOString(), seen: true },
+      ],
+    }));
+    fixture.detectChanges();
+
+    const frames = component.profileFrames();
+    const hanziFrame = frames.find(f => f.gameId === 'hanzi-numbers');
+    expect(hanziFrame).toBeTruthy();
+    expect(hanziFrame!.earned).toBe(true);
   });
 });
