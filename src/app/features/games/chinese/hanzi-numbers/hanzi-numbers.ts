@@ -737,7 +737,7 @@ private unsubscribeEvents?: () => void;
     this.hint.set('');
 
     // 2.2 · Diagnóstico: lo que decide es el PRIMER toque de la pregunta. Se anota al
-    // cerrar, que es cuando ya se sabe cómo terminó (el2.º toque no lo reescribe).
+    // cerrar, que es cuando ya se sabe cómo terminó (el 2.º toque no lo reescribe).
     const diag = this.diagnostico();
     if (diag) {
       this.diagnostico.set({ respuestas: [...diag.respuestas, this.primerIntento() ?? false] });
@@ -748,15 +748,20 @@ private unsubscribeEvents?: () => void;
       this.anotarRonda();
     }
 
+    // Calcular firstTry y perfectRound para insignias de esfuerzo
+    const etapa = this.etapa();
+    const firstTry = etapa === 'reconocer' ? this.primerIntento() === true : this.callejones === 0 && !this.dudaDicha;
+    const perfectRound = firstTry && !this.dudaDicha && this.callejones === 0;
+
     // Primero el número, entero, en chino: es la recompensa y la pronunciación de la
     // palabra que acaba de construir. El elogio va DETRÁS, pero solo si **no** sube de
     // nivel —entonces el premio sonoro ya es `playLevelUp()` y sonar los dos juntos es
     // premio doble— y solo si la narración fue aceptada: si la cancelaron, premiar el
     // silencio sería premiar un fallo de audio.
-    const n = this.etapa() === 'reconocer' ? valorDe(this.respuesta()) : this.objetivo();
+    const n = etapa === 'reconocer' ? valorDe(this.respuesta()) : this.objetivo();
     const narra = this.narrar(n ? numeroClip(n) : null);
 
-    const result = this.session.recordCorrect();
+    const result = this.session.recordCorrect({ firstTry, perfectRound });
     void narra.then(oido => {
       if (oido && !result.leveledUp) void this.audio.playPraise();
     });
@@ -771,7 +776,7 @@ private unsubscribeEvents?: () => void;
     }
 
     // 3.4 · A los 6 años, una reflexión de un toque en lugar del avance automático:
-    // el juego espera su respuesta y ella decide qué viene. Los4 años y el
+    // el juego espera su respuesta y ella decide qué viene. Los 4 años y el
     // diagnóstico siguen con el avance de siempre —el diagnóstico mide el primer
     // toque de 3 preguntas, no es el momento de preguntarle cómo lo hizo—.
     if ((this.activeProfile()?.age ?? 4) >= 6 && !diag) {
@@ -872,6 +877,8 @@ private unsubscribeEvents?: () => void;
       return;
     }
     this.dudaDicha = true;
+    // Insignias: registramos que se usó ayuda
+    this.session.recordHelpUsed();
     void this.narrar(previa ? [previa, clip] : clip);
   }
 

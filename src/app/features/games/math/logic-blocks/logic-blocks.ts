@@ -84,6 +84,8 @@ export class LogicBlocks implements OnInit, OnDestroy {
   readonly shakeId = signal<number | null>(null);
   private readonly localFeedback = signal<'idle' | 'success' | 'try-again'>('idle');
   private wrongCount = 0;
+  /** Ronda actual: ¿se mostró ayuda (ladder > 0)? */
+  private helpShownThisRound = false;
 
   // Derivados
   readonly mode = computed(() => this.round().mode);
@@ -312,6 +314,7 @@ export class LogicBlocks implements OnInit, OnDestroy {
     this.hint.set('');
     this.shakeId.set(null);
     this.wrongCount = 0;
+    this.helpShownThisRound = false;
     this.localFeedback.set('idle');
     this.instructionHeard.set(false);
 

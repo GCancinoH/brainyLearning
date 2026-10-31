@@ -197,3 +197,87 @@ describe('contadores acumulados', () => {
     expect(updateBadgeStats(event('session-end', 'hanzi-numbers', { reason: 'user-exit' }), stats, ctx).sessionsCompleted).toBe(0);
   });
 });
+
+describe('Fase 3: contadores de esfuerzo avanzado', () => {
+  it('cuenta firstTryCorrect en answer-correct con firstTry=true', () => {
+    const stats = createInitialBadgeStats();
+    const updated = updateBadgeStats(event('answer-correct', 'hanzi-numbers', { firstTry: true }), stats, ctx);
+    expect(updated.firstTryCorrect).toBe(1);
+  });
+
+  it('no cuenta firstTryCorrect si firstTry=false', () => {
+    const stats = createInitialBadgeStats();
+    const updated = updateBadgeStats(event('answer-correct', 'hanzi-numbers', { firstTry: false }), stats, ctx);
+    expect(updated.firstTryCorrect).toBe(0);
+  });
+
+  it('cuenta helpUsed en evento help-used', () => {
+    const stats = createInitialBadgeStats();
+    const updated = updateBadgeStats(event('help-used', 'hanzi-numbers'), stats, ctx);
+    expect(updated.helpUsed).toBe(1);
+  });
+
+  it('cuenta perfectRounds en answer-correct con perfectRound=true', () => {
+    const stats = createInitialBadgeStats();
+    const updated = updateBadgeStats(event('answer-correct', 'hanzi-numbers', { perfectRound: true }), stats, ctx);
+    expect(updated.perfectRounds).toBe(1);
+  });
+
+  it('insignias Ojo de águila: 5, 15, 30 aciertos a la primera', () => {
+    const stats = { ...createInitialBadgeStats(), firstTryCorrect: 5 };
+    const ids = evaluateBadgeEvent(event('answer-correct'), stats, new Set(), ctx);
+    expect(ids).toContain('effort.firstTry.5');
+    expect(ids).not.toContain('effort.firstTry.15');
+
+    const stats15 = { ...createInitialBadgeStats(), firstTryCorrect: 15 };
+    const ids15 = evaluateBadgeEvent(event('answer-correct'), stats15, new Set(), ctx);
+    expect(ids15).toContain('effort.firstTry.15');
+    expect(ids15).not.toContain('effort.firstTry.30');
+  });
+
+  it('insignias Pido ayuda y aprendo: 1, 5, 15 ayudas usadas', () => {
+    const stats = { ...createInitialBadgeStats(), helpUsed: 1 };
+    const ids = evaluateBadgeEvent(event('help-used'), stats, new Set(), ctx);
+    expect(ids).toContain('effort.help.1');
+    expect(ids).not.toContain('effort.help.5');
+
+    const stats5 = { ...createInitialBadgeStats(), helpUsed: 5 };
+    const ids5 = evaluateBadgeEvent(event('help-used'), stats5, new Set(), ctx);
+    expect(ids5).toContain('effort.help.5');
+  });
+
+  it('insignias Memoria de dragón: 1, 3, 10 rondas perfectas', () => {
+    const stats = { ...createInitialBadgeStats(), perfectRounds: 1 };
+    const ids = evaluateBadgeEvent(event('answer-correct', 'hanzi-numbers', { perfectRound: true }), stats, new Set(), ctx);
+    expect(ids).toContain('effort.perfect.1');
+    expect(ids).not.toContain('effort.perfect.3');
+
+    const stats3 = { ...createInitialBadgeStats(), perfectRounds: 3 };
+    const ids3 = evaluateBadgeEvent(event('answer-correct', 'hanzi-numbers', { perfectRound: true }), stats3, new Set(), ctx);
+    expect(ids3).toContain('effort.perfect.3');
+  });
+});
+
+describe('catálogo de insignias (Fase 3)', () => {
+  it('incluye las nuevas insignias de esfuerzo', () => {
+    expect(badgeById('effort.firstTry.5')).toBeTruthy();
+    expect(badgeById('effort.firstTry.15')).toBeTruthy();
+    expect(badgeById('effort.firstTry.30')).toBeTruthy();
+    expect(badgeById('effort.help.1')).toBeTruthy();
+    expect(badgeById('effort.help.5')).toBeTruthy();
+    expect(badgeById('effort.help.15')).toBeTruthy();
+    expect(badgeById('effort.perfect.1')).toBeTruthy();
+    expect(badgeById('effort.perfect.3')).toBeTruthy();
+    expect(badgeById('effort.perfect.10')).toBeTruthy();
+  });
+
+  it('las nuevas insignias tienen icono, nombre y voz', () => {
+    for (const id of ['effort.firstTry.5', 'effort.help.1', 'effort.perfect.1']) {
+      const b = badgeById(id);
+      expect(b).toBeTruthy();
+      expect(b!.icon).toBeTruthy();
+      expect(b!.name).toBeTruthy();
+      expect(b!.voice).toBeTruthy();
+    }
+  });
+});

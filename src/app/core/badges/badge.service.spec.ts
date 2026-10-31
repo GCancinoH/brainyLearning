@@ -163,4 +163,38 @@ describe('BadgeService', () => {
   it('descarta ids que no existen', () => {
     expect(service.awardBadge('no-existe')).toBe(false);
   });
+
+  // Fase 3: Esfuerzo avanzado
+  it('cuenta ayuda usada y da insignia Pido ayuda y aprendo', () => {
+    emit(session, 'session-start');
+    emit(session, 'help-used', 'hanzi-numbers');
+
+    expect(profileState.profile?.badgeStats.helpUsed).toBe(1);
+    expect(profileState.profile?.badges.map(b => b.id)).toContain('effort.help.1');
+  });
+
+  it('cuenta firstTry y da insignia Ojo de águila', () => {
+    emit(session, 'session-start');
+    emit(session, 'answer-correct', 'hanzi-numbers', { firstTry: true });
+
+    expect(profileState.profile?.badgeStats.firstTryCorrect).toBe(1);
+  });
+
+  it('acumula firstTryCorrect y da Ojo de águila en umbral 5', () => {
+    emit(session, 'session-start');
+    for (let i = 0; i < 5; i++) {
+      emit(session, 'answer-correct', 'hanzi-numbers', { firstTry: true });
+    }
+
+    expect(profileState.profile?.badgeStats.firstTryCorrect).toBe(5);
+    expect(profileState.profile?.badges.map(b => b.id)).toContain('effort.firstTry.5');
+  });
+
+  it('cuenta ronda perfecta y da Memoria de dragón', () => {
+    emit(session, 'session-start');
+    emit(session, 'answer-correct', 'hanzi-numbers', { perfectRound: true });
+
+    expect(profileState.profile?.badgeStats.perfectRounds).toBe(1);
+    expect(profileState.profile?.badges.map(b => b.id)).toContain('effort.perfect.1');
+  });
 });

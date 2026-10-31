@@ -344,6 +344,11 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   private readonly localFeedback = signal<'idle' | 'success'>('idle');
 
+  /** Ronda actual: ¿hubo errores? */
+  private wrongThisRound = 0;
+  /** Ronda actual: ¿se mostró ayuda (ladder > 0)? */
+  private helpShownThisRound = false;
+
   /**
    * Estamos en el momento de descubrimiento tras componer: el kanji acaba de sonar y se
    * están viendo los hermanos. Ese instante **no lleva banner**: enseñar un "¡Muy bien!"
@@ -870,6 +875,10 @@ export class KanjiCompose implements OnInit, OnDestroy {
     const vencidos = this.srs.due(KANJI_COMPOSITION_DECK);
     const p = buildCompositionProblem(this.currentLevel(), age, Math.random, vencidos);
     this.rondaEmpezadaEn = Date.now();
+
+    // Reset contadores de ronda para insignias
+    this.wrongThisRound = 0;
+    this.helpShownThisRound = false;
 
     this.problem.set(p);
     this.tray.set([...p.tray]);
@@ -1546,6 +1555,7 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
    * hablar en `evaluate()`: añadir aquí el sonido del kanji la cancelaría a mitad.
    */
   private onWrong(): void {
+    this.wrongThisRound++;
     const subio = this.ladder.registerWrong();
     this.ladderLevel.set(this.ladder.level);
     if (subio === 3 && this.ladder.shouldDemo()) this.showPieceDemo();
@@ -1553,6 +1563,12 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
 
   private onLadderRise(level: LadderLevel): void {
     this.ladderLevel.set(level);
+
+    // Insignias: registramos que se usó ayuda cuando sube la escalera
+    if (level > 0) {
+      this.session.recordHelpUsed();
+      this.helpShownThisRound = true;
+    }
 
     // Peldaño 1: vuelve a sonar el kanji. Es "pulsa la 🔊" sin tener que buscar el
     // botón: si se quedó quieta es porque ya no sabe qué suena con qué.
@@ -1909,7 +1925,12 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     this.tutorials.mark(this.GAME_ID, DRAW_MODE);
     this.celebrating.set(false);
     this.localFeedback.set('success');
-    const result = this.session.recordCorrect();
+
+    // Insignias: firstTry = sin errores, perfectRound = sin errores ni ayuda
+    const firstTry = this.wrongThisRound === 0;
+    const perfectRound = firstTry && !this.helpShownThisRound;
+
+    const result = this.session.recordCorrect({ firstTry, perfectRound });
 
     // §5.4. El SRS se alimenta aquí, y con la ayuda de la escalera en la mano: una ronda
     // terminada con el gesto fantasma tocando por ella no es un recuerdo, es un andamio,

@@ -58,8 +58,10 @@ export interface BadgeStats {
   sessionsCompleted: number;
   /** Fase 3: aciertos al primer toque */
   firstTryCorrect?: number;
-  /** Fase 3: ayudas usadas y luego acertadas */
+  /** Fase 3: ayudas usadas */
   helpUsed?: number;
+  /** Fase 3: rondas perfectas (sin ayuda, sin errores) */
+  perfectRounds?: number;
 }
 
 const TIER_VALUE: Record<BadgeTier, number> = {

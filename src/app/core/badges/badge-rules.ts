@@ -63,6 +63,7 @@ export function updateBadgeStats(
     sessionsCompleted: stats.sessionsCompleted ?? 0,
     firstTryCorrect: stats.firstTryCorrect ?? 0,
     helpUsed: stats.helpUsed ?? 0,
+    perfectRounds: stats.perfectRounds ?? 0,
   };
 
   if (event.type === 'session-start') {
@@ -79,6 +80,14 @@ export function updateBadgeStats(
     if (event.payload?.['firstTry'] === true) {
       next.firstTryCorrect = (next.firstTryCorrect ?? 0) + 1;
     }
+    // Ronda perfecta: acertó sin haber usado ayuda y sin errores previos en esta ronda
+    if (event.payload?.['perfectRound'] === true) {
+      next.perfectRounds = (next.perfectRounds ?? 0) + 1;
+    }
+  }
+
+  if (event.type === 'help-used') {
+    next.helpUsed = (next.helpUsed ?? 0) + 1;
   }
 
   const reason = event.payload?.['reason'];
@@ -164,6 +173,20 @@ export function evaluateBadgeEvent(
   const days = stats.daysPlayed?.length ?? 0;
   for (const threshold of [3, 7, 14]) {
     if (days >= threshold) add(effortBadgeId('days', threshold));
+  }
+
+  // Fase 3: Esfuerzo avanzado
+  const firstTry = stats.firstTryCorrect ?? 0;
+  for (const threshold of [5, 15, 30]) {
+    if (firstTry >= threshold) add(effortBadgeId('firstTry', threshold));
+  }
+  const help = stats.helpUsed ?? 0;
+  for (const threshold of [1, 5, 15]) {
+    if (help >= threshold) add(effortBadgeId('help', threshold));
+  }
+  const perfect = stats.perfectRounds ?? 0;
+  for (const threshold of [1, 3, 10]) {
+    if (perfect >= threshold) add(effortBadgeId('perfect', threshold));
   }
 
   // Mundos: solo después de mirar las de juego, porque "mundo en bronce" se apoya en

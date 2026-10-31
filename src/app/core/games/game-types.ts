@@ -132,7 +132,8 @@ export type SessionEventType =
   | 'game-complete'
   | 'answer-correct'
   | 'answer-incorrect'
-  | 'streak-update';
+  | 'streak-update'
+  | 'help-used';
 
 export interface SessionEvent {
   type: SessionEventType;

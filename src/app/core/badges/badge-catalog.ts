@@ -52,7 +52,7 @@ export function categoryBadgeId(
   return `cat.${category}.${kind}`;
 }
 
-export function effortBadgeId(kind: 'retry' | 'explorer' | 'days' | 'calm', threshold?: number): string {
+export function effortBadgeId(kind: 'retry' | 'explorer' | 'days' | 'calm' | 'firstTry' | 'help' | 'perfect', threshold?: number): string {
   return threshold === undefined ? `effort.${kind}` : `effort.${kind}.${threshold}`;
 }
 
@@ -142,7 +142,7 @@ function categoryBadges(): Badge[] {
 const EFFORT_GRADIENT = 'linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%)';
 
 function effortBadge(
-  kind: 'retry' | 'explorer' | 'days' | 'calm',
+  kind: 'retry' | 'explorer' | 'days' | 'calm' | 'firstTry' | 'help' | 'perfect',
   threshold: number | undefined,
   icon: string,
   name: string,
@@ -171,6 +171,16 @@ function effortBadges(): Badge[] {
     effortBadge('days', 7, '📅', 'Días de juego · 7', '¡Siete días de juego!'),
     effortBadge('days', 14, '📅', 'Días de juego · 14', '¡Catorce días de juego!'),
     effortBadge('calm', undefined, '🌙', 'Ratito de calma', '¡Terminaste una sesión completa!'),
+    // Fase 3: Esfuerzo avanzado
+    effortBadge('firstTry', 5, '🎯', 'Ojo de águila', '¡Cinco aciertos a la primera!'),
+    effortBadge('firstTry', 15, '🎯', 'Ojo de águila · 15', '¡Quince aciertos a la primera!'),
+    effortBadge('firstTry', 30, '🎯', 'Ojo de águila · 30', '¡Treinta aciertos a la primera!'),
+    effortBadge('help', 1, '👂', 'Pido ayuda y aprendo', '¡Pediste ayuda y seguiste aprendiendo!'),
+    effortBadge('help', 5, '👂', 'Pido ayuda y aprendo · 5', '¡Cinco veces pediste ayuda y aprendiste!'),
+    effortBadge('help', 15, '👂', 'Pido ayuda y aprendo · 15', '¡Quince veces pediste ayuda y aprendiste!'),
+    effortBadge('perfect', 1, '🧠', 'Memoria de dragón', '¡Una ronda perfecta sin ayuda ni errores!'),
+    effortBadge('perfect', 3, '🧠', 'Memoria de dragón · 3', '¡Tres rondas perfectas!'),
+    effortBadge('perfect', 10, '🧠', 'Memoria de dragón · 10', '¡Diez rondas perfectas!'),
   ];
 }
 

@@ -207,7 +207,7 @@ export class GameSessionService implements OnDestroy {
   /**
    * Registra un acierto
    */
-  recordCorrect(): { leveledUp: boolean; newLevel: number } {
+  recordCorrect(opts?: { firstTry?: boolean; perfectRound?: boolean }): { leveledUp: boolean; newLevel: number } {
     const currentState = this._state();
     if (!currentState || currentState.isTimeUp || currentState.isCompleted || this._pausedAt() !== null) {
       return { leveledUp: false, newLevel: currentState?.level ?? 1 } as const;
@@ -228,7 +228,7 @@ export class GameSessionService implements OnDestroy {
       type: 'answer-correct',
       gameId: currentState.gameId,
       timestamp: Date.now(),
-      payload: { consecutiveCorrect: newConsecutive, level: currentState.level }
+      payload: { consecutiveCorrect: newConsecutive, level: currentState.level, firstTry: opts?.firstTry, perfectRound: opts?.perfectRound }
     });
 
     // Verificar subida de nivel
@@ -278,6 +278,22 @@ export class GameSessionService implements OnDestroy {
       gameId: currentState.gameId,
       timestamp: Date.now(),
       payload: { streak: 0 }
+    });
+  }
+
+  /**
+   * Registra que se usó una ayuda/pista.
+   * Emite evento `help-used` para insignias de esfuerzo.
+   */
+  recordHelpUsed(): void {
+    const currentState = this._state();
+    if (!currentState || currentState.isTimeUp || currentState.isCompleted) return;
+
+    this._emitEvent({
+      type: 'help-used',
+      gameId: currentState.gameId,
+      timestamp: Date.now(),
+      payload: { level: currentState.level }
     });
   }
 

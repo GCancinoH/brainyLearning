@@ -123,6 +123,7 @@ function migrateBadgeStats(raw: unknown): BadgeStats {
     sessionsCompleted: nonNegativeInt(value.sessionsCompleted),
     firstTryCorrect: nonNegativeInt(value.firstTryCorrect),
     helpUsed: nonNegativeInt(value.helpUsed),
+    perfectRounds: nonNegativeInt(value.perfectRounds),
   };
 }
 
