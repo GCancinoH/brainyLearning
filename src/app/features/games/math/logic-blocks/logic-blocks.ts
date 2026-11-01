@@ -15,6 +15,7 @@ import { Narrator } from '@core/games/narrator.service';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import { HintLadder, configForAge, type LadderLevel } from '@core/games/hint-ladder';
 import { gameMaxLevel } from '@core/models/game-catalog';
+import { RoundTracker } from '@core/games/round-tracker';
 import {
   Block, COLOR_HEX, Region, Round, blocksToPlace, buildRound, describeBlock, hintFor, label,
   matches, regionOf, vennRegionAt, type Attr
@@ -84,6 +85,8 @@ export class LogicBlocks implements OnInit, OnDestroy {
   readonly shakeId = signal<number | null>(null);
   private readonly localFeedback = signal<'idle' | 'success' | 'try-again'>('idle');
   private wrongCount = 0;
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly effort = new RoundTracker();
   /** Ronda actual: ¿se mostró ayuda (ladder > 0)? */
   private helpShownThisRound = false;
 
@@ -314,6 +317,7 @@ export class LogicBlocks implements OnInit, OnDestroy {
     this.hint.set('');
     this.shakeId.set(null);
     this.wrongCount = 0;
+    this.effort.reset();
     this.helpShownThisRound = false;
     this.localFeedback.set('idle');
     this.instructionHeard.set(false);
@@ -589,6 +593,7 @@ export class LogicBlocks implements OnInit, OnDestroy {
       // una racha rota por no saber leer, y el juego medía lectura en vez de clasificación.
       if (this.instructionHeard()) {
         this.wrongCount++;
+        this.effort.markWrong();
         this.onWrong(this.round());
       }
       this.localFeedback.set('try-again');
@@ -619,7 +624,7 @@ export class LogicBlocks implements OnInit, OnDestroy {
     this.localFeedback.set('success');
     // Ronda atorada (3 o más errores): no cuenta para la racha
     if (this.wrongCount >= 3) this.session.recordIncorrect();
-    const result = this.session.recordCorrect();
+    const result = this.session.recordCorrect(this.effort.snapshot());
 
     if (result.leveledUp) {
       // El evento 'level-up' se maneja en handleSessionEvent

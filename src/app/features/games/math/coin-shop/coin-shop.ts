@@ -12,6 +12,7 @@ import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { CoinShopGallery } from './coin-shop-gallery.service';
 import { buildCoinProblem, CoinMode, comboKey, waysFor } from './coin-shop-problem';
 import { gameMaxLevel } from '@core/models/game-catalog';
+import { RoundTracker } from '@core/games/round-tracker';
 
 /**
  * "La Tiendita de Monedas" - un solo juego, tres modos según edad y nivel.
@@ -64,6 +65,8 @@ export class CoinShop implements OnInit, OnDestroy {
   private readonly progress = inject(GameProgressService);
   private readonly gallery = inject(CoinShopGallery);
   private readonly speech = inject(SpeechService);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -281,6 +284,7 @@ export class CoinShop implements OnInit, OnDestroy {
   // ============================================
 
   generateProblem(): void {
+    this.round.reset();
     this.clearTimers();
     const age = this.activeProfile()?.age ?? 4;
     const p = buildCoinProblem(this.currentLevel(), age);
@@ -349,6 +353,7 @@ export class CoinShop implements OnInit, OnDestroy {
       this.finishProblem();
     } else {
       this.localFeedback.set('try-again');
+      this.round.markWrong();
       this.session.recordIncorrect();
       this.disabledOptions.update(list => [...list, selected]);
       this.showHint.set(true);
@@ -393,6 +398,7 @@ export class CoinShop implements OnInit, OnDestroy {
       this.finishProblem();
     } else {
       this.localFeedback.set('try-again');
+      this.round.markWrong();
       this.audio.playFailure();
       this.hint.set('Cuenta lo que hay en la bolsa. ¿Es lo que pidió la clienta? 🤔');
     }
@@ -416,6 +422,7 @@ export class CoinShop implements OnInit, OnDestroy {
 
     // Regla blanda: pasarse NO rompe la racha, solo hace una pregunta
     if (value > this.remaining()) {
+      this.round.markWrong();
       this.hint.set('¡Esa moneda no cabe! ¿Cuánto falta? 🤔');
       this.shaking.set(true);
       this.later(() => this.shaking.set(false), 500);
@@ -487,7 +494,7 @@ export class CoinShop implements OnInit, OnDestroy {
   private finishProblem(): void {
     this.localFeedback.set('success');
     this.hint.set('');
-    const result = this.session.recordCorrect();
+    const result = this.session.recordCorrect(this.round.snapshot());
 
     if (result.leveledUp) {
       // El nuevo problema lo genera handleSessionEvent

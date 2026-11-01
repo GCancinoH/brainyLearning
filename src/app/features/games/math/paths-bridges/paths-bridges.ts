@@ -9,6 +9,7 @@ import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { GNode, Puzzle, buildPuzzle, degrees, edgeBetween, oddNodes } from './graph-puzzle';
+import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
@@ -60,6 +61,8 @@ export class PathsBridges implements OnInit, OnDestroy {
   readonly resets = signal(0);
   private readonly localFeedback = signal<'idle' | 'success' | 'try-again'>('idle');
   private bumps = 0;
+  /** Esfuerzo del mapa en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
   private dragging = false;
 
   // Derivados
@@ -200,6 +203,7 @@ export class PathsBridges implements OnInit, OnDestroy {
   // ============================================
 
   generatePuzzle(): void {
+    this.round.reset();
     this.clearTimers();
     const p = buildPuzzle(this.currentLevel(), this.activeProfile()?.age ?? 4);
     this.puzzle.set(p);
@@ -336,6 +340,7 @@ export class PathsBridges implements OnInit, OnDestroy {
   private bump(edgeId: number, message: string): void {
     if (this.flashEdge() === edgeId) return;   // arrastrar sobre la misma línea no cuenta muchas veces
     this.bumps++;
+    this.round.markWrong();
     this.hint.set(message);
     this.localFeedback.set('try-again');
     this.audio.playFailure();
@@ -351,6 +356,7 @@ export class PathsBridges implements OnInit, OnDestroy {
       this.onSolved();
     } else {
       this.bumps++;
+      this.round.markWrong();
       this.localFeedback.set('try-again');
       this.audio.playFailure();
       this.hint.set('¡Mira bien! Creo que sí hay un camino 🔎 ¿Cuántas líneas llegan a cada punto?');
@@ -368,7 +374,7 @@ export class PathsBridges implements OnInit, OnDestroy {
     }
     // Mapa atorado (3 o más tropiezos): no cuenta para la racha
     if (this.bumps >= 3) this.session.recordIncorrect();
-    const result = this.session.recordCorrect();
+    const result = this.session.recordCorrect(this.round.snapshot());
 
     if (result.leveledUp) {
       // El evento 'level-up' se maneja en handleSessionEvent

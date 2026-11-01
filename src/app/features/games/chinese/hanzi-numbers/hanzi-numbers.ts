@@ -16,6 +16,7 @@ import { HANZI_NUMBERS_DECK, SpacedRepetition } from '@core/learning/spaced-repe
 import type { RepresentationType } from '@core/learning/learning-content';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
+import { RoundTracker } from '@core/games/round-tracker';
 import { CLIP_BASE, CLIP_MANIFEST, PISTA_ICONO, numeroClip } from './hanzi-narration';
 import {
   buildCombinacionProblem,
@@ -260,6 +261,8 @@ export class HanziNumbers implements OnInit, OnDestroy {
   private problemaActual: object = {};
   /** El temporizador de la duda por pausa, si hay uno armado. */
   private dudaPausaId: number | null = null;
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
   /** Referencia al canvas de trazado (4.5). */
   private readonly trazadoCanvas = viewChild.required<HTMLCanvasElement>('trazadoCanvas');
   /** Instancia del canvas de trazado (4.5). */
@@ -470,6 +473,7 @@ private unsubscribeEvents?: () => void;
     this.localFeedback.set('idle');
     this.busy.set(false);
     this.reflecting.set(false);
+    this.round.reset();
     this.dudaDicha = false;
     this.callejones = 0;
     this.primerToqueErrado = null;
@@ -711,6 +715,7 @@ private unsubscribeEvents?: () => void;
       // 3.1 · Cada callejón cuenta: es el "reinicio por orden inválido" del criterio de
       // error —no cada toque, que eso es exploración—.
       this.callejones++;
+      this.round.markWrong();
       this.quitarDudaPorPausa();
       this.dudar('hn.duda.dieces', pieza);
       return;
@@ -751,15 +756,16 @@ private unsubscribeEvents?: () => void;
     // Calcular firstTry y perfectRound para insignias de esfuerzo.
     // D2: en "combinar" la duda hablada NO cuenta como fallo de firstTry; solo los
     // callejones (orden inválido). La duda sí impide la ronda perfecta.
-    const etapa = this.etapa();
-    const firstTry = etapa === 'reconocer' ? this.primerIntento() === true : this.callejones === 0;
-    const perfectRound = firstTry && !this.dudaDicha && this.callejones === 0;
+    const snapshot = this.round.snapshot();
+    const firstTry = snapshot.firstTry;
+    const perfectRound = snapshot.perfectRound;
 
     // Primero el número, entero, en chino: es la recompensa y la pronunciación de la
     // palabra que acaba de construir. El elogio va DETRÁS, pero solo si **no** sube de
     // nivel —entonces el premio sonoro ya es `playLevelUp()` y sonar los dos juntos es
     // premio doble— y solo si la narración fue aceptada: si la cancelaron, premiar el
     // silencio sería premiar un fallo de audio.
+    const etapa = this.etapa();
     const n = etapa === 'reconocer' ? valorDe(this.respuesta()) : this.objetivo();
     const narra = this.narrar(n ? numeroClip(n) : null);
 
@@ -879,6 +885,7 @@ private unsubscribeEvents?: () => void;
       return;
     }
     this.dudaDicha = true;
+    this.round.markHelp();
     // Insignias: registramos que se usó ayuda
     this.session.recordHelpUsed();
     void this.narrar(previa ? [previa, clip] : clip);

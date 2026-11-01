@@ -10,6 +10,7 @@ import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
 import { generateMultiplyProblem } from './multiply-problem';
 import { ProblemPicker } from '@core/games/problem-picker';
+import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 
 @Component({
@@ -26,6 +27,8 @@ export class SpaceMultiply implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly picker = new ProblemPicker();
   private readonly progress = inject(GameProgressService);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   private unsubscribeEvents?: () => void;
   private readonly _timers = new Set<ReturnType<typeof setTimeout>>();
@@ -153,6 +156,7 @@ export class SpaceMultiply implements OnInit, OnDestroy {
   }
 
   generateProblem(): void {
+    this.round.reset();
     const previous = this.numA() && this.options().length
       ? { groups: this.numA(), perGroup: this.numB() }
       : null;
@@ -177,7 +181,7 @@ export class SpaceMultiply implements OnInit, OnDestroy {
 
     if (selected === this.correctResult()) {
       this._localFeedback.set('success');
-      const result = this.session.recordCorrect();
+      const result = this.session.recordCorrect(this.round.snapshot());
 
       if (result.leveledUp) {
         // El evento 'level-up' se maneja en handleSessionEvent
@@ -191,6 +195,7 @@ export class SpaceMultiply implements OnInit, OnDestroy {
       }
     } else {
       this._localFeedback.set('try-again');
+      this.round.markWrong();
       this.session.recordIncorrect();
       this.disabledOptions.update(list => [...list, selected]);
       this.showHint.set(true);

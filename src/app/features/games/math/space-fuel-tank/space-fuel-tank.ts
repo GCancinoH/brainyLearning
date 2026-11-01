@@ -11,6 +11,7 @@ import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { buildFuelProblem } from './fuel-tank-problem';
+import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
@@ -53,6 +54,8 @@ export class SpaceFuelTank implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
   private readonly speech = inject(SpeechService);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -178,6 +181,7 @@ export class SpaceFuelTank implements OnInit, OnDestroy {
   // ============================================
 
   generateProblem(): void {
+    this.round.reset();
     this.clearTimers();
     const age = this.activeProfile()?.age ?? 4;
     const p = buildFuelProblem(this.currentLevel(), age);
@@ -208,6 +212,7 @@ export class SpaceFuelTank implements OnInit, OnDestroy {
 
     // No cabe: vuelve a su sitio con una pregunta (no rompe la racha)
     if (block.value > this.remaining()) {
+      this.round.markWrong();
       this.hint.set('¡Ese no cabe! ¿Cuánto espacio queda en el tanque? 🤔');
       this.shaking.set(true);
       this.later(() => this.shaking.set(false), 500);
@@ -273,6 +278,7 @@ export class SpaceFuelTank implements OnInit, OnDestroy {
     const label = (this.preFilled() > 0 ? `${this.preFilled()} + ` : '') + key.split('+').join(' + ');
 
     if (this.discovered().some(d => d.key === key)) {
+      this.round.markWrong();
       this.hint.set('¡Esa combinación ya la descubriste! ¿Hay otra forma? 🔎');
       this.later(() => this.clearTank(), 1800);
       return;
@@ -297,7 +303,7 @@ export class SpaceFuelTank implements OnInit, OnDestroy {
   private finishProblem(): void {
     this.localFeedback.set('success');
     this.hint.set('');
-    const result = this.session.recordCorrect();
+    const result = this.session.recordCorrect(this.round.snapshot());
 
     if (result.leveledUp) {
       // El evento 'level-up' se maneja en handleSessionEvent

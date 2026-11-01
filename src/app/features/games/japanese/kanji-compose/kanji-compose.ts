@@ -25,6 +25,7 @@ import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { GhostHand } from '@shared/game-ui/ghost-hand/ghost-hand';
 import { HintLadder, configForAge, type LadderLevel } from '@core/games/hint-ladder';
+import { RoundTracker } from '@core/games/round-tracker';
 import { TutorialSeen } from '@core/games/tutorial-seen.service';
 import { KANJI_TRAZOS, type KanjiTrazos } from '@core/learning/kanji-strokes';
 import { evaluarTrazo, type Punto } from './stroke-check';
@@ -344,10 +345,8 @@ export class KanjiCompose implements OnInit, OnDestroy {
 
   private readonly localFeedback = signal<'idle' | 'success'>('idle');
 
-  /** Ronda actual: ¿hubo errores? */
-  private wrongThisRound = 0;
-  /** Ronda actual: ¿se mostró ayuda (ladder > 0)? */
-  private helpShownThisRound = false;
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   /**
    * Estamos en el momento de descubrimiento tras componer: el kanji acaba de sonar y se
@@ -877,8 +876,7 @@ export class KanjiCompose implements OnInit, OnDestroy {
     this.rondaEmpezadaEn = Date.now();
 
     // Reset contadores de ronda para insignias
-    this.wrongThisRound = 0;
-    this.helpShownThisRound = false;
+    this.round.reset();
 
     this.problem.set(p);
     this.tray.set([...p.tray]);
@@ -1555,7 +1553,7 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
    * hablar en `evaluate()`: añadir aquí el sonido del kanji la cancelaría a mitad.
    */
   private onWrong(): void {
-    this.wrongThisRound++;
+    this.round.markWrong();
     const subio = this.ladder.registerWrong();
     this.ladderLevel.set(this.ladder.level);
     if (subio === 3 && this.ladder.shouldDemo()) this.showPieceDemo();
@@ -1567,7 +1565,7 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     // Insignias: registramos que se usó ayuda cuando sube la escalera
     if (level > 0) {
       this.session.recordHelpUsed();
-      this.helpShownThisRound = true;
+      this.round.markHelp();
     }
 
     // Peldaño 1: vuelve a sonar el kanji. Es "pulsa la 🔊" sin tener que buscar el
@@ -1927,8 +1925,9 @@ private toTrayPiece(placed: PlacedPiece): TrayPiece {
     this.localFeedback.set('success');
 
     // Insignias: firstTry = sin errores, perfectRound = sin errores ni ayuda
-    const firstTry = this.wrongThisRound === 0;
-    const perfectRound = firstTry && !this.helpShownThisRound;
+    const snapshot = this.round.snapshot();
+    const firstTry = snapshot.firstTry;
+    const perfectRound = snapshot.perfectRound;
 
     const result = this.session.recordCorrect({ firstTry, perfectRound });
 

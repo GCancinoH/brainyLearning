@@ -11,6 +11,7 @@ import { LearningContentService } from '@core/learning/learning-content.service'
 import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { NatureGameEngine, NatureQuestion, NatureActivityType } from '@core/learning/nature-engine';
 import { JapaneseWord } from '@core/learning/learning-content';
+import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 
 @Component({
@@ -29,6 +30,8 @@ export class NatureGameComponent implements OnInit, OnDestroy {
   private readonly contentService = inject(LearningContentService);
   private readonly skillProgress = inject(SkillProgressService);
   private readonly engine = inject(NatureGameEngine);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   readonly activeProfile = this.profileState.activeProfile;
   readonly GAME_ID = 'japanese-nature';
@@ -187,6 +190,7 @@ export class NatureGameComponent implements OnInit, OnDestroy {
   }
 
   generateQuestion(): void {
+    this.round.reset();
     const question = this.engine.generateQuestion({
       gameId: this.GAME_ID,
       targetSkills: this.TARGET_SKILLS,
@@ -223,7 +227,7 @@ export class NatureGameComponent implements OnInit, OnDestroy {
 
     if (isCorrect) {
       this._localFeedback.set('success');
-      const result = this.session.recordCorrect();
+      const result = this.session.recordCorrect(this.round.snapshot());
 
       // Registrar en skills
       this.engine.recordAttempt(question, answer, {
@@ -250,6 +254,7 @@ export class NatureGameComponent implements OnInit, OnDestroy {
       }
     } else {
       this._localFeedback.set('try-again');
+      this.round.markWrong();
       this.session.recordIncorrect();
       this._disabledOptions.update(list => [...list, selectedIndex]);
       this.audio.playFailure();

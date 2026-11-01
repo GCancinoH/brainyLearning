@@ -9,6 +9,7 @@ import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import confetti from 'canvas-confetti';
 import { ProblemPicker, pairsOf, unordered, Range } from '@core/games/problem-picker';
+import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 
 /** Rangos por nivel: [a] + [b] */
@@ -34,6 +35,8 @@ export class SpaceAddition implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly picker = new ProblemPicker();
   private readonly progress = inject(GameProgressService);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -155,6 +158,7 @@ export class SpaceAddition implements OnInit, OnDestroy {
   }
 
   generateProblem(): void {
+    this.round.reset();
     const lvl = this.currentLevel();
     const range = ADD_RANGES.find(r => lvl <= r.maxLevel) ?? ADD_RANGES[ADD_RANGES.length - 1];
 
@@ -194,7 +198,7 @@ export class SpaceAddition implements OnInit, OnDestroy {
     if (selected === this.correctResult()) {
       // ACERTÓ
       this._localFeedback.set('success');
-      const result = this.session.recordCorrect();
+      const result = this.session.recordCorrect(this.round.snapshot());
 
       if (result.leveledUp) {
         // El evento 'level-up' se maneja en handleSessionEvent
@@ -217,6 +221,7 @@ export class SpaceAddition implements OnInit, OnDestroy {
     } else {
       // FALLÓ
       this._localFeedback.set('try-again');
+      this.round.markWrong();
       this.session.recordIncorrect();
       this.disabledOptions.update(list => [...list, selected]);
       this.audio.playFailure();

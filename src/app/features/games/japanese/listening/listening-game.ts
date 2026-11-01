@@ -15,6 +15,7 @@ import { LevelUpDialog } from '@shared/game-ui/level-up-dialog/level-up-dialog';
 import { SpacedRepetition, JAPANESE_VOCAB_DECK } from '@core/learning/spaced-repetition';
 import { WordIntroCarousel } from '@shared/game-ui/word-intro-carousel/word-intro-carousel';
 import { gameMaxLevel } from '@core/models/game-catalog';
+import { RoundTracker } from '@core/games/round-tracker';
 
 type Phase = 'intro' | 'guided' | 'play' | 'review';
 
@@ -38,6 +39,8 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   private readonly skillProgress = inject(SkillProgressService);
   private readonly engine = inject(ListeningGameEngine);
   private readonly srs = inject(SpacedRepetition);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
   private unsubscribeEvents?: () => void;
 
   readonly activeProfile = this.profileState.activeProfile;
@@ -198,6 +201,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
   }
 
   generateQuestion(autoPlay = true): void {
+    this.round.reset();
     const focus = this.phase() === 'guided' ? [this._guidedQueue[0].id] : undefined;
     const question = this.engine.generateQuestion(this.engineConfig(focus));
     if (!question) return;
@@ -240,7 +244,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       this._localFeedback.set('success');
       this._gradedSinceIntro++;
       this._countReview();   // antes de recordCorrect: la última del repaso ya encuentra la puerta abierta
-      const result = this.session.recordCorrect();
+      const result = this.session.recordCorrect(this.round.snapshot());
       if (result.leveledUp) {
         this.progress.saveProgress(this.GAME_ID, {
           level: result.newLevel,
@@ -252,6 +256,7 @@ export class ListeningGameComponent implements OnInit, OnDestroy {
       }
     } else {
       this._localFeedback.set('try-again');
+      this.round.markWrong();
       this.session.recordIncorrect();
       this._disabledOptions.update(list => [...list, selectedWordId]);
       this.audio.playFailure();

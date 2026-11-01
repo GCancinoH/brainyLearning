@@ -10,6 +10,7 @@ import { SpeechService } from '@core/services/speech.service';
 import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
+import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
@@ -47,6 +48,8 @@ export class SpaceLoadShip implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
   private readonly speech = inject(SpeechService);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -180,6 +183,7 @@ export class SpaceLoadShip implements OnInit, OnDestroy {
   // ============================================
 
   generateProblem(): void {
+    this.round.reset();
     this.clearTimers();
     const lvl = this.currentLevel();
     const age = this.activeProfile()?.age ?? 4;
@@ -294,6 +298,7 @@ export class SpaceLoadShip implements OnInit, OnDestroy {
       this.onCorrect();
     } else {
       this.localFeedback.set('try-again');
+      this.round.markWrong();
       this.session.recordIncorrect();
       this.disabledOptions.update(list => [...list, opt]);
       this.audio.playFailure();
@@ -314,6 +319,7 @@ export class SpaceLoadShip implements OnInit, OnDestroy {
       return;
     }
     this.localFeedback.set('try-again');
+    this.round.markWrong();
     this.session.recordIncorrect();
     this.audio.playFailure();
     this.hint.set(loaded < target
@@ -324,7 +330,7 @@ export class SpaceLoadShip implements OnInit, OnDestroy {
   private onCorrect(): void {
     this.localFeedback.set('success');
     this.hint.set('');
-    const result = this.session.recordCorrect();
+    const result = this.session.recordCorrect(this.round.snapshot());
 
     if (result.leveledUp) {
       // El evento 'level-up' se maneja en handleSessionEvent

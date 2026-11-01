@@ -11,6 +11,7 @@ import { SessionEvent } from '@core/games/game-types';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { REQUIRED_PER_LEVEL, RescueProblem, buildRescueProblem, starsFor } from './rescue-problem';
+import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 
 /**
@@ -56,6 +57,8 @@ export class SpaceRescueMission implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly progress = inject(GameProgressService);
   private readonly speech = inject(SpeechService);
+  /** Esfuerzo de la ronda en curso (🎯 primer intento, 🌟 ronda perfecta). */
+  private readonly round = new RoundTracker();
 
   readonly activeProfile = this.profileState.activeProfile;
 
@@ -201,6 +204,7 @@ export class SpaceRescueMission implements OnInit, OnDestroy {
   // ============================================
 
   generateProblem(): void {
+    this.round.reset();
     this.clearTimers();
 
     // ¿Algún alien debe regresar? (repetición espaciada: reaparece tras 2 peticiones)
@@ -340,6 +344,7 @@ export class SpaceRescueMission implements OnInit, OnDestroy {
 
     // Plan equivocado: es una pista, no un castigo (no rompe la racha)
     this.localFeedback.set('try-again');
+    this.round.markWrong();
     this.audio.playFailure();
     this.hint.set(
       total < p.need
@@ -354,7 +359,7 @@ export class SpaceRescueMission implements OnInit, OnDestroy {
 
   private onCorrect(): void {
     this.localFeedback.set('success');
-    const result = this.session.recordCorrect();
+    const result = this.session.recordCorrect(this.round.snapshot());
 
     // Si costó replanear y no era ya un regreso, el alien vuelve dentro de 2 peticiones
     if (this.attempts > 1 && !this.currentIsReturn) {
