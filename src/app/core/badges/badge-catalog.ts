@@ -104,6 +104,7 @@ function categoryBadges(): Badge[] {
 
     // "Exploradora" necesita 3 juegos distintos: en un mundo con 1 solo juego la
     // insignia sería imposible y es mejor no enseñar una silueta inalcanzable.
+    // Actualmente: math=4, japanese=4, chinese=1 → solo math y japanese la tienen.
     if (games.length >= 3) {
       const id = categoryBadgeId(category, 'explorer');
       out.push({

@@ -6,8 +6,9 @@
  * cuando aparece el diálogo. Aquí hay un `HTMLAudioElement` propio y, si no hay clip,
  * TTS con `SpeechService`.
  *
- * Regla de convivencia: si ya hay una voz hablando (la del juego), no se la pisa. La
- * insignia se ve igual; el sonido es un extra, no un requisito.
+ * Regla de convivencia (M4): si `speechSynthesis.speaking === true` (el narrador del
+ * juego está hablando), la insignia **no interrumpe**. La insignia se ve igual;
+ * el sonido es un extra, no un requisito. Test: `badge-voice.spec.ts`.
  */
 
 import { Service, inject } from '@angular/core';

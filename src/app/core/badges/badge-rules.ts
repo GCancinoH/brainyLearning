@@ -3,6 +3,35 @@
  *
  * No hay Angular ni persistencia aquí. Eso permite probar la tabla completa de
  * eventos con vitest y mantener el servicio pequeño.
+ *
+ * ============================================
+ * M8 — Tabla de instrumentación por juego (Fase C / F5)
+ * ============================================
+ * Todos los 15 juegos usan `RoundTracker` y llaman a:
+ *   - `recordCorrect({ firstTry, perfectRound })`
+ *   - `recordIncorrect()` cuando hay error real
+ *   - `recordHelpUsed()` cuando se usa ayuda (botón 🔊 o pista)
+ *
+ * | Juego                    | firstTry | perfectRound | help-used | Notas                                    |
+ * |--------------------------|----------|--------------|-----------|------------------------------------------|
+ * | space-addition           | ✅       | ✅           | ❌        |                                          |
+ * | space-subtraction        | ✅       | ✅           | ❌        |                                          |
+ * | space-multiply           | ✅       | ✅           | ❌        | pista automática tras error (no cuenta)  |
+ * | space-load-ship          | ✅       | ✅           | ❌        | 2 vías de error                          |
+ * | space-fuel-tank          | ✅       | ✅           | ❌        | error = "no cabe" / combinación repetida |
+ * | space-rescue-mission     | ✅       | ✅           | ❌        | error = plan equivocado                  |
+ * | paths-bridges            | ✅       | ✅           | ❌        | bumps ≥ 3 = recordIncorrect              |
+ * | coin-shop                | ✅       | ✅           | ❌        | error en 3 modos                         |
+ * | logic-blocks             | ✅       | ✅           | ✅        | ladder de ayuda                          |
+ * | hanzi-numbers            | ✅       | ✅           | ✅        | duda hablada = help-used                 |
+ * | japanese-listening       | ✅       | ✅           | ❌        | fase guiada muestra pista automática     |
+ * | japanese-nature          | ✅       | ✅           | ❌        |                                          |
+ * | japanese-kanji-find      | ✅       | ✅           | ❌        |                                          |
+ * | japanese-kanji-compose   | ✅       | ✅           | ✅        | ladder de ayuda                          |
+ * | japanese-calendar        | ✅       | ✅           | ❌        |                                          |
+ *
+ * Leyenda: ✅ = reporta correctamente, ❌ = no aplica / no implementado.
+ * Mantener al día al añadir juegos o cambiar lógica de ayuda.
  */
 
 import { SessionEvent } from '../games/game-types';

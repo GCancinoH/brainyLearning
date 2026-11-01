@@ -14,8 +14,13 @@
   <game-clock />
 }
 
-<!-- Insignias: escucha la cola global y decide cuándo interrumpir -->
-<badge-host />
+<!-- Insignias: escucha la cola global y decide cuándo interrumpir.
+     Carga diferida: solo se necesita cuando se gana una insignia (raro al inicio). -->
+@defer (on idle) {
+  <badge-host />
+} @placeholder {
+  <!-- placeholder vacío; badge-host se hidrata solo cuando hay insignias -->
+}
 
 <!-- Install Prompt PWA -->
 <app-install-prompt />
