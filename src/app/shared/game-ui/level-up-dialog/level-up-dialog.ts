@@ -1,9 +1,8 @@
 import { Component, input, output } from '@angular/core';
-import { DotLottie } from '@lottiefiles/dotlottie-web';
-import { DotLottieComponent } from 'ngx-lottie/dotlottie-web';
+import { LottieWrapper } from '../lottie-wrapper/lottie-wrapper';
 
 @Component({
-  imports: [DotLottieComponent],
+  imports: [LottieWrapper],
   selector: 'level-up-dialog',
   styleUrl: './level-up-dialog.scss',
   templateUrl: './level-up-dialog.html',
@@ -14,7 +13,9 @@ export class LevelUpDialog {
   readonly message = input<string>('¡Lo estás haciendo increíble!');
   readonly advance = output<void>();
 
-  onDotLottieCreated(dotLottie: DotLottie): void {
-    console.log('DotLottie instance:', dotLottie);
+  readonly lottieSrc = '/lottie/congratulations.lottie';
+
+  onLottieReady(): void {
+    // La animación está lista
   }
 }

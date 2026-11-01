@@ -2,8 +2,10 @@
 <div class="overlay" role="dialog" aria-modal="true">
   <div class="card">
     <div class="lottie">
-      <ng-dotlottie src="/lottie/congratulations.lottie" autoplay loop
-        (dotLottieCreated)="onDotLottieCreated($event)"
+      <lottie-wrapper
+        [src]="lottieSrc"
+        [isVisible]="isVisible()"
+        (onReady)="onLottieReady()"
       />
     </div>
     <h2>¡Subiste al nivel {{ level() }}! 🎉</h2>
