@@ -9,9 +9,14 @@
   <router-outlet />
 </main>
 
-<!-- Reloj de tiempo de juego (arriba a la derecha, solo dentro de un juego) -->
-@if (clockVisible()) {
-  <game-clock />
+<!-- Reloj de tiempo de juego (arriba a la derecha, solo dentro de un juego).
+     Carga diferida: solo aparece tras entrar a un juego. -->
+@defer (on idle; when clockVisible()) {
+  @if (clockVisible()) {
+    <game-clock />
+  }
+} @placeholder {
+  <!-- placeholder vacío -->
 }
 
 <!-- Insignias: escucha la cola global y decide cuándo interrumpir.
@@ -22,10 +27,20 @@
   <!-- placeholder vacío; badge-host se hidrata solo cuando hay insignias -->
 }
 
-<!-- Install Prompt PWA -->
-<app-install-prompt />
+<!-- Install Prompt PWA.
+     Carga diferida: solo tras interactuar o idle. -->
+@defer (on idle) {
+  <app-install-prompt />
+} @placeholder {
+  <!-- placeholder vacío -->
+}
 
-<!-- Dialog Updater -->
-@if (updateAvailable()) {
-  <sw-update-dialog />
+<!-- Dialog Updater.
+     Carga diferida: solo cuando hay actualización. -->
+@defer (on idle) {
+  @if (updateAvailable()) {
+    <sw-update-dialog />
+  }
+} @placeholder {
+  <!-- placeholder vacío -->
 }
