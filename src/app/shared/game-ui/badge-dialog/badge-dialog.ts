@@ -55,6 +55,10 @@ export class BadgeDialog {
 
   readonly isReader = computed(() => this.age() >= 6);
   readonly saveLabel = computed(() => (this.isReader() ? '⭐ Guardar' : '⭐'));
+  /** Insignias a mostrar en esta sesión (máx 4: 1 a mitad + 3 al final). */
+  readonly displayQueueSize = computed(() => Math.min(this.queueSize(), 4));
+  /** Insignias extra que solo se verán en el álbum. */
+  readonly extraForAlbum = computed(() => Math.max(0, this.queueSize() - 4));
 
   constructor() {
     effect(() => {

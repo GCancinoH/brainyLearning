@@ -24,8 +24,12 @@
       </div>
 
       @if (queueSize() > 1) {
-        <span class="queue" [attr.aria-label]="'Quedan ' + (queueSize() - 1) + ' insignias'">
-          ×{{ queueSize() }}
+        <!-- Máx. 4 por sesión (1 a mitad + 3 al final); el resto sale en el álbum -->
+        <span class="queue" [attr.aria-label]="'Quedan ' + (displayQueueSize() - 1) + ' insignias esta sesión' + (extraForAlbum() > 0 ? ' y ' + extraForAlbum() + ' en el álbum' : '')">
+          ×{{ displayQueueSize() }}
+          @if (extraForAlbum() > 0) {
+            <span class="album-hint">+{{ extraForAlbum() }} álbum</span>
+          }
         </span>
       }
 
