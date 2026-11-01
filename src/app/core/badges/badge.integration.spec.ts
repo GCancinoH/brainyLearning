@@ -149,6 +149,34 @@ describe('BadgeService + GameSessionService (integración)', () => {
   });
 
   // ============================================
+  // F3 · Reintento sin `recordIncorrect()`
+  // ============================================
+
+  it('Números Hanzi gana reintento con firstTry=false sin emitir errores', () => {
+    startSession(session, 'hanzi-numbers');
+    // Así lo emite el juego: falló el primer toque y aun así terminó la ronda.
+    playRound(session, { firstTry: false });
+
+    expect(profileState.profile?.badgeStats.retrySuccess).toBe(1);
+    expect(profileState.profile?.badges.map(b => b.id)).toContain('effort.retry.1');
+  });
+
+  it('Construye el Kanji gana reintento con firstTry=false sin emitir errores', () => {
+    startSession(session, 'japanese-kanji-compose');
+    playRound(session, { firstTry: false });
+
+    expect(profileState.profile?.badgeStats.retrySuccess).toBe(1);
+    expect(profileState.profile?.badges.map(b => b.id)).toContain('effort.retry.1');
+  });
+
+  it('un acierto a la primera no cuenta reintento', () => {
+    startSession(session, 'hanzi-numbers');
+    playRound(session, { firstTry: true, perfectRound: true });
+
+    expect(profileState.profile?.badgeStats.retrySuccess).toBe(0);
+  });
+
+  // ============================================
   // F2 · Rondas perfectas
   // ============================================
 

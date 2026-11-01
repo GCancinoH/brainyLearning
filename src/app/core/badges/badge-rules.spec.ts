@@ -236,7 +236,7 @@ describe('Fase 3: contadores de esfuerzo avanzado', () => {
     expect(ids15).not.toContain('effort.firstTry.30');
   });
 
-  it('insignias Pido ayuda y aprendo: 1, 5, 15 ayudas usadas', () => {
+  it('insignias Escuché la pista: 1, 5, 15 ayudas usadas', () => {
     const stats = { ...createInitialBadgeStats(), helpUsed: 1 };
     const ids = evaluateBadgeEvent(event('help-used'), stats, new Set(), ctx);
     expect(ids).toContain('effort.help.1');
@@ -256,6 +256,36 @@ describe('Fase 3: contadores de esfuerzo avanzado', () => {
     const stats3 = { ...createInitialBadgeStats(), perfectRounds: 3 };
     const ids3 = evaluateBadgeEvent(event('answer-correct', 'hanzi-numbers', { perfectRound: true }), stats3, new Set(), ctx);
     expect(ids3).toContain('effort.perfect.3');
+  });
+});
+
+describe('Fase B: reintento por ronda (F3)', () => {
+  it('cuenta reintento con firstTry=false aunque no haya answer-incorrect', () => {
+    const stats = createInitialBadgeStats();
+    const updated = updateBadgeStats(event('answer-correct', 'hanzi-numbers', { firstTry: false }), stats, ctx);
+    expect(updated.retrySuccess).toBe(1);
+  });
+
+  it('no cuenta reintento con firstTry=true ni sin firstTry', () => {
+    const stats = createInitialBadgeStats();
+    expect(updateBadgeStats(event('answer-correct', 'hanzi-numbers', { firstTry: true }), stats, ctx).retrySuccess).toBe(0);
+    expect(updateBadgeStats(event('answer-correct', 'hanzi-numbers'), stats, ctx).retrySuccess).toBe(0);
+  });
+
+  it('retryArmed + firstTry=false suma UNO, no dos', () => {
+    const stats = createInitialBadgeStats();
+    const updated = updateBadgeStats(
+      event('answer-correct', 'hanzi-numbers', { firstTry: false }),
+      stats,
+      { ...ctx, retryArmed: true },
+    );
+    expect(updated.retrySuccess).toBe(1);
+  });
+
+  it('firstTry=false desbloquea la insignia de reintento', () => {
+    const stats = { ...createInitialBadgeStats(), retrySuccess: 1 };
+    const ids = evaluateBadgeEvent(event('answer-correct', 'hanzi-numbers', { firstTry: false }), stats, new Set(), ctx);
+    expect(ids).toContain('effort.retry.1');
   });
 });
 
@@ -280,5 +310,12 @@ describe('catálogo de insignias (Fase 3)', () => {
       expect(b!.name).toBeTruthy();
       expect(b!.voice).toBeTruthy();
     }
+  });
+
+  it('la insignia de ayuda dice lo que de verdad mide (F4)', () => {
+    expect(badgeById('effort.help.1')?.name).toBe('Escuché la pista');
+    expect(badgeById('effort.help.1')?.voice).toContain('pista');
+    expect(badgeById('effort.help.5')?.name).toContain('Escuché la pista');
+    expect(badgeById('effort.help.15')?.name).toContain('Escuché la pista');
   });
 });

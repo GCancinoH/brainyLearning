@@ -166,7 +166,7 @@ describe('BadgeService', () => {
   });
 
   // Fase 3: Esfuerzo avanzado
-  it('cuenta ayuda usada y da insignia Pido ayuda y aprendo', () => {
+  it('cuenta ayuda usada y da insignia Escuché la pista', () => {
     emit(session, 'session-start');
     emit(session, 'help-used', 'hanzi-numbers');
 

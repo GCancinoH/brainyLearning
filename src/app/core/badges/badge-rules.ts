@@ -79,7 +79,12 @@ export function updateBadgeStats(
   }
 
   if (event.type === 'answer-correct') {
-    if (ctx.retryArmed) {
+    // Reintento por dos vías, sin doble conteo:
+    //  - `retryArmed`: el juego emitió `answer-incorrect` antes del acierto.
+    //  - `firstTry === false`: el juego no emite errores (Hanzi/Kanji) pero sabe que
+    //    esta ronda no salió al primer toque.
+    const retried = ctx.retryArmed === true || event.payload?.['firstTry'] === false;
+    if (retried) {
       next.retrySuccess = (next.retrySuccess ?? 0) + 1;
     }
     if (event.payload?.['firstTry'] === true) {

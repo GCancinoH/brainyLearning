@@ -748,9 +748,11 @@ private unsubscribeEvents?: () => void;
       this.anotarRonda();
     }
 
-    // Calcular firstTry y perfectRound para insignias de esfuerzo
+    // Calcular firstTry y perfectRound para insignias de esfuerzo.
+    // D2: en "combinar" la duda hablada NO cuenta como fallo de firstTry; solo los
+    // callejones (orden inválido). La duda sí impide la ronda perfecta.
     const etapa = this.etapa();
-    const firstTry = etapa === 'reconocer' ? this.primerIntento() === true : this.callejones === 0 && !this.dudaDicha;
+    const firstTry = etapa === 'reconocer' ? this.primerIntento() === true : this.callejones === 0;
     const perfectRound = firstTry && !this.dudaDicha && this.callejones === 0;
 
     // Primero el número, entero, en chino: es la recompensa y la pronunciación de la
