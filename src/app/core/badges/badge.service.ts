@@ -3,8 +3,9 @@
  *
  * Escucha UNA vez el flujo de `GameSessionService.events` (no un juego concreto) y
  * traduce eventos reales a insignias. La Fase 1 no tocó los juegos; la Fase 3
- * instrumentó `hanzi-numbers`, `kanji-compose` y `logic-blocks` para que envíen
- * `firstTry` / `perfectRound` y `help-used`.
+ * instrumentó `hanzi-numbers` y `kanji-compose` para que envíen
+ * `firstTry` / `perfectRound` y `help-used`. La Fase C (F5) añadió `RoundTracker`
+ * a los 13 juegos restantes (incl. `logic-blocks`).
  */
 
 import { OnDestroy, Service, computed, inject, signal } from '@angular/core';
