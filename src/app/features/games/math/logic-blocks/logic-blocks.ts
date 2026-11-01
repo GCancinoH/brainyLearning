@@ -18,7 +18,7 @@ import { gameMaxLevel } from '@core/models/game-catalog';
 import { RoundTracker } from '@core/games/round-tracker';
 import {
   Block, COLOR_HEX, Region, Round, blocksToPlace, buildRound, describeBlock, hintFor, label,
-  matches, regionOf, vennRegionAt, type Attr, SHAPE_TEXT
+  matches, regionOf, vennRegionAt, type Attr, SHAPE_TEXT, type Shape
 } from './logic-blocks-problem';
 import {
   CLIP_BASE, CLIP_MANIFEST, CLIP_TEXT, clipForLabel, clipForQuestion, clipForRule, textForRule
@@ -215,8 +215,11 @@ export class LogicBlocks implements OnInit, OnDestroy {
     if (r.mode === 'one') {
       const attr = r.a;
       // Hallazgo D: concordancia de género ("todos los círculos" vs "todas las estrellas")
-      const article = attr.kind === 'shape' && SHAPE_TEXT[attr.value as Shape]
-        ? (SHAPE_TEXT[attr.value as Shape].gender === 'm' ? 'todos los' : 'todas las')
+      // Type narrowing: attr.value es Shape cuando attr.kind === 'shape'
+      const isShape = attr.kind === 'shape';
+      const shapeText = isShape ? SHAPE_TEXT[attr.value as Shape] : null;
+      const article = isShape && shapeText
+        ? (shapeText.gender === 'm' ? 'todos los' : 'todas las')
         : 'todas las'; // color y size son femeninos en plural
       return `Lleva ${article} ${label(attr).toLowerCase()} a la canasta 🧺`;
     }
