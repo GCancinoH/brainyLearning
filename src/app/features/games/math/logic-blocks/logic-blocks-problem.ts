@@ -91,16 +91,26 @@ export function blocksToPlace(round: Round): Block[] {
 
 const COLOR_PLURAL: Record<Color, string> = { red: 'rojas', blue: 'azules', yellow: 'amarillas' };
 const COLOR_SINGULAR: Record<Color, string> = { red: 'roja', blue: 'azul', yellow: 'amarilla' };
-const SHAPE_PLURAL: Record<Shape, string> = { circle: 'círculos', square: 'cuadrados', triangle: 'triángulos' };
-const SHAPE_SINGULAR: Record<Shape, string> = { circle: 'un círculo', square: 'un cuadrado', triangle: 'un triángulo' };
 const SIZE_PLURAL: Record<Size, string> = { big: 'grandes', small: 'pequeñas' };
 const SIZE_SINGULAR: Record<Size, string> = { big: 'grande', small: 'pequeña' };
+
+/** Tabla única por forma: plural, singular y género (para concordancia: "todos los" vs "todas las") */
+export interface ShapeText {
+  plural: string;
+  singular: string;
+  gender: 'm' | 'f';
+}
+export const SHAPE_TEXT: Record<Shape, ShapeText> = {
+  circle:   { plural: 'círculos',  singular: 'un círculo',  gender: 'm' },
+  square:   { plural: 'cuadrados', singular: 'un cuadrado', gender: 'm' },
+  triangle: { plural: 'triángulos', singular: 'un triángulo', gender: 'f' },
+};
 
 /** "Figuras rojas", "Círculos", "Figuras grandes" */
 export function label(attr: Attr): string {
   switch (attr.kind) {
     case 'color': return `Figuras ${COLOR_PLURAL[attr.value]}`;
-    case 'shape': return capitalize(SHAPE_PLURAL[attr.value]);
+    case 'shape': return capitalize(SHAPE_TEXT[attr.value].plural);
     case 'size': return `Figuras ${SIZE_PLURAL[attr.value]}`;
   }
 }
@@ -109,7 +119,7 @@ export function label(attr: Attr): string {
 export function predicate(attr: Attr): string {
   switch (attr.kind) {
     case 'color': return COLOR_SINGULAR[attr.value];
-    case 'shape': return SHAPE_SINGULAR[attr.value];
+    case 'shape': return SHAPE_TEXT[attr.value].singular;
     case 'size': return SIZE_SINGULAR[attr.value];
   }
 }

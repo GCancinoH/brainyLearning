@@ -81,6 +81,13 @@
   --size: 54px;
   @include shapes.blk;
 
+  /* Defensa (puntos 2/3): fija tamaño con más especificidad para que nada externo lo pise.
+     flex: 0 0 auto evita que un .slot estrecho comprima las figuras. */
+  width: var(--size);
+  height: var(--size);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+
   &.placed {
     --size: 38px;
     &.small { --size: 26px; }
@@ -167,7 +174,7 @@
   aspect-ratio: 5 / 3;   /* H = 0.6 W: coincide con la geometría de vennRegionAt */
   margin-bottom: 0.8rem;
 
-  .circle {
+  .venn-set {
     position: absolute;
     top: 50%;
     width: 52%;
@@ -176,21 +183,22 @@
     border-radius: 50%;
     border: 3px solid;
 
-    &.a { left: 12%; background: rgba(239, 68, 68, 0.16); border-color: #f87171; }
-    &.b { left: 36%; background: rgba(59, 130, 246, 0.16); border-color: #60a5fa; }
+    &.venn-set--a { left: 12%; background: rgba(167, 139, 250, 0.16); border-color: #a78bfa; }
+    &.venn-set--b { left: 36%; background: rgba(34, 211, 238, 0.14);  border-color: #22d3ee; }
   }
 
-  .cap {
+  .venn-cap {
     position: absolute;
-    font-size: 0.8rem;
+    font-size: clamp(0.8rem, 2.6vw, 1rem);
     font-weight: 800;
     text-align: center;
     line-height: 1.1;
     pointer-events: none;
+    color: #e9d5ff;
   }
-  .circle.a .cap { top: 5%; left: 14%; width: 40%; color: #fecaca; }
-  .circle.b .cap { top: 5%; right: 14%; width: 40%; color: #bfdbfe; }
-  .both-cap { left: 37%; width: 26%; bottom: 4%; color: #e9d5ff; }
+  .venn-set--a .venn-cap { top: 5%; left: 14%; width: 40%; }
+  .venn-set--b .venn-cap { top: 5%; right: 14%; width: 40%; }
+  .venn-cap--both { left: 37%; width: 26%; bottom: 4%; }
 
   .slot {
     position: absolute;
@@ -207,6 +215,25 @@
     &.both { left: 38%; width: 24%; }
     &.b-only { left: 64%; width: 23%; }
   }
+}
+
+/* Leyenda sobre el Venn (punto 5): chips legibles con color neutro, no pegados al borde curvo */
+.venn-legend {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.venn-chip {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  border: 2px solid;
+  font-weight: 800;
+  font-size: clamp(0.95rem, 3.2vw, 1.2rem);
+  text-wrap: balance;
+  &--a { background: rgba(167, 139, 250, 0.2); border-color: #a78bfa; color: #ede9fe; }
+  &--b { background: rgba(34, 211, 238, 0.18); border-color: #22d3ee; color: #cffafe; }
 }
 
 .outside {
@@ -408,4 +435,79 @@
 
 @media (prefers-reduced-motion: reduce) {
   .blk.hint, .speak-btn.pulse, .mood .mood-emoji { animation: none; }
+}
+
+/* ============================================================
+   OVERLAY DE FIN DE JUEGO (punto 1)
+   ============================================================ */
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fade-in 0.3s ease-out;
+}
+
+.game-over-content {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.95));
+  border: 2px solid #facc15;
+  border-radius: 28px;
+  padding: 2.5rem 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+
+  h2 {
+    margin: 0 0 1rem;
+    font-size: clamp(1.4rem, 4vw, 1.8rem);
+    color: #fef08a;
+  }
+
+  p {
+    margin: 0 0 2rem;
+    font-size: 1.1rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+}
+
+.game-over-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
+}
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.btn-secondary:active { transform: scale(0.97); }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

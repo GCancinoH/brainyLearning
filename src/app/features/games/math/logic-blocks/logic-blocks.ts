@@ -18,7 +18,7 @@ import { gameMaxLevel } from '@core/models/game-catalog';
 import { RoundTracker } from '@core/games/round-tracker';
 import {
   Block, COLOR_HEX, Region, Round, blocksToPlace, buildRound, describeBlock, hintFor, label,
-  matches, regionOf, vennRegionAt, type Attr
+  matches, regionOf, vennRegionAt, type Attr, SHAPE_TEXT
 } from './logic-blocks-problem';
 import {
   CLIP_BASE, CLIP_MANIFEST, CLIP_TEXT, clipForLabel, clipForQuestion, clipForRule, textForRule
@@ -68,9 +68,12 @@ export class LogicBlocks implements OnInit, OnDestroy {
 
   // Configuración
   readonly GAME_ID = 'logic-blocks';
-  readonly MAX_LEVEL = gameMaxLevel('logic-blocks');
+  readonly MAX_LEVEL = gameMaxLevel('logic-blocks');           // último nivel JUGABLE (10)
   readonly requiredCorrect = (this.activeProfile()?.age ?? 4) <= 4 ? 3 : 4;
   readonly starSlots = Array.from({ length: this.requiredCorrect }, (_, i) => i);
+
+  // Estado de finalización real (punto 1): overlay con botones Menú / Jugar otra vez
+  readonly finished = signal(false);
 
   // Selectores del session service
   readonly currentLevel = this.session.currentLevel;
@@ -124,7 +127,7 @@ export class LogicBlocks implements OnInit, OnDestroy {
     const e = this.feedbackState();
     return e === 'success' ? '¡Muy bien!'
       : e === 'try-again' ? 'Pensemos otra vez'
-      : e === 'game-over' ? '¡Fin del juego! Well done!' : 'Coloca las figuras';
+      : e === 'game-over' ? '¡Fin del juego! ¡Lo hiciste genial!' : 'Coloca las figuras';
   });
 
   /** Subir aquí la escalera de ayuda (P4). Lo leen la insignia y los resaltados. */
@@ -209,7 +212,14 @@ export class LogicBlocks implements OnInit, OnDestroy {
 
   readonly idleMessage = computed(() => {
     const r = this.round();
-    if (r.mode === 'one') return `Lleva todas las ${label(r.a).toLowerCase()} a la canasta 🧺`;
+    if (r.mode === 'one') {
+      const attr = r.a;
+      // Hallazgo D: concordancia de género ("todos los círculos" vs "todas las estrellas")
+      const article = attr.kind === 'shape' && SHAPE_TEXT[attr.value as Shape]
+        ? (SHAPE_TEXT[attr.value as Shape].gender === 'm' ? 'todos los' : 'todas las')
+        : 'todas las'; // color y size son femeninos en plural
+      return `Lleva ${article} ${label(attr).toLowerCase()} a la canasta 🧺`;
+    }
     if (r.mode === 'two') return 'Pon cada figura en su canasta 🧺';
     return 'Coloca cada figura donde vive. ¡En el medio van las que cumplen las dos! 🔍';
   });
@@ -263,12 +273,13 @@ export class LogicBlocks implements OnInit, OnDestroy {
     ]);
     const savedLevel = this.progress.getLevel(this.GAME_ID);
 
+    // Punto 1: maxLevel = MAX_LEVEL + 1 (llegar al 11 = terminar el 10)
     this.session.startSession({
       gameId: this.GAME_ID,
       sessionDurationMs: 5 * 60 * 1000,
       requiredCorrectForLevelUp: this.requiredCorrect,
-      maxLevel: this.MAX_LEVEL,
-      initialLevel: savedLevel
+      maxLevel: this.MAX_LEVEL + 1,
+      initialLevel: Math.min(savedLevel, this.MAX_LEVEL)
     }, this.activeProfile()?.age);
 
     this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
@@ -291,10 +302,27 @@ export class LogicBlocks implements OnInit, OnDestroy {
     if (event.type !== 'level-up') return;
     this.audio.playLevelUp();
     this.triggerConfetti();
-    if (event.payload?.['isMaxLevel']) return;   // fin del juego: lo muestra el feedback
+    if (event.payload?.['isMaxLevel']) {
+      // Punto 1: nivel 10 completado → mostrar overlay final en lugar de soft-lock
+      this.finished.set(true);
+      return;
+    }
     this.later(() => {
       if (!this.isOver()) this.generateRound();
     }, 2500);
+  }
+
+  /** Reiniciar el juego desde el nivel 10 (punto 1) */
+  playAgain(): void {
+    this.finished.set(false);
+    this.session.startSession({
+      gameId: this.GAME_ID,
+      sessionDurationMs: 5 * 60 * 1000,
+      requiredCorrectForLevelUp: this.requiredCorrect,
+      maxLevel: this.MAX_LEVEL + 1,
+      initialLevel: this.MAX_LEVEL
+    }, this.activeProfile()?.age);
+    this.generateRound();
   }
 
   // ============================================
@@ -421,11 +449,9 @@ export class LogicBlocks implements OnInit, OnDestroy {
       this.ladderLevel.set(subio);
       if (subio === 1) this.askSocratically(round);
       else if (subio === 3 && this.ladder.shouldDemo()) this.showDemo();
-    } else if (this.ladder.level === 0) {
-      // Ya estaba en 0 y es el primer fallo de la racha: pregunta igualmente, una sola vez.
-      this.askSocratically(round);
-      this.ladderLevel.set(1);
     }
+    // Hallazgo C: la rama `else if (this.ladder.level === 0)` era inalcanzable:
+    // registerWrong() siempre sube a ≥ 1 en el primer error.
   }
 
   /**
@@ -502,7 +528,13 @@ export class LogicBlocks implements OnInit, OnDestroy {
     const aRule = async () => {
       this.tutorial.set('demo');
       const round = this.round();
-      this.measureDemo(round.blocks[0].id, this.mode() === 'one' ? 'basket' : 'A');
+      // Hallazgo A: usar la misma selección que showDemo() (candidata que cumple la regla)
+      const placed = this.placed();
+      const candidata = blocksToPlace(round)
+        .find(b => placed[b.id] === undefined && matches(b, round.a));
+      if (!candidata) return;
+      const destino: Region = round.mode === 'one' ? 'basket' : (matches(candidata, round.a) ? 'A' : 'B');
+      this.measureDemo(candidata.id, destino);
       await this.narrator.say('lb.intro.look', CLIP_TEXT['lb.intro.look']);
     };
 
@@ -629,8 +661,8 @@ export class LogicBlocks implements OnInit, OnDestroy {
     if (result.leveledUp) {
       // El evento 'level-up' se maneja en handleSessionEvent
       this.progress.saveProgress(this.GAME_ID, {
-        level: result.newLevel,
-        completed: result.newLevel >= this.MAX_LEVEL
+        level: Math.min(result.newLevel, this.MAX_LEVEL),
+        completed: result.newLevel > this.MAX_LEVEL
       });
     } else {
       this.audio.playPraise();

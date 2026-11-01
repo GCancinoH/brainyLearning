@@ -4,6 +4,20 @@
   (onBack)="goBack()"
 ></game-rest-overlay>
 
+<!-- Overlay de fin de juego real (punto 1): aparece al completar el nivel 10 -->
+@if (finished()) {
+  <div class="game-over-overlay" role="dialog" aria-modal="true" aria-label="Juego completado">
+    <div class="game-over-content">
+      <h2>¡Clasificaste todos los bloques! 🏆</h2>
+      <p>Has completado el nivel 10. ¿Qué quieres hacer?</p>
+      <div class="game-over-actions">
+        <button class="btn-primary" (click)="playAgain()">🔁 Jugar otra vez</button>
+        <button class="btn-secondary" (click)="goBack()">🏠 Menú</button>
+      </div>
+    </div>
+  </div>
+}
+
 <div #container class="blocks-container" [class.prereader]="isPreReader()">
   <!-- ENCABEZADO -->
   <header class="game-header">
@@ -111,10 +125,17 @@
           }
         </div>
       } @else {
+        <!-- Leyenda del diagrama de Venn (punto 5): rótulos fuera de los círculos, legibles y con color neutro -->
+        <div class="venn-legend">
+          <span class="venn-chip venn-chip--a">{{ labelA() }}</span>
+          <span class="venn-chip venn-chip--b">{{ labelB() }}</span>
+        </div>
+
         <div #venn class="venn">
-          <div class="circle a"><span class="cap">{{ labelA() }}</span></div>
-          <div class="circle b"><span class="cap">{{ labelB() }}</span></div>
-          <span class="cap both-cap">Las dos</span>
+          <!-- Renombrado .circle → .venn-set para evitar colisión con figuras .blk.circle (puntos 2/3) -->
+          <div class="venn-set venn-set--a"><span class="venn-cap">{{ labelA() }}</span></div>
+          <div class="venn-set venn-set--b"><span class="venn-cap">{{ labelB() }}</span></div>
+          <span class="venn-cap venn-cap--both">Las dos</span>
 
           <div class="slot a-only">
             @for (b of placedIn('A'); track b.id) {
