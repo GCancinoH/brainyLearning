@@ -47,8 +47,35 @@ export class BadgeService implements OnDestroy {
    */
   private retryArmed = false;
 
+  /**
+   * Contadores acumulados que todavía no se han escrito en el perfil.
+   *
+   * Escribir el perfil entero (localStorage + Firestore) en cada respuesta es tráfico
+   * y batería sin beneficio: los contadores no necesitan estar al instante. Las
+   * insignias sí se guardan al momento, porque hay un diálogo que mostrar.
+   */
+  private pendingStats: BadgeStats | null = null;
+  /** Perfil al que pertenecen los contadores pendientes. */
+  private pendingProfileId: string | null = null;
+
+  /** Red de seguridad: si algo impide el flush normal, no se pierde más de 30 s. */
+  private readonly flushTimer: ReturnType<typeof setInterval> | null;
+  private readonly onVisibilityChange = (): void => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      this.flushStats();
+    }
+  };
+
   constructor() {
     this.sub = this.session.events.subscribe(event => this.handleEvent(event));
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    this.flushTimer = setInterval(() => this.flushStats(), 30_000);
+    // En Node (tests) un intervalo vivo impide que el proceso termine.
+    const timer = this.flushTimer as unknown as { unref?: () => void };
+    timer?.unref?.();
   }
 
   // ============================================
@@ -78,11 +105,33 @@ export class BadgeService implements OnDestroy {
   /** Marca como vistas las insignias del álbum. */
   markSeen(ids: readonly string[]): void {
     if (ids.length === 0) return;
+    this.flushStats();
     const set = new Set(ids);
     this.profileState.updateActiveProfile(profile => ({
       ...profile,
       badges: profile.badges.map(b => (set.has(b.id) ? { ...b, seen: true } : b)),
     }));
+  }
+
+  /**
+   * Vuelca los contadores pendientes al perfil (y con él a localStorage/Firestore).
+   *
+   * Es idempotente y seguro de llamar en cualquier momento. Se llama al subir de
+   * nivel, al terminar la sesión, al ocultarse la pestaña y cada 30 s.
+   */
+  flushStats(): void {
+    const stats = this.pendingStats;
+    const profileId = this.pendingProfileId;
+    this.pendingStats = null;
+    this.pendingProfileId = null;
+
+    if (!stats || !profileId) return;
+
+    const profile = this.profileState.activeProfile();
+    // Si se cambió de perfil, no se escriben contadores en la niña equivocada.
+    if (!profile || profile.id !== profileId) return;
+
+    this.profileState.updateActiveProfile(p => ({ ...p, badgeStats: stats }));
   }
 
   /**
@@ -93,6 +142,9 @@ export class BadgeService implements OnDestroy {
     const badge = badgeById(id);
     const profile = this.profileState.activeProfile();
     if (!badge || !profile || profile.badges.some(b => b.id === id)) return false;
+
+    // Cualquier contador pendiente se guarda junto con la insignia: no se pierde nada.
+    this.flushStats();
 
     const updated = this.profileState.updateActiveProfile(p => ({
       ...p,
@@ -105,6 +157,11 @@ export class BadgeService implements OnDestroy {
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
+    this.flushStats();
+    if (this.flushTimer) clearInterval(this.flushTimer);
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
   }
 
   // ============================================
@@ -116,6 +173,8 @@ export class BadgeService implements OnDestroy {
     if (!profile) return;
 
     if (event.type === 'session-start') {
+      // Si quedaban contadores de una sesión anterior, se guardan antes de empezar.
+      this.flushStats();
       this.sessionProfileId = profile.id;
       this.retryArmed = false;
     } else if (this.sessionProfileId !== profile.id) {
@@ -130,26 +189,35 @@ export class BadgeService implements OnDestroy {
         event.type === 'session-start' ? this.readSavedProgress(event.gameId) : undefined,
     };
 
-    const nextStats = updateBadgeStats(event, profile.badgeStats, ctx);
+    // Las reglas evalúan contra los contadores pendientes (si los hay) para que los
+    // umbrales se detecten sin esperar al guardado.
+    const baseStats = this.pendingStats ?? profile.badgeStats;
+    const nextStats = updateBadgeStats(event, baseStats, ctx);
     const earned = new Set(profile.badges.map(b => b.id));
     const newIds = evaluateBadgeEvent(event, nextStats, earned, ctx);
-    const statsChanged = !sameStats(profile.badgeStats, nextStats);
+    const statsChanged = !sameStats(baseStats, nextStats);
 
-    if (newIds.length > 0 || statsChanged) {
+    if (statsChanged) {
+      this.pendingStats = nextStats;
+      this.pendingProfileId = profile.id;
+    }
+
+    // Insignia ganada → se guarda YA (hay un diálogo que mostrar; no se puede perder).
+    // Los contadores se escriben junto con ella para no dejar nada a medias.
+    if (newIds.length > 0) {
       const earnedAt = new Date(event.timestamp).toISOString();
+      const statsToSave = this.pendingStats ?? profile.badgeStats;
       const updated = this.profileState.updateActiveProfile(p => ({
         ...p,
-        badgeStats: nextStats,
-        badges:
-          newIds.length > 0
-            ? [
-                ...p.badges,
-                ...newIds.map(id => ({ id, earnedAt, seen: false })),
-              ]
-            : p.badges,
+        badgeStats: statsToSave,
+        badges: [...p.badges, ...newIds.map(id => ({ id, earnedAt, seen: false }))],
       }));
 
-      if (updated && newIds.length > 0) this.enqueue(newIds);
+      if (updated) {
+        this.pendingStats = null;
+        this.pendingProfileId = null;
+        this.enqueue(newIds);
+      }
     }
 
     this.retryArmed =
@@ -159,7 +227,12 @@ export class BadgeService implements OnDestroy {
           ? false
           : this.retryArmed;
 
+    if (event.type === 'level-up' || event.type === 'game-complete') {
+      this.flushStats();
+    }
+
     if (event.type === 'session-end' || event.type === 'time-up') {
+      this.flushStats();
       this.sessionProfileId = null;
       this.retryArmed = false;
     }

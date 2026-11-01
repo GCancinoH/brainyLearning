@@ -194,6 +194,7 @@ describe('BadgeService + GameSessionService (integración)', () => {
     startSession(session);
     playRound(session, { perfectRound: true });
     playRound(session, { perfectRound: true });
+    service.flushStats();
 
     expect(profileState.profile?.badgeStats.perfectRounds).toBe(2);
   });

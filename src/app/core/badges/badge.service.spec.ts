@@ -13,12 +13,15 @@ import { BadgeStats } from './badge-types';
 
 class ProfileStateStub {
   profile: PlayerProfile | null = createInitialProfile('Luna', 4, '🦊', 'space');
+  /** Equivale a una llamada a `saveProfileToCloud` (una escritura del perfil). */
+  writeCount = 0;
 
   activeProfile = () => this.profile;
 
   updateActiveProfile(updater: (p: PlayerProfile) => PlayerProfile): PlayerProfile | null {
     if (!this.profile) return null;
     this.profile = updater(this.profile);
+    this.writeCount++;
     return this.profile;
   }
 }
@@ -197,6 +200,49 @@ describe('BadgeService', () => {
 
     expect(profileState.profile?.badgeStats.perfectRounds).toBe(1);
     expect(profileState.profile?.badges.map(b => b.id)).toContain('effort.perfect.1');
+  });
+
+  // Fase E1: escrituras por lotes (O1)
+  it('20 aciertos sin subir de nivel hacen como mucho una escritura', () => {
+    emit(session, 'session-start');
+    const before = profileState.writeCount;
+
+    for (let i = 0; i < 20; i++) emit(session, 'answer-correct');
+
+    // La primera respuesta gana 🌱 (se guarda al instante); las demás no cambian
+    // ningún contador, así que no escriben nada.
+    expect(profileState.writeCount - before).toBeLessThanOrEqual(1);
+  });
+
+  it('los contadores se acumulan hasta el flush', () => {
+    emit(session, 'session-start');
+    service.awardBadge('hanzi-numbers.seed'); // ya ganada: no vuelve a escribir
+
+    const before = profileState.writeCount;
+    for (let i = 0; i < 4; i++) {
+      emit(session, 'answer-correct', 'hanzi-numbers', { firstTry: true });
+    }
+
+    expect(profileState.writeCount - before).toBe(0);
+    expect(profileState.profile?.badgeStats.firstTryCorrect ?? 0).toBe(0);
+
+    service.flushStats();
+
+    expect(profileState.writeCount - before).toBe(1);
+    expect(profileState.profile?.badgeStats.firstTryCorrect).toBe(4);
+  });
+
+  it('subir de nivel hace flush de los contadores pendientes', () => {
+    emit(session, 'session-start');
+    emit(session, 'answer-correct', 'hanzi-numbers', { firstTry: true });
+    emit(session, 'answer-correct', 'hanzi-numbers', { firstTry: true });
+
+    const before = profileState.writeCount;
+    emit(session, 'level-up', 'hanzi-numbers', { newLevel: 3 });
+
+    // level-up gana insignias (escritura) y además vuelca los contadores pendientes.
+    expect(profileState.profile?.badgeStats.firstTryCorrect).toBe(2);
+    expect(profileState.writeCount).toBeGreaterThan(before);
   });
 });
 
