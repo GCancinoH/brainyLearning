@@ -624,6 +624,9 @@ private unsubscribeEvents?: () => void;
       return;
     }
 
+    // Primer toque errado en "reconocer": cuenta como error para insignias 🎯/🔁
+    this.round.markWrong();
+
     // Lo descartado se atenúa y se queda quieto: sin veredicto, la niña ve qué ya probó
     // y qué le queda.
     this.opcionesDescartadas.update(tocadas => new Set(tocadas).add(opcion));

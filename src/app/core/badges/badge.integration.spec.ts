@@ -155,6 +155,7 @@ describe('BadgeService + GameSessionService (integración)', () => {
   it('Números Hanzi gana reintento con firstTry=false sin emitir errores', () => {
     startSession(session, 'hanzi-numbers');
     // Así lo emite el juego: falló el primer toque y aun así terminó la ronda.
+    // No hay `recordIncorrect()`; el juego pasa `firstTry: false` en `recordCorrect`.
     playRound(session, { firstTry: false });
 
     expect(profileState.profile?.badgeStats.retrySuccess).toBe(1);
