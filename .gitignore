@@ -4,6 +4,8 @@
 .env
 .env.*
 *.local
+*.md
+*.jsonc
 *.pem
 credentials.json
 *-firebase-adminsdk-*.json
@@ -17,6 +19,7 @@ bazel-out/
 .claude/
 .agents/
 .hermes/
+docs/
 
 # Node
 node_modules/
