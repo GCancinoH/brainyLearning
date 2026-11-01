@@ -18,6 +18,7 @@ export class GameSessionService implements OnDestroy {
   private _config: GameSessionConfig | null = null;
   private _sessionTimer: ReturnType<typeof setTimeout> | null = null;
   private _tickInterval: ReturnType<typeof setInterval> | null = null;
+  private _completeTimer: ReturnType<typeof setTimeout> | null = null;
   private _eventListeners: Set<(event: SessionEvent) => void> = new Set();
   /**
    * Flujo global de eventos de sesión.
@@ -72,6 +73,9 @@ export class GameSessionService implements OnDestroy {
    * Inicia una nueva sesión de juego
    */
   startSession(config: GameSessionConfig, profileAge?: number): GameSessionState {
+    // Cancelar temporizador de cierre automático de la sesión anterior (evita que cierre la nueva)
+    this._clearCompleteTimer();
+
     // Si ya hay sesión activa, la terminamos limpiamente
     if (this._state()) {
       this.endSession('new-session');
@@ -138,6 +142,7 @@ export class GameSessionService implements OnDestroy {
     const currentState = this._state();
     if (!currentState) return null;
 
+    this._clearCompleteTimer();
     this._cleanupTimers();
     const endedAt = this._pausedAt() ?? Date.now();
     this._pausedAt.set(null);
@@ -329,8 +334,11 @@ export class GameSessionService implements OnDestroy {
         timestamp: Date.now(),
         payload: { finalLevel: newLevel }
       });
-      // Auto-finalizar si se completó el juego
-      setTimeout(() => this.endSession('complete'), 3000);
+      // Auto-finalizar si se completó el juego (guardamos el timer para poder cancelarlo)
+      this._completeTimer = setTimeout(() => {
+        this._completeTimer = null;
+        this.endSession('complete');
+      }, 3000);
     }
 
     return { leveledUp: true, newLevel };
@@ -363,6 +371,13 @@ export class GameSessionService implements OnDestroy {
     }
   }
 
+  private _clearCompleteTimer(): void {
+    if (this._completeTimer) {
+      clearTimeout(this._completeTimer);
+      this._completeTimer = null;
+    }
+  }
+
   private _emitEvent(event: SessionEvent): void {
     this._eventListeners.forEach(listener => {
       try { listener(event); } catch (e) { console.warn('Session event listener error:', e); }
@@ -388,6 +403,7 @@ export class GameSessionService implements OnDestroy {
   // ============================================
 
   ngOnDestroy(): void {
+    this._clearCompleteTimer();
     this._cleanupTimers();
     this._eventListeners.clear();
     this.events.complete();

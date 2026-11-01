@@ -103,7 +103,7 @@ export interface ShapeText {
 export const SHAPE_TEXT: Record<Shape, ShapeText> = {
   circle:   { plural: 'círculos',  singular: 'un círculo',  gender: 'm' },
   square:   { plural: 'cuadrados', singular: 'un cuadrado', gender: 'm' },
-  triangle: { plural: 'triángulos', singular: 'un triángulo', gender: 'f' },
+  triangle: { plural: 'triángulos', singular: 'un triángulo', gender: 'm' },
 };
 
 /** "Figuras rojas", "Círculos", "Figuras grandes" */

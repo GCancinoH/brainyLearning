@@ -125,16 +125,14 @@
           }
         </div>
       } @else {
-        <!-- Leyenda del diagrama de Venn (punto 5): rótulos fuera de los círculos, legibles y con color neutro -->
-        <div class="venn-legend">
-          <span class="venn-chip venn-chip--a">{{ labelA() }}</span>
-          <span class="venn-chip venn-chip--b">{{ labelB() }}</span>
-        </div>
-
         <div #venn class="venn">
-          <!-- Renombrado .circle → .venn-set para evitar colisión con figuras .blk.circle (puntos 2/3) -->
-          <div class="venn-set venn-set--a"><span class="venn-cap">{{ labelA() }}</span></div>
-          <div class="venn-set venn-set--b"><span class="venn-cap">{{ labelB() }}</span></div>
+          <!-- Un solo rótulo por conjunto, anclado sobre su círculo (sin leyenda aparte ni rótulos dentro) -->
+          <span class="venn-tag venn-tag--a">{{ labelA() }}</span>
+          <span class="venn-tag venn-tag--b">{{ labelB() }}</span>
+
+          <!-- .venn-set y no .circle: .circle choca con las figuras .blk.circle -->
+          <div class="venn-set venn-set--a"></div>
+          <div class="venn-set venn-set--b"></div>
           <span class="venn-cap venn-cap--both">Las dos</span>
 
           <div class="slot a-only">
