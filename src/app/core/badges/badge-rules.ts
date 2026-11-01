@@ -5,7 +5,7 @@
  * eventos con vitest y mantener el servicio pequeño.
  */
 
-import { SessionEvent, SessionEventType } from '../games/game-types';
+import { SessionEvent } from '../games/game-types';
 import { ALL_GAMES, gamesByCategory } from '../models/game-catalog';
 import { LearningCategory } from '../models/learning-category';
 import { BadgeStats } from './badge-types';
@@ -25,8 +25,13 @@ export interface SavedGameProgress {
 
 export interface BadgeRuleContext {
   age: number;
-  /** Último evento del MISMO juego, para detectar "acertó después de fallar". */
-  lastEventType?: SessionEventType;
+  /**
+   * Hubo un error y todavía no llegó el acierto en esta sesión.
+   *
+   * No se mira "el evento anterior": `recordIncorrect()` emite `answer-incorrect` y
+   * `streak-update` seguidos, así que el último evento ya no sería el error.
+   */
+  retryArmed?: boolean;
   /** Progreso ya guardado al empezar la sesión (para no perder insignias viejas). */
   savedProgress?: SavedGameProgress | null;
 }
@@ -74,7 +79,7 @@ export function updateBadgeStats(
   }
 
   if (event.type === 'answer-correct') {
-    if (ctx.lastEventType === 'answer-incorrect') {
+    if (ctx.retryArmed) {
       next.retrySuccess = (next.retrySuccess ?? 0) + 1;
     }
     if (event.payload?.['firstTry'] === true) {

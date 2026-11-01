@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
-import { BadgeService } from './badge.service';
+import { BadgeService, sameStats } from './badge.service';
 import { ProfileStateService } from '../services/profile-state';
 import { GameSessionService } from '../games/game-session.service';
 import { GameProgressService } from '../games/game-progress.service';
@@ -9,6 +9,7 @@ import { BadgeVoice } from './badge-voice';
 import { SessionEvent } from '../games/game-types';
 import { GameProgress } from '../games/game-types';
 import { createInitialProfile, PlayerProfile } from '../models/player-profile';
+import { BadgeStats } from './badge-types';
 
 class ProfileStateStub {
   profile: PlayerProfile | null = createInitialProfile('Luna', 4, '🦊', 'space');
@@ -196,5 +197,49 @@ describe('BadgeService', () => {
 
     expect(profileState.profile?.badgeStats.perfectRounds).toBe(1);
     expect(profileState.profile?.badges.map(b => b.id)).toContain('effort.perfect.1');
+  });
+});
+
+describe('sameStats (contrato de BadgeStats)', () => {
+  /**
+   * `Required<BadgeStats>` obliga a que este fixture tenga TODOS los campos: si se
+   * añade un contador nuevo y se olvida aquí, TypeScript falla.
+   */
+  const base: Required<BadgeStats> = {
+    gamesPlayed: [],
+    daysPlayed: [],
+    retrySuccess: 0,
+    sessionsCompleted: 0,
+    firstTryCorrect: 0,
+    helpUsed: 0,
+    perfectRounds: 0,
+  };
+
+  it('detecta el cambio de cada campo por separado', () => {
+    for (const key of Object.keys(base) as (keyof BadgeStats)[]) {
+      const changed = { ...base } as Record<string, unknown>;
+      const value = base[key];
+      if (Array.isArray(value)) {
+        changed[key] = [...value, 'x'];
+      } else {
+        changed[key] = (value ?? 0) + 1;
+      }
+
+      expect(sameStats(base, changed as unknown as BadgeStats), `campo ${key}`).toBe(false);
+      expect(sameStats(changed as unknown as BadgeStats, base), `campo ${key}`).toBe(false);
+    }
+  });
+
+  it('dos copias iguales son iguales', () => {
+    expect(sameStats(base, { ...base, gamesPlayed: [], daysPlayed: [] })).toBe(true);
+  });
+
+  it('compara las listas por contenido, no por referencia', () => {
+    const a: BadgeStats = { ...base, gamesPlayed: ['a', 'b'] };
+    const b: BadgeStats = { ...base, gamesPlayed: ['a', 'b'] };
+    const c: BadgeStats = { ...base, gamesPlayed: ['b', 'a'] };
+
+    expect(sameStats(a, b)).toBe(true);
+    expect(sameStats(a, c)).toBe(false);
   });
 });

@@ -184,10 +184,11 @@ describe('contadores acumulados', () => {
     expect(localDateKey(local.getTime())).toBe('2026-01-01');
   });
 
-  it('cuenta reintento solo si el error fue el evento anterior del mismo juego', () => {
+  it('cuenta reintento con la bandera de reintento armada', () => {
     const stats = createInitialBadgeStats();
-    expect(updateBadgeStats(event('answer-correct'), stats, { ...ctx, lastEventType: 'answer-incorrect' }).retrySuccess).toBe(1);
-    expect(updateBadgeStats(event('answer-correct'), stats, { ...ctx, lastEventType: 'answer-correct' }).retrySuccess).toBe(0);
+    expect(updateBadgeStats(event('answer-correct'), stats, { ...ctx, retryArmed: true }).retrySuccess).toBe(1);
+    expect(updateBadgeStats(event('answer-correct'), stats, { ...ctx, retryArmed: false }).retrySuccess).toBe(0);
+    expect(updateBadgeStats(event('answer-correct'), stats, ctx).retrySuccess).toBe(0);
   });
 
   it('cuenta la sesión completa y también el time-up', () => {

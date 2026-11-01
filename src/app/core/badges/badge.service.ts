@@ -2,13 +2,14 @@
  * Servicio global de insignias.
  *
  * Escucha UNA vez el flujo de `GameSessionService.events` (no un juego concreto) y
- * traduce eventos reales a insignias. No toca los 15 juegos: para la primera versión
- * todo lo que necesita ya lo emiten ellos.
+ * traduce eventos reales a insignias. La Fase 1 no tocó los juegos; la Fase 3
+ * instrumentó `hanzi-numbers`, `kanji-compose` y `logic-blocks` para que envíen
+ * `firstTry` / `perfectRound` y `help-used`.
  */
 
 import { OnDestroy, Service, computed, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { SessionEvent, SessionEventType } from '../games/game-types';
+import { SessionEvent } from '../games/game-types';
 import { GameProgressService } from '../games/game-progress.service';
 import { GameSessionService } from '../games/game-session.service';
 import { PlayerProfile } from '../models/player-profile';
@@ -37,8 +38,14 @@ export class BadgeService implements OnDestroy {
   private readonly sub: Subscription;
   /** Perfil al que pertenece la sesión en curso. Si cambia, se ignora lo viejo. */
   private sessionProfileId: string | null = null;
-  private lastEventType: SessionEventType | null = null;
-  private lastEventGameId: string | null = null;
+  /**
+   * Hubo un error y aún no llegó el acierto.
+   *
+   * `recordIncorrect()` emite `answer-incorrect` + `streak-update`, y entre el error y
+   * el acierto puede colarse `help-used`. Inferir por "el evento anterior" fallaba;
+   * una bandera no depende del orden.
+   */
+  private retryArmed = false;
 
   constructor() {
     this.sub = this.session.events.subscribe(event => this.handleEvent(event));
@@ -110,8 +117,7 @@ export class BadgeService implements OnDestroy {
 
     if (event.type === 'session-start') {
       this.sessionProfileId = profile.id;
-      this.lastEventType = null;
-      this.lastEventGameId = null;
+      this.retryArmed = false;
     } else if (this.sessionProfileId !== profile.id) {
       // Evento de una sesión/perfil anterior: no se premia a la niña equivocada.
       return;
@@ -119,8 +125,7 @@ export class BadgeService implements OnDestroy {
 
     const ctx: BadgeRuleContext = {
       age: profile.age,
-      lastEventType:
-        this.lastEventGameId === event.gameId ? this.lastEventType ?? undefined : undefined,
+      retryArmed: this.retryArmed,
       savedProgress:
         event.type === 'session-start' ? this.readSavedProgress(event.gameId) : undefined,
     };
@@ -147,13 +152,16 @@ export class BadgeService implements OnDestroy {
       if (updated && newIds.length > 0) this.enqueue(newIds);
     }
 
-    this.lastEventType = event.type;
-    this.lastEventGameId = event.gameId;
+    this.retryArmed =
+      event.type === 'answer-incorrect'
+        ? true
+        : event.type === 'answer-correct'
+          ? false
+          : this.retryArmed;
 
     if (event.type === 'session-end' || event.type === 'time-up') {
       this.sessionProfileId = null;
-      this.lastEventType = null;
-      this.lastEventGameId = null;
+      this.retryArmed = false;
     }
   }
 
@@ -179,15 +187,24 @@ export class BadgeService implements OnDestroy {
   }
 }
 
-function sameStats(a: BadgeStats, b: BadgeStats): boolean {
-  return (
-    a.retrySuccess === b.retrySuccess &&
-    a.sessionsCompleted === b.sessionsCompleted &&
-    (a.firstTryCorrect ?? 0) === (b.firstTryCorrect ?? 0) &&
-    (a.helpUsed ?? 0) === (b.helpUsed ?? 0) &&
-    sameList(a.gamesPlayed, b.gamesPlayed) &&
-    sameList(a.daysPlayed, b.daysPlayed)
-  );
+/**
+ * Compara dos `BadgeStats` sin enumerar campos a mano.
+ *
+ * Enumerar campos hacía fácil olvidar uno (pasó con `perfectRounds`, F2). Recorriendo
+ * las claves, añadir un contador nuevo no puede dejar de guardarse.
+ */
+export function sameStats(a: BadgeStats, b: BadgeStats): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof BadgeStats>;
+  for (const key of keys) {
+    const x = a[key];
+    const y = b[key];
+    if (Array.isArray(x) && Array.isArray(y)) {
+      if (!sameList(x, y)) return false;
+    } else if ((x ?? 0) !== (y ?? 0)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function sameList(a: readonly string[], b: readonly string[]): boolean {
