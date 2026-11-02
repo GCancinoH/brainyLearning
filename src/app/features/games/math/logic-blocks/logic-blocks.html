@@ -33,38 +33,26 @@
   </header>
 
   <main class="game-board">
-
     <!-- ============ BARRA DE REGLA ============
        Visible a las DOS edades (§2.1). A los 4 años la insignia *sustituye* al texto;
        a los 6 el texto acompaña a la muestra. Nunca se oculta: es lo que garantiza que
        la consigna esté siempre a la vista, cosa que el banner efímero no cumplía. -->
   @if (mode() !== 'venn') {
-      <section class="rule-bar" [class.dimmed]="tutorialDim()">
-        <button
-          class="speak-btn"
-          [class.pulse]="pulseBadge()"
-          [class.speaking]="narrator.speaking()"
-          (click)="repeatRule()"
-          aria-label="Escuchar la consigna otra vez"
-        >🔊</button>
+    <section class="rule-bar" [class.dimmed]="tutorialDim()">
+      <button class="speak-btn" [class.pulse]="pulseBadge()" [class.speaking]="narrator.speaking()"
+        (click)="repeatRule()" aria-label="Escuchar la consigna otra vez">🔊</button>
+      @for (a of ruleAttrs(); track $index) {
+        <rule-badge [attr]="a" [pulse]="pulseBadge()" (speak)="speakLabel($event)"/>
+      }
+      <span class="rule-arrow" aria-hidden="true">➜</span>
+      <span class="rule-arrow" aria-hidden="true">🧺</span>
 
-        @for (a of ruleAttrs(); track $index) {
-          <rule-badge
-            [attr]="a"
-            [pulse]="pulseBadge()"
-            (speak)="speakLabel($event)"
-          />
-        }
-
-        <span class="rule-arrow" aria-hidden="true">➜</span>
-        <span class="rule-arrow" aria-hidden="true">🧺</span>
-
-        @if (!isPreReader()) {
-          <!-- A los 6 años la consigna escrita acompaña a la muestra. -->
-          <span class="rule-text">{{ idleMessage() }}</span>
-        }
-      </section>
-    }
+      @if (!isPreReader()) {
+        <!-- A los 6 años la consigna escrita acompaña a la muestra. -->
+        <span class="rule-text">{{ idleMessage() }}</span>
+      }
+    </section>
+  }
 
     <!-- MENSAJE DE RETROALIMENTACIÓN:
          a los 4 años, una cara de ánimo en vez de un banner de texto. Un banner largo
