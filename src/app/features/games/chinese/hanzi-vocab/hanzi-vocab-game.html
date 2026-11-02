@@ -50,7 +50,11 @@
           }
           @case ('see-to-glyph') {
             <div class="imagen-grande" role="img" [attr.aria-label]="p.es" aria-live="polite">
-              {{ p.emoji }}
+              @if (usaCohete() && p.cssColor) {
+                <paintable-rocket class="cohete-grande" [color]="p.cssColor ?? null" />
+              } @else {
+                {{ p.emoji }}
+              }
             </div>
             @if (isSix()) {
               <span class="imagen-es">{{ p.es }}</span>
@@ -73,7 +77,11 @@
             @if (modo() === 'see-to-glyph') {
               <span class="opcion-hanzi" lang="zh-CN">{{ o.hanzi }}</span>
             } @else {
-              <span class="opcion-emoji" aria-hidden="true">{{ o.emoji }}</span>
+              @if (usaCohete() && o.cssColor) {
+                <paintable-rocket class="cohete-opcion" [color]="o.cssColor ?? null" />
+              } @else {
+                <span class="opcion-emoji" aria-hidden="true">{{ o.emoji }}</span>
+              }
               @if (isSix()) {
                 <span class="opcion-es">{{ o.es }}</span>
               }

@@ -178,6 +178,12 @@ $oro-oscuro: #b45309;
     line-height: 1;
   }
 
+  // El cohete del N7+ ocupa el mismo sitio que el emoji al que sustituye.
+  .cohete-grande {
+    width: clamp(7rem, 28vw, 11rem);
+    height: clamp(7rem, 28vw, 11rem);
+  }
+
   .imagen-es {
     color: #cbd5e1;
     font-size: 1.1rem;
@@ -244,6 +250,13 @@ $oro-oscuro: #b45309;
     .opcion-emoji {
       font-size: 3rem;
       line-height: 1;
+    }
+
+    // Las opciones-imagen del N7+ también son cohetes, para que la comparación sea
+    // cohete contra cohete y no cohete contra emoji.
+    .cohete-opcion {
+      width: 4.3rem;
+      height: 4.3rem;
     }
 
     .opcion-es {

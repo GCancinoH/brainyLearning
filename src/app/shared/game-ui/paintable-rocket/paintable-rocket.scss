@@ -1,0 +1,48 @@
+// ============================================
+// Cohete pintable
+//
+// Las formas no tienen `fill` en el HTML: el color entra por `--c`. El consumidor solo
+// declara el color (por ejemplo, `cssColor` de la palabra) y el dibujo entero se pinta.
+// ============================================
+
+:host {
+  display: inline-block;
+  line-height: 0;
+  // En el tablero oscuro, un cohete negro con contorno oscuro se perdería: el halo
+  // claro dibuja la silueta sin cambiar el contorno original.
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9))
+    drop-shadow(0 5px 12px rgba(0, 0, 0, 0.4));
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+// Cuerpo, ojiva, aletas y boquilla: la pintura del cohete.
+.rocket-body,
+.rocket-nose,
+.rocket-fin {
+  fill: var(--c, #ef4444);
+}
+
+// La boquilla y el marco de la ventana van un poco más oscuros para dar volumen.
+.engine-nozzle,
+.window-frame {
+  fill: color-mix(in srgb, var(--c, #ef4444) 74%, #0f172a);
+}
+
+// El cristal no se pinta: es siempre el mismo para que la ventana se lea como ventana.
+.window-glass {
+  fill: #bae6fd;
+}
+
+// Llamas: naranja y amarillo, independientes del color del cohete.
+.flame-outer {
+  fill: #fb923c;
+}
+
+.flame-inner {
+  fill: #fde047;
+}

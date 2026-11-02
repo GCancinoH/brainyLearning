@@ -14,6 +14,7 @@ import { HANZI_COLORS, HANZI_VOCAB, type HanziDeck, type HanziVocabItem } from '
 import type { RepresentationType } from '@core/learning/learning-content';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
+import { PaintableRocket } from '@shared/game-ui/paintable-rocket/paintable-rocket';
 import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
 import { CLIP_BASE, CLIP_EXT, CLIP_MANIFEST, DUDA_OYE, MODE_CLIP, wordClip } from './hanzi-vocab-narration';
@@ -64,7 +65,7 @@ const DECK_ICON: Record<HanziDeck | 'listening', string> = {
  */
 @Component({
   selector: 'hanzi-vocab-game',
-  imports: [GameFeedbackComponent, GameRestOverlayComponent],
+  imports: [GameFeedbackComponent, GameRestOverlayComponent, PaintableRocket],
   templateUrl: './hanzi-vocab-game.html',
   styleUrl: './hanzi-vocab-game.scss',
 })
@@ -166,6 +167,14 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     if (!p || this.deck !== 'colors' || this.modo() !== 'glyph-to-see') return null;
     return this.displayLevel() <= 4 ? p.cssColor ?? null : null;
   });
+
+  /**
+   * Desde el N7 de Colores, la imagen es el cohete pintado con el color de la palabra.
+   * Antes de N7 se usa el emoji: el cohete es un premio visual, no un requisito para jugar.
+   */
+  readonly usaCohete = computed(
+    () => this.deck === 'colors' && this.displayLevel() >= 7,
+  );
 
   // ============================================
   // ESTADO INTERNO

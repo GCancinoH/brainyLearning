@@ -306,6 +306,26 @@ describe('HanziVocabGame (integración)', () => {
     expect(fixture.nativeElement.querySelector('.imagen-grande')).toBeTruthy();
   });
 
+  it('desde N7 la imagen es el cohete pintado con el color de la palabra', () => {
+    mount('colors', 4, 7);
+    hastaModo('see-to-glyph');
+    fixture.detectChanges();
+
+    const cohete = fixture.nativeElement.querySelector(
+      '.imagen-grande paintable-rocket',
+    ) as HTMLElement | null;
+    expect(cohete, 'el emoji se sustituye por el cohete').toBeTruthy();
+    const svg = cohete!.querySelector('svg') as SVGSVGElement;
+    expect(svg.style.getPropertyValue('--c').trim()).toBe(component.palabra()!.cssColor);
+  });
+
+  it('antes de N7 sigue el emoji: el cohete es un premio, no un requisito', () => {
+    mount('colors', 4, 6);
+    expect(component.usaCohete()).toBe(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('paintable-rocket')).toBeNull();
+  });
+
   // ============================================
   // REFLEXIÓN (6 años)
   // ============================================
