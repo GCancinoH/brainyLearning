@@ -299,6 +299,7 @@ export class AlbumComponent implements OnDestroy, OnInit {
       mushrooms: '🍄 Hongos',
       ocean: '🌊 Océano',
       'human-body': '🧠 Cuerpo Humano',
+      'oracle-bone': '🦴 Hueso Oracular',
     };
     return labels[category] ?? category;
   }

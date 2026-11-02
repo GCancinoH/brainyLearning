@@ -1,0 +1,14 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 猫 oracle bone: cat sitting, whiskers, tail -->
+  <path d="M32 8 Q42 8 48 18 Q52 28 44 38 Q36 48 28 48 Q20 48 12 38 Q4 28 8 18 Q14 8 24 8" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ears -->
+  <path d="M16 14 Q12 6 16 2" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M48 14 Q52 6 48 2" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- whiskers -->
+  <path d="M20 28 Q12 24 8 20" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M20 32 Q12 32 8 36" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M44 28 Q52 24 56 20" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M44 32 Q52 32 56 36" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- tail -->
+  <path d="M44 38 Q54 34 58 28" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

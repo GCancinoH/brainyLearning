@@ -1,0 +1,18 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 鸟 oracle bone: bird perched, wings folded, long tail -->
+  <!-- body -->
+  <path d="M32 54 Q32 24 20 16 Q10 10 8 16 Q6 22 12 28 Q20 36 32 34" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- head/beak -->
+  <path d="M20 16 Q14 12 8 16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- eye -->
+  <circle cx="16" cy="18" r="2.5" stroke="currentColor" stroke-width="2" fill="currentColor"/>
+  <!-- wing -->
+  <path d="M28 28 Q38 22 46 28 Q40 34 32 30" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- tail feathers -->
+  <path d="M32 34 Q24 44 16 54" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M32 34 Q30 44 24 54" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M32 34 Q36 44 32 54" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- legs/claws -->
+  <path d="M28 46 Q28 54 24 58" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M36 46 Q36 54 40 58" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

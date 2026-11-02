@@ -1,0 +1,26 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 牛 oracle bone: ox/cow with prominent horns, dewlap, four legs -->
+  <!-- body -->
+  <path d="M16 38 Q16 22 32 16 Q48 22 48 38 Q48 52 32 58 Q16 52 16 38" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- head -->
+  <path d="M20 32 Q16 26 18 18 Q20 14 28 14 Q36 14 38 18 Q40 26 36 32" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- horns - prominent, curved up and out -->
+  <path d="M22 18 Q16 6 14 0" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M34 18 Q40 6 42 0" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- ears -->
+  <path d="M20 22 Q16 20 18 28" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M36 22 Q40 20 38 28" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- eyes -->
+  <circle cx="24" cy="22" r="2" stroke="currentColor" stroke-width="1.5" fill="currentColor"/>
+  <circle cx="32" cy="22" r="2" stroke="currentColor" stroke-width="1.5" fill="currentColor"/>
+  <!-- dewlap (chin fold) -->
+  <path d="M26 32 Q32 38 38 32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- front legs -->
+  <path d="M20 38 Q18 50 22 58" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M28 38 Q26 50 30 58" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- hind legs -->
+  <path d="M38 38 Q36 50 38 58" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M44 38 Q42 50 44 58" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- tail -->
+  <path d="M48 38 Q56 38 60 34 Q62 30 58 26" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

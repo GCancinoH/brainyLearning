@@ -1,0 +1,16 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 鱼 oracle bone: fish profile with fins and tail -->
+  <path d="M10 32 Q24 16 40 32 Q24 48 10 32" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- dorsal fin -->
+  <path d="M20 28 Q28 18 36 28" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- pectoral fin -->
+  <path d="M24 32 Q32 38 28 42" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- pelvic fin -->
+  <path d="M28 36 Q34 44 30 50" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- tail fin -->
+  <path d="M40 32 Q50 22 58 32 Q50 42 40 32" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- eye -->
+  <circle cx="18" cy="30" r="3" stroke="currentColor" stroke-width="2" fill="currentColor"/>
+  <!-- gill -->
+  <path d="M16 28 Q22 32 16 36" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+</svg>

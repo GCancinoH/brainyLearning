@@ -9,7 +9,7 @@ export type ThemePreference = 'space' | 'mushrooms' | 'ocean' | 'human-body';
 export interface Sticker {
   id: string;
   name: string;
-  category: ThemePreference;
+  category: string; // p.ej. 'space', 'mushrooms', 'ocean', 'human-body', 'oracle-bone'
   imageUrl: string;
   unlockedAt: string; // ISO String
 }

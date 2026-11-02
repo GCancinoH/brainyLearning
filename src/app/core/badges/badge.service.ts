@@ -13,7 +13,7 @@ import { Subscription } from 'rxjs';
 import { SessionEvent } from '../games/game-types';
 import { GameProgressService } from '../games/game-progress.service';
 import { GameSessionService } from '../games/game-session.service';
-import { PlayerProfile } from '../models/player-profile';
+import { PlayerProfile, Sticker } from '../models/player-profile';
 import { ProfileStateService } from '../services/profile-state';
 import { badgeById } from './badge-catalog';
 import {
@@ -230,6 +230,10 @@ export class BadgeService implements OnDestroy {
 
     if (event.type === 'level-up' || event.type === 'game-complete') {
       this.flushStats();
+      // Oracle bone stickers: award when hanzi-animals completes (N10 done)
+      if (event.type === 'game-complete' && event.gameId === 'hanzi-animals') {
+        this.awardOracleBoneStickers(profile);
+      }
     }
 
     if (event.type === 'session-end' || event.type === 'time-up') {
@@ -237,6 +241,39 @@ export class BadgeService implements OnDestroy {
       this.sessionProfileId = null;
       this.retryArmed = false;
     }
+  }
+
+  /**
+   * Otorga los 8 stickers de hueso oracular al completar hanzi-animals N10.
+   * Cada sticker es el pictograma arcaico (甲骨文) del animal correspondiente.
+   */
+  private awardOracleBoneStickers(profile: PlayerProfile): void {
+    const alreadyHasOracle = profile.stickers?.some(s => s.category === 'oracle-bone') ?? false;
+    if (alreadyHasOracle) return; // ya los tiene
+
+    const animals = [
+      { id: 'mao', name: 'Gato', file: 'mao.svg' },
+      { id: 'gou', name: 'Perro', file: 'gou.svg' },
+      { id: 'yu', name: 'Pez', file: 'yu.svg' },
+      { id: 'niao', name: 'Pájaro', file: 'niao.svg' },
+      { id: 'ma', name: 'Caballo', file: 'ma.svg' },
+      { id: 'niu', name: 'Vaca', file: 'niu.svg' },
+      { id: 'yang', name: 'Oveja', file: 'yang.svg' },
+      { id: 'zhu', name: 'Cerdo', file: 'zhu.svg' },
+    ];
+
+    const newStickers: Sticker[] = animals.map(a => ({
+      id: `oracle-${a.id}`,
+      name: a.name,
+      category: 'oracle-bone',
+      imageUrl: `images/stickers/oracle-bone/${a.file}`,
+      unlockedAt: new Date().toISOString(),
+    }));
+
+    this.profileState.updateActiveProfile(p => ({
+      ...p,
+      stickers: [...(p.stickers ?? []), ...newStickers],
+    }));
   }
 
   private readSavedProgress(gameId: string): SavedGameProgress | null {

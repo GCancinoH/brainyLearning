@@ -1,0 +1,19 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 狗 oracle bone: dog standing, erect ears, curled tail -->
+  <path d="M20 42 Q20 20 32 14 Q44 20 44 42" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- head -->
+  <ellipse cx="32" cy="18" rx="10" ry="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+  <!-- ears -->
+  <path d="M24 12 Q20 4 26 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M40 12 Q44 4 38 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- snout -->
+  <path d="M28 22 Q32 28 36 22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- front legs -->
+  <path d="M22 42 Q20 50 24 56" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M42 42 Q44 50 40 56" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- hind legs -->
+  <path d="M20 42 Q16 52 22 58" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M44 42 Q48 52 42 58" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- tail curled -->
+  <path d="M44 38 Q52 34 54 28 Q56 22 52 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>
