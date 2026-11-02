@@ -272,6 +272,46 @@ export const CHINESE_SKILLS: SkillDefinition[] = [
       ['digit']
     ],
     recommendedAgeMin: 4
+  },
+  // Fase 4 · Vocabulario Hanzi (Colores, Animales y ¿Qué escuchaste?).
+  // `representation` del intento: 'audio' en `hear`, 'kanji' en `glyph-to-see` y
+  // `see-to-glyph` (mismo criterio que `hanzi-numbers`).
+  {
+    id: 'chinese.vocab.colors',
+    name: 'Vocabulario chino: colores',
+    category: 'chinese',
+    subcategory: 'vocab',
+    description: 'Reconocer los colores en chino por oído y por su hanzi',
+    representationProgression: [
+      ['audio', 'image'],
+      ['kanji', 'image'],
+      ['image', 'kanji']
+    ],
+    recommendedAgeMin: 4
+  },
+  {
+    id: 'chinese.vocab.animals',
+    name: 'Vocabulario chino: animales',
+    category: 'chinese',
+    subcategory: 'vocab',
+    description: 'Reconocer los animales en chino por oído y por su hanzi',
+    representationProgression: [
+      ['audio', 'image'],
+      ['kanji', 'image'],
+      ['image', 'kanji']
+    ],
+    recommendedAgeMin: 4
+  },
+  {
+    id: 'chinese.listening',
+    name: 'Comprensión auditiva (chino)',
+    category: 'chinese',
+    subcategory: 'listening',
+    description: 'Escuchar una palabra en chino y asociarla con su imagen',
+    representationProgression: [
+      ['audio', 'image']
+    ],
+    recommendedAgeMin: 4
   }
 ];
 

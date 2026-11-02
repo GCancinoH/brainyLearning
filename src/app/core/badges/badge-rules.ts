@@ -29,6 +29,9 @@
  * | japanese-kanji-find      | ✅       | ✅           | ❌        |                                          |
  * | japanese-kanji-compose   | ✅       | ✅           | ✅        | ladder de ayuda                          |
  * | japanese-calendar        | ✅       | ✅           | ❌        |                                          |
+ * | hanzi-colors             | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
+ * | hanzi-animals            | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
+ * | hanzi-listening          | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
  *
  * Leyenda: ✅ = reporta correctamente, ❌ = no aplica / no implementado.
  * Mantener al día al añadir juegos o cambiar lógica de ayuda.

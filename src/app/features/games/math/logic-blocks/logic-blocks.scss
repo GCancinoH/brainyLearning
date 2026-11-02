@@ -177,7 +177,7 @@
   /* Un único tamaño para todos los rótulos del Venn, sin vw (fijo y legible) */
   --venn-label-size: 1rem;
   /* Hueco arriba para los rótulos (caben hasta 2 líneas creciendo hacia arriba) */
-  margin-top: 2.6rem;
+  margin-top: 1.8rem;
 
   .venn-set {
     position: absolute;
@@ -203,16 +203,15 @@
   }
   .venn-cap--both { left: 37%; width: 26%; bottom: 4%; }
 
-  // Rótulo del conjunto: anclado ENCIMA del círculo, centrado sobre su "luna" (la parte
-  // que no se solapa). `bottom` y no `top`: si el texto ocupa 2 líneas crece hacia arriba
-  // y no pisa las figuras.
+  // Rótulo del conjunto: pegado al borde superior del círculo (sin piquito),
+  // crece hacia arriba si hay 2 líneas. `bottom: 100%` = justo encima del círculo.
   .venn-tag {
     position: absolute;
-    bottom: calc(100% + 0.5rem);
+    bottom: calc(100% + 0.15rem);
     transform: translateX(-50%);
     width: max-content;
     max-width: 46%;
-    padding: 0.25rem 0.8rem;
+    padding: 0.15rem 0.6rem;
     border: 2px solid;
     border-radius: 999px;
     font-size: var(--venn-label-size);
@@ -222,21 +221,8 @@
     text-wrap: balance;
     pointer-events: none;
 
-    // Piquito que apunta al círculo
-    &::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      bottom: -7px;
-      transform: translateX(-50%);
-      border: 6px solid transparent;
-      border-bottom: 0;
-    }
-
-    &--a { left: 24%; background: rgba(167, 139, 250, 0.2); border-color: #a78bfa; color: #ede9fe;
-           &::after { border-top-color: #a78bfa; } }
-    &--b { left: 76%; background: rgba(34, 211, 238, 0.18); border-color: #22d3ee; color: #cffafe;
-           &::after { border-top-color: #22d3ee; } }
+    &--a { left: 24%; background: rgba(167, 139, 250, 0.2); border-color: #a78bfa; color: #ede9fe; }
+    &--b { left: 76%; background: rgba(34, 211, 238, 0.18); border-color: #22d3ee; color: #cffafe; }
   }
 
   .slot {

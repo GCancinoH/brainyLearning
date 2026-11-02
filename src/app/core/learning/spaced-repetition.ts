@@ -6,6 +6,8 @@ export const JAPANESE_VOCAB_DECK = 'japanese-vocab';
 export const KANJI_COMPOSITION_DECK = 'kanji-composition';
 /** 3.2 · Mazo de Números Hanzi: un recuerdo por número (1–99), no por nivel. */
 export const HANZI_NUMBERS_DECK = 'hanzi-numbers';
+/** Fase 4 · Mazo de vocabulario Hanzi (Colores y Animales): un recuerdo por palabra. */
+export const HANZI_VOCAB_DECK = 'hanzi-vocab';
 const STORAGE_KEY = 'brainyLearning_srs';
 
 /**

@@ -148,8 +148,17 @@ describe('reglas de insignias', () => {
     expect(ids).not.toContain(categoryBadgeId('chinese', 'gold'));
   });
 
-  it('un mundo con un solo juego no enseña "exploradora" inalcanzable', () => {
-    expect(badgeById(categoryBadgeId('chinese', 'explorer'))).toBeUndefined();
+  it('un mundo con tres juegos o más sí enseña "exploradora"', () => {
+    // Con Colores, Animales y ¿Qué escuchaste? el Planeta Dragón ya llega a 3 juegos,
+    // así que la insignia de exploradora deja de ser una silueta inalcanzable.
+    expect(gamesByCategory('chinese').length).toBeGreaterThanOrEqual(3);
+    expect(badgeById(categoryBadgeId('chinese', 'explorer'))).toBeDefined();
+  });
+
+  it('un mundo sin juegos no enseña "exploradora"', () => {
+    // Español e inglés todavía no tienen catálogo: no debe aparecer una silueta imposible.
+    expect(badgeById(categoryBadgeId('spanish', 'explorer'))).toBeUndefined();
+    expect(badgeById(categoryBadgeId('english', 'explorer'))).toBeUndefined();
   });
 
   it('una sesión completa da ratito de calma; salir no', () => {
