@@ -240,6 +240,21 @@ describe('HanziVocabGame (integración)', () => {
     expect(revisiones.mock.calls[0]![2]).toEqual({ correct: false, ayuda: 1 });
   });
 
+  it('un doble toque no suma dos aciertos', async () => {
+    mount('colors', 4, 1);
+    const session = TestBed.inject(GameSessionService);
+    const aciertos = vi.spyOn(session, 'recordCorrect');
+
+    const p = correcta();
+    component.elegir(p);
+    component.elegir(p);
+    fixture.detectChanges();
+    await micros();
+
+    expect(aciertos, 'el guard de cierre corta el segundo toque').toHaveBeenCalledTimes(1);
+    expect(component.consecutiveCorrect()).toBe(1);
+  });
+
   it('tres aciertos suben de nivel a los 4 años y guardan el progreso', async () => {
     mount('colors', 4, 1);
     await acertar(3);
