@@ -31,6 +31,29 @@ describe('catálogo de juegos', () => {
     expect(() => gameMaxLevel('no-existe')).toThrow(/Juego desconocido/);
   });
 
+  it('el Planeta Dragón ya tiene los tres juegos de vocabulario', () => {
+    const ids = CHINESE_GAMES.map(g => g.id);
+    expect(ids).toEqual(
+      expect.arrayContaining(['hanzi-colors', 'hanzi-animals', 'hanzi-listening']),
+    );
+    expect(gameMaxLevel('hanzi-colors')).toBe(10);
+    expect(gameMaxLevel('hanzi-animals')).toBe(10);
+    expect(gameMaxLevel('hanzi-listening')).toBe(10);
+    // Los tres tienen pantalla: no son anuncios.
+    const disponibles = availableGames().map(g => g.id);
+    for (const id of ['hanzi-colors', 'hanzi-animals', 'hanzi-listening']) {
+      expect(disponibles).toContain(id);
+    }
+
+    // Escucha se abre con Colores: preguntar palabras no presentadas sería adivinar.
+    const escucha = CHINESE_GAMES.find(g => g.id === 'hanzi-listening')!;
+    expect(escucha.unlockRequirement).toEqual({
+      requiredGameId: 'hanzi-colors',
+      requiredLevel: 3,
+      description: 'Llega al Nivel 3 en Colores en Hanzi',
+    });
+  });
+
   it('los juegos anunciados sin pantalla no cuentan como disponibles', () => {
     const disponibles = availableGames().map(g => g.id);
     expect(disponibles).not.toContain('japanese-clock');

@@ -90,6 +90,16 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
   },
   {
+    path: 'games/chinese/hanzi-animals',
+    data: { deck: 'animals' },
+    loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
+  },
+  {
+    path: 'games/chinese/hanzi-listening',
+    data: { deck: 'listening' },
+    loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
+  },
+  {
     // Laboratorio de la Tiendita. Va fuera de `games/` para que el reloj por tema no lo
     // bloquee, y `devOnlyGuard` lo hace desaparecer en builds de producción.
     path: 'lab/coin-shop',
