@@ -128,7 +128,7 @@ describe('buildVocabProblem', () => {
       for (let nivel = 1; nivel <= MAX_LEVEL; nivel++) {
         const pool = new Set(poolFor(deck, nivel).map(i => i.id));
         for (const edad of [4, 6]) {
-          for (let seed = 1; seed <= 40; seed++) {
+          for (let seed = 1; seed <= 200; seed++) {
             const p = buildVocabProblem(deck, nivel, edad, mulberry32(seed * 97 + nivel));
             expect(p.options.some(o => o.id === p.item.id), `${deck} N${nivel}`).toBe(true);
             expect(new Set(p.options.map(o => o.id)).size).toBe(p.options.length);
