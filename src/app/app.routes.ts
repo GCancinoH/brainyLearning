@@ -84,6 +84,12 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/chinese/hanzi-numbers/hanzi-numbers').then(m => m.HanziNumbers)
   },
   {
+    // Un solo componente, tres configuraciones: el mazo lo elige la ruta.
+    path: 'games/chinese/hanzi-colors',
+    data: { deck: 'colors' },
+    loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
+  },
+  {
     // Laboratorio de la Tiendita. Va fuera de `games/` para que el reloj por tema no lo
     // bloquee, y `devOnlyGuard` lo hace desaparecer en builds de producción.
     path: 'lab/coin-shop',

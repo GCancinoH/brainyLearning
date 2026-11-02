@@ -15,6 +15,7 @@ import { GameProgressService } from '../games/game-progress.service';
 import { BadgeVoice } from './badge-voice';
 import { GameProgress } from '../games/game-types';
 import { createInitialProfile, PlayerProfile } from '../models/player-profile';
+import { gamesByCategory } from '../models/game-catalog';
 
 class ProfileStateStub {
   profile: PlayerProfile | null = createInitialProfile('Luna', 4, '🦊', 'space');
@@ -204,14 +205,27 @@ describe('BadgeService + GameSessionService (integración)', () => {
   // Nivel y juego completo
   // ============================================
 
-  it('subir de nivel al bronce da insignia de juego y de mundo', () => {
+  it('subir de nivel al bronce da la insignia del juego; el mundo necesita los cuatro', () => {
     startSession(session);
     // maxLevel 12 → bronce en el nivel 3; hacen falta dos subidas de nivel (10 aciertos).
     for (let i = 0; i < 10; i++) playRound(session, { firstTry: true });
 
     const ids = profileState.profile?.badges.map(b => b.id) ?? [];
     expect(ids).toContain('hanzi-numbers.bronze');
-    expect(ids).toContain('cat.chinese.bronze');
+    expect(ids).not.toContain('cat.chinese.bronze');
+  });
+
+  it('el mundo en bronce llega cuando los cuatro juegos de chino ya lo tienen', () => {
+    const bronces = gamesByCategory('chinese').map(g => ({
+      id: `${g.id}.bronze`,
+      earnedAt: new Date().toISOString(),
+      seen: true,
+    }));
+    profileState.updateActiveProfile(p => ({ ...p, badges: bronces }));
+
+    startSession(session);
+
+    expect(profileState.profile?.badges.map(b => b.id)).toContain('cat.chinese.bronze');
   });
 
   it('cambio de perfil a mitad de sesión no premia al perfil nuevo', () => {

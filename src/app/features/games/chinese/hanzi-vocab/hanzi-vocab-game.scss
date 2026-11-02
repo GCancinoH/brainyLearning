@@ -1,0 +1,421 @@
+// ============================================
+// Vocabulario Hanzi — Planeta Dragón 🐉
+// Un solo estilo para Colores, Animales y ¿Qué escuchaste?
+// ============================================
+
+$oro: #fbbf24;
+$oro-oscuro: #b45309;
+
+.vocab-container {
+  --acento: #8b5cf6;
+  --acento-suave: rgba(139, 92, 246, 0.18);
+  --acento-borde: rgba(139, 92, 246, 0.55);
+
+  min-height: 100vh;
+  padding: 1.5rem;
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  background: radial-gradient(1100px 480px at 50% -10%, var(--acento-suave), transparent 70%);
+
+  &.deck-colors {
+    --acento: #ec4899;
+    --acento-suave: rgba(236, 72, 153, 0.2);
+    --acento-borde: rgba(236, 72, 153, 0.55);
+  }
+
+  &.deck-animals {
+    --acento: #10b981;
+    --acento-suave: rgba(16, 185, 129, 0.2);
+    --acento-borde: rgba(16, 185, 129, 0.55);
+  }
+
+  &.deck-listening {
+    --acento: #06b6d4;
+    --acento-suave: rgba(6, 182, 212, 0.2);
+    --acento-borde: rgba(6, 182, 212, 0.55);
+  }
+}
+
+// ---------- ENCABEZADO ----------
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+
+  .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.6rem 1.1rem;
+    border-radius: 16px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  .deck-badge {
+    background: var(--acento-suave);
+    border: 1px solid var(--acento-borde);
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .level-badge {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid $oro;
+    padding: 0.5rem 1.1rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-weight: bold;
+    color: $oro;
+
+    .stars span {
+      opacity: 0.3;
+      font-size: 0.9rem;
+
+      &.active {
+        opacity: 1;
+      }
+    }
+
+    .repeat-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 14px;
+      padding: 0.3rem 0.6rem;
+      font-size: 1.4rem;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      &:active {
+        transform: scale(0.94);
+      }
+    }
+  }
+}
+
+// ---------- TABLERO ----------
+.game-board {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--acento-borde);
+  border-radius: 32px;
+  padding: 1.6rem 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  flex: 1;
+}
+
+.mood {
+  font-size: 2.4rem;
+  line-height: 1;
+  min-height: 2.6rem;
+}
+
+// ---------- LO QUE SE PREGUNTA ----------
+.prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 9.5rem;
+  width: 100%;
+
+  &--hear {
+    min-height: 7rem;
+  }
+
+  .speaker {
+    width: 7.5rem;
+    height: 7.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--acento-borde);
+    background: var(--acento-suave);
+    font-size: 3.4rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+    animation: latido 1.8s ease-in-out infinite;
+
+    &:hover {
+      background: color-mix(in srgb, var(--acento) 28%, transparent);
+    }
+
+    &:active {
+      transform: scale(0.94);
+    }
+  }
+
+  .hanzi-grande {
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: clamp(5.5rem, 22vw, 9rem);
+    line-height: 1.05;
+    font-weight: 700;
+    // Sin color por defecto: el tinte solo aparece como andamio en Colores N1–N4.
+    color: #fff;
+    text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
+  }
+
+  .imagen-grande {
+    font-size: clamp(6rem, 24vw, 10rem);
+    line-height: 1;
+  }
+
+  .imagen-es {
+    color: #cbd5e1;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+}
+
+@keyframes latido {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+// ---------- OPCIONES ----------
+.opciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+  width: 100%;
+
+  .opcion {
+    flex: 0 0 auto;
+    min-width: 6.4rem;
+    min-height: 6.4rem;
+    padding: 0.7rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    border-radius: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease, opacity 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    // Descartada: se atenúa sin veredicto. Sigue viéndose, pero ya no invita.
+    &--no {
+      opacity: 0.35;
+      filter: grayscale(0.6);
+    }
+
+    &--acierto {
+      background: rgba(251, 191, 36, 0.25);
+      border-color: $oro;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.16);
+      animation: acierto 0.4s ease;
+    }
+
+    .opcion-emoji {
+      font-size: 3rem;
+      line-height: 1;
+    }
+
+    .opcion-es {
+      color: #e2e8f0;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+  }
+}
+
+// `see-to-glyph`: las opciones son hanzis grandes.
+.opciones--hanzi {
+  .opcion {
+    min-width: 6.8rem;
+    min-height: 6.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .opcion-hanzi {
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: 3.2rem;
+    line-height: 1.1;
+    font-weight: 700;
+  }
+}
+
+@keyframes acierto {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// ---------- PISTA ----------
+.hint {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+// ---------- REFLEXIÓN (6 años) ----------
+.reflexion {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--acento-borde);
+  border-radius: 28px;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+
+  .reflexion-titulo {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .reflexion-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+
+  .reflexion-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 7.4rem;
+    padding: 0.9rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--acento-suave);
+      border-color: var(--acento-borde);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    .reflexion-emoji {
+      font-size: 1.9rem;
+    }
+
+    .reflexion-texto {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+  }
+}
+
+// ---------- FIN DEL JUEGO ----------
+.finish {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: radial-gradient(900px 500px at 50% 35%, rgba(127, 29, 29, 0.55), rgba(2, 6, 23, 0.94));
+
+  .finish-emoji {
+    font-size: 4.2rem;
+  }
+
+  .finish-texto {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: $oro;
+  }
+
+  .finish-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+
+  .finish-btn {
+    padding: 0.9rem 1.4rem;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.96);
+    }
+
+    &--repeat {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: $oro;
+      color: $oro;
+    }
+  }
+}
+
+// ---------- MOVIMIENTO REDUCIDO ----------
+@media (prefers-reduced-motion: reduce) {
+  .speaker {
+    animation: none !important;
+  }
+
+  .opcion--acierto {
+    animation: none !important;
+  }
+
+  .opcion,
+  .speaker,
+  .finish-btn,
+  .reflexion-btn {
+    transition: none !important;
+  }
+}

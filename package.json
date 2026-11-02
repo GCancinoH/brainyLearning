@@ -14,6 +14,7 @@
     "voice:check": "node tools/narration/verify.mjs",
     "voice:export": "tsx tools/narration/export-kanji.ts",
     "voice:kanji": "tsx tools/narration/export-kanji.ts && python3 tools/narration/generate.py kanji-compose",
+    "voice:hanzi-vocab": "tsx tools/narration/export-hanzi-vocab.ts && python3 tools/narration/generate.py hanzi-vocab",
     "voice:check:kanji": "node tools/narration/verify-kanji.mjs"
   },
   "private": true,

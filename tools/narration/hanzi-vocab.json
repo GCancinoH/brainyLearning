@@ -1,0 +1,82 @@
+{
+  "hv.ask.glyph": {
+    "tts": "¿Cuál es?",
+    "lang": "es-MX"
+  },
+  "hv.ask.hear": {
+    "tts": "¿Qué escuchaste?",
+    "lang": "es-MX"
+  },
+  "hv.ask.see": {
+    "tts": "¿Cuál es su hanzi?",
+    "lang": "es-MX"
+  },
+  "hv.duda.compara": {
+    "tts": "Mira bien y compara.",
+    "lang": "es-MX"
+  },
+  "hv.duda.oye": {
+    "tts": "Tócalos uno por uno y escucha.",
+    "lang": "es-MX"
+  },
+  "hv.puente": {
+    "tts": "Ahora mira la imagen y busca su hanzi.",
+    "lang": "es-MX"
+  },
+  "hv.w.bai": {
+    "tts": "白",
+    "lang": "zh-CN"
+  },
+  "hv.w.gou": {
+    "tts": "狗",
+    "lang": "zh-CN"
+  },
+  "hv.w.hei": {
+    "tts": "黑",
+    "lang": "zh-CN"
+  },
+  "hv.w.hong": {
+    "tts": "红",
+    "lang": "zh-CN"
+  },
+  "hv.w.huang": {
+    "tts": "黄",
+    "lang": "zh-CN"
+  },
+  "hv.w.lan": {
+    "tts": "蓝",
+    "lang": "zh-CN"
+  },
+  "hv.w.lv": {
+    "tts": "绿",
+    "lang": "zh-CN"
+  },
+  "hv.w.ma": {
+    "tts": "马",
+    "lang": "zh-CN"
+  },
+  "hv.w.mao": {
+    "tts": "猫",
+    "lang": "zh-CN"
+  },
+  "hv.w.niao": {
+    "tts": "鸟",
+    "lang": "zh-CN"
+  },
+  "hv.w.niu": {
+    "tts": "牛",
+    "lang": "zh-CN"
+  },
+  "hv.w.yang": {
+    "tts": "羊",
+    "lang": "zh-CN"
+  },
+  "hv.w.yu": {
+    "tts": "鱼",
+    "lang": "zh-CN"
+  },
+  "hv.w.zhu": {
+    "tts": "猪",
+    "lang": "zh-CN"
+  }
+}

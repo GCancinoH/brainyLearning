@@ -9,6 +9,7 @@ import { BadgeVoice } from './badge-voice';
 import { SessionEvent } from '../games/game-types';
 import { GameProgress } from '../games/game-types';
 import { createInitialProfile, PlayerProfile } from '../models/player-profile';
+import { gamesByCategory } from '../models/game-catalog';
 import { BadgeStats } from './badge-types';
 
 class ProfileStateStub {
@@ -86,13 +87,28 @@ describe('BadgeService', () => {
     expect(service.queue().filter(b => b.id === 'hanzi-numbers.seed')).toHaveLength(1);
   });
 
-  it('da bronce y el mundo en bronce al subir al nivel 3', () => {
+  it('da bronce del juego al subir al nivel 3; el mundo espera a los cuatro juegos', () => {
     emit(session, 'session-start');
     emit(session, 'level-up', 'hanzi-numbers', { newLevel: 3 });
 
     const ids = profileState.profile?.badges.map(b => b.id) ?? [];
     expect(ids).toContain('hanzi-numbers.bronze');
-    expect(ids).toContain('cat.chinese.bronze');
+    // Con Colores, Animales y ¿Qué escuchaste? el Planeta Dragón pasó de 1 a 4 juegos:
+    // el bronce del mundo exige que TODOS lo tengan.
+    expect(ids).not.toContain('cat.chinese.bronze');
+  });
+
+  it('el mundo en bronce llega cuando los cuatro juegos de chino ya lo tienen', () => {
+    const bronces = gamesByCategory('chinese').map(g => ({
+      id: `${g.id}.bronze`,
+      earnedAt: new Date().toISOString(),
+      seen: true,
+    }));
+    profileState.updateActiveProfile(p => ({ ...p, badges: bronces }));
+
+    emit(session, 'session-start');
+
+    expect(profileState.profile?.badges.map(b => b.id)).toContain('cat.chinese.bronze');
   });
 
   it('recupera insignias del progreso guardado al empezar', () => {
@@ -146,16 +162,16 @@ describe('BadgeService', () => {
   it('al subir de nivel pone delante la insignia de más valor', () => {
     emit(session, 'session-start');
     emit(session, 'answer-correct'); // 🌱
-    emit(session, 'level-up', 'hanzi-numbers', { newLevel: 3 }); // bronce + mundo en bronce
+    emit(session, 'level-up', 'hanzi-numbers', { newLevel: 3 }); // bronce del juego
 
     service.promoteMostValuable();
-    expect(service.current()?.id).toBe('cat.chinese.bronze');
-
-    service.dismissCurrent();
     expect(service.current()?.id).toBe('hanzi-numbers.bronze');
 
     service.dismissCurrent();
     expect(service.current()?.id).toBe('hanzi-numbers.seed');
+
+    service.dismissCurrent();
+    expect(service.current()).toBeNull();
   });
 
   it('awardBadge es idempotente', () => {

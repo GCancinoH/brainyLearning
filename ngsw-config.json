@@ -59,6 +59,17 @@
       }
     },
     {
+      "name": "hanzi-vocab-audio",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/audio/hanzi-vocab/**/*.m4a",
+          "/audio/hanzi-vocab/*.m4a"
+        ]
+      }
+    },
+    {
       "name": "game-audio",
       "installMode": "lazy",
       "updateMode": "prefetch",

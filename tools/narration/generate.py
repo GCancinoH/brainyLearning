@@ -59,6 +59,9 @@ JUEGOS = {
     # el idioma de las niñas, el contenido el del Planeta Dragón.
     "hanzi-numbers": ("hanzi-numbers.json", "audio/hanzi-numbers", "m4a",
                       ["-c:a", "aac", "-b:a", "48k"]),
+    # Vocabulario del Planeta Dragón: 14 palabras zh-CN + consignas es-MX.
+    "hanzi-vocab": ("hanzi-vocab.json", "audio/hanzi-vocab", "m4a",
+                    ["-c:a", "aac", "-b:a", "48k"]),
 }
 
 
