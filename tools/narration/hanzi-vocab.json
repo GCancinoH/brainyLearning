@@ -23,12 +23,44 @@
     "tts": "Ahora mira la imagen y busca su hanzi.",
     "lang": "es-MX"
   },
+  "hv.w.baba": {
+    "tts": "爸爸",
+    "lang": "zh-CN"
+  },
   "hv.w.bai": {
     "tts": "白",
     "lang": "zh-CN"
   },
+  "hv.w.cao": {
+    "tts": "草",
+    "lang": "zh-CN"
+  },
+  "hv.w.dao": {
+    "tts": "岛",
+    "lang": "zh-CN"
+  },
+  "hv.w.didi": {
+    "tts": "弟弟",
+    "lang": "zh-CN"
+  },
+  "hv.w.feng": {
+    "tts": "风",
+    "lang": "zh-CN"
+  },
+  "hv.w.gege": {
+    "tts": "哥哥",
+    "lang": "zh-CN"
+  },
   "hv.w.gou": {
     "tts": "狗",
+    "lang": "zh-CN"
+  },
+  "hv.w.hai": {
+    "tts": "海",
+    "lang": "zh-CN"
+  },
+  "hv.w.he": {
+    "tts": "河",
     "lang": "zh-CN"
   },
   "hv.w.hei": {
@@ -43,6 +75,10 @@
     "tts": "黄",
     "lang": "zh-CN"
   },
+  "hv.w.jiejie": {
+    "tts": "姐姐",
+    "lang": "zh-CN"
+  },
   "hv.w.lan": {
     "tts": "蓝",
     "lang": "zh-CN"
@@ -55,8 +91,16 @@
     "tts": "马",
     "lang": "zh-CN"
   },
+  "hv.w.mama": {
+    "tts": "妈妈",
+    "lang": "zh-CN"
+  },
   "hv.w.mao": {
     "tts": "猫",
+    "lang": "zh-CN"
+  },
+  "hv.w.meimei": {
+    "tts": "妹妹",
     "lang": "zh-CN"
   },
   "hv.w.niao": {
@@ -67,12 +111,24 @@
     "tts": "牛",
     "lang": "zh-CN"
   },
+  "hv.w.sha": {
+    "tts": "沙",
+    "lang": "zh-CN"
+  },
+  "hv.w.tian": {
+    "tts": "天",
+    "lang": "zh-CN"
+  },
   "hv.w.yang": {
     "tts": "羊",
     "lang": "zh-CN"
   },
   "hv.w.yu": {
     "tts": "鱼",
+    "lang": "zh-CN"
+  },
+  "hv.w.yun": {
+    "tts": "云",
     "lang": "zh-CN"
   },
   "hv.w.zhu": {

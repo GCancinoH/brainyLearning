@@ -84,7 +84,7 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/chinese/hanzi-numbers/hanzi-numbers').then(m => m.HanziNumbers)
   },
   {
-    // Un solo componente, tres configuraciones: el mazo lo elige la ruta.
+    // Un solo componente, cinco configuraciones: el mazo lo elige la ruta.
     path: 'games/chinese/hanzi-colors',
     data: { deck: 'colors' },
     loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
@@ -92,6 +92,16 @@ const baseRoutes: Routes = [
   {
     path: 'games/chinese/hanzi-animals',
     data: { deck: 'animals' },
+    loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
+  },
+  {
+    path: 'games/chinese/hanzi-nature',
+    data: { deck: 'nature' },
+    loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
+  },
+  {
+    path: 'games/chinese/hanzi-family',
+    data: { deck: 'family' },
     loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
   },
   {

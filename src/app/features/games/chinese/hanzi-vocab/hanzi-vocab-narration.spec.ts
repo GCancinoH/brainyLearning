@@ -21,9 +21,9 @@ describe('narración del vocabulario Hanzi', () => {
     expect(CLIP_EXT).toBe('m4a');
   });
 
-  it('hay un clip por palabra (14)', () => {
+  it('hay un clip por palabra (28)', () => {
     const palabras = HANZI_VOCAB.map(i => wordClip(i.id));
-    expect(new Set(palabras).size).toBe(14);
+    expect(new Set(palabras).size).toBe(28);
     for (const key of palabras) expect(CLIP_MANIFEST[key], key).toBeTruthy();
   });
 

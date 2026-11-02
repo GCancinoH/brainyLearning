@@ -92,6 +92,26 @@
     }
   }
 
+  // Naturaleza en Hanzi: verde naturaleza, del Planeta Dragón.
+  &.hanzi-nature {
+    background: linear-gradient(135deg, #22c55e 0%, #052e16 100%);
+    box-shadow: 0 10px 25px rgba(5, 46, 22, 0.35);
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  // Familia en Hanzi: rosa cálido, del Planeta Dragón.
+  &.hanzi-family {
+    background: linear-gradient(135deg, #f472b6 0%, #be185d 100%);
+    box-shadow: 0 10px 25px rgba(190, 24, 93, 0.35);
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
   &.disabled {
     background: rgba(255, 255, 255, 0.05);
     border: 1px dashed rgba(255, 255, 255, 0.2);

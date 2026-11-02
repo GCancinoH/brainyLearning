@@ -303,6 +303,32 @@ export const CHINESE_SKILLS: SkillDefinition[] = [
     recommendedAgeMin: 4
   },
   {
+    id: 'chinese.vocab.nature',
+    name: 'Vocabulario chino: naturaleza',
+    category: 'chinese',
+    subcategory: 'vocab',
+    description: 'Reconocer palabras de la naturaleza en chino por oído y por su hanzi',
+    representationProgression: [
+      ['audio', 'image'],
+      ['kanji', 'image'],
+      ['image', 'kanji']
+    ],
+    recommendedAgeMin: 4
+  },
+  {
+    id: 'chinese.vocab.family',
+    name: 'Vocabulario chino: familia',
+    category: 'chinese',
+    subcategory: 'vocab',
+    description: 'Reconocer a los miembros de la familia en chino por oído y por su hanzi',
+    representationProgression: [
+      ['audio', 'image'],
+      ['kanji', 'image'],
+      ['image', 'kanji']
+    ],
+    recommendedAgeMin: 4
+  },
+  {
     id: 'chinese.listening',
     name: 'Comprensión auditiva (chino)',
     category: 'chinese',

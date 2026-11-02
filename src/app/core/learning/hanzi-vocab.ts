@@ -1,22 +1,29 @@
 /**
  * Mazos de vocabulario Hanzi (Planeta Dragón 🐉 — Sabio Long).
  *
- * Datos puros, sin Angular. Los consumen `hanzi-colors`, `hanzi-animals` y
- * `hanzi-listening`, que comparten motor (§3 del plan).
+ * Datos puros, sin Angular. Los consumen `hanzi-colors`, `hanzi-animals`,
+ * `hanzi-nature`, `hanzi-family` y `hanzi-listening`, que comparten motor (§3 del plan).
  *
  * REGLAS DE LOS IDS
  *  - Son pinyin **sin tono y solo ASCII** (`hong`, `lv`): son nombre de fichero de audio y
  *    clave del SRS. **Nunca se muestran**: mezclar pinyin con hanzi en pantalla rompería
  *    la Plantilla 6 del método (dos sistemas de escritura a la vez).
  *  - `confusable` agrupa palabras que comparten componente (红/绿 → 纟; 猫/狗/猪 → 犭;
- *    牛/羊 → cuernos). En los niveles altos los distractores salen primero de aquí, para
- *    que la niña tenga que mirar el glifo y no descartar por descarte.
+ *    牛/羊 → cuernos; 海/河/沙 → 氵; 妈/姐/妹 → 女). En los niveles altos los distractores
+ *    salen primero de aquí, para que la niña tenga que mirar el glifo y no descartar por
+ *    descarte.
  *
  * Hanzi **simplificado**, igual que el resto del Planeta Dragón.
+ *
+ * D6 · INTERFERENCIA CON JAPONÉS
+ * Naturaleza evita a propósito 日 月 木 火 水 山 (y el resto de caracteres que ya viven en
+ * `kanji-compose`). No se avisa de un choque: se evita. El mismo dibujo con otro sonido
+ * es una interferencia real a los 4–6 años, así que este mazo usa vocabulario que no
+ * aparece en el Planeta Sakura.
  */
 
-/** Mazo jugable original. `listening` se deriva de los dos en el juego de escucha. */
-export type HanziDeck = 'colors' | 'animals';
+/** Mazo jugable. `listening` se deriva de todos ellos en el juego de escucha. */
+export type HanziDeck = 'colors' | 'animals' | 'nature' | 'family';
 
 export interface HanziVocabItem {
   /** 'hong'. Pinyin sin tono, ASCII, nombre de clip. Nunca se muestra. */
@@ -64,8 +71,49 @@ export const HANZI_ANIMALS: readonly HanziVocabItem[] = [
   { id: 'zhu', deck: 'animals', order: 8, hanzi: '猪', emoji: '🐷', es: 'cerdo', confusable: 'dog' },
 ];
 
+/**
+ * Naturaleza (8). Elegidos a propósito SIN solapar caracteres con el catálogo japonés
+ * (`kanji-compose`): 日 月 木 火 水 山 石 田 火 生 言 五 口 手 目 女 子 小 大 星 雨 雪 空 虹 etc.
+ * 云 风 海 河 岛 草 沙 天 — ninguno está en japonés. D6 resuelto por diseño.
+ *
+ * Orden de presentación pensado para 4 años: lo más "tangible" primero (mar, río, isla),
+ * luego lo atmosférico (cielo, nube, viento) y tierra (hierba, arena). Confusibles:
+ * - water: 海/河/沙 (氵)
+ * - sky: 云/天
+ */
+export const HANZI_NATURE: readonly HanziVocabItem[] = [
+  { id: 'yun', deck: 'nature', order: 1, hanzi: '云', emoji: '☁️', es: 'nube', confusable: 'sky' },
+  { id: 'feng', deck: 'nature', order: 2, hanzi: '风', emoji: '🌬️', es: 'viento' },
+  { id: 'hai', deck: 'nature', order: 3, hanzi: '海', emoji: '🌊', es: 'mar', confusable: 'water' },
+  { id: 'he', deck: 'nature', order: 4, hanzi: '河', emoji: '🏞️', es: 'río', confusable: 'water' },
+  { id: 'dao', deck: 'nature', order: 5, hanzi: '岛', emoji: '🏝️', es: 'isla' },
+  { id: 'cao', deck: 'nature', order: 6, hanzi: '草', emoji: '🌿', es: 'hierba' },
+  { id: 'sha', deck: 'nature', order: 7, hanzi: '沙', emoji: '🏖️', es: 'arena', confusable: 'water' },
+  { id: 'tian', deck: 'nature', order: 8, hanzi: '天', emoji: '🌌', es: 'cielo', confusable: 'sky' },
+];
+
+/**
+ * Familia (6). Palabras de dos caracteres (reduplicados), como pide el plan: 爸爸/妈妈,
+ * 哥哥/姐姐/弟弟/妹妹. No se incluye 我 (abstracto) ni el árbol genealógico (caro);
+ * esos quedan para un pulido posterior. El componente 女 aparece en 妈/姐/妹 → grupo
+ * 'female'. Los masculinos no comparten componente, así que no hay grupo 'male'.
+ */
+export const HANZI_FAMILY: readonly HanziVocabItem[] = [
+  { id: 'baba', deck: 'family', order: 1, hanzi: '爸爸', emoji: '👨', es: 'papá' },
+  { id: 'mama', deck: 'family', order: 2, hanzi: '妈妈', emoji: '👩', es: 'mamá', confusable: 'female' },
+  { id: 'gege', deck: 'family', order: 3, hanzi: '哥哥', emoji: '👦', es: 'hermano mayor' },
+  { id: 'jiejie', deck: 'family', order: 4, hanzi: '姐姐', emoji: '👧', es: 'hermana mayor', confusable: 'female' },
+  { id: 'didi', deck: 'family', order: 5, hanzi: '弟弟', emoji: '🧒', es: 'hermano menor' },
+  { id: 'meimei', deck: 'family', order: 6, hanzi: '妹妹', emoji: '👶', es: 'hermana menor', confusable: 'female' },
+];
+
 /** Todos los items de los mazos jugables, en orden de mazo. */
-export const HANZI_VOCAB: readonly HanziVocabItem[] = [...HANZI_COLORS, ...HANZI_ANIMALS];
+export const HANZI_VOCAB: readonly HanziVocabItem[] = [
+  ...HANZI_COLORS,
+  ...HANZI_ANIMALS,
+  ...HANZI_NATURE,
+  ...HANZI_FAMILY,
+];
 
 /** Índice por id para resolver el `forced` del SRS sin recorrer el array. */
 export const HANZI_VOCAB_BY_ID: ReadonlyMap<string, HanziVocabItem> =
@@ -73,6 +121,10 @@ export const HANZI_VOCAB_BY_ID: ReadonlyMap<string, HanziVocabItem> =
 
 /** Items de un mazo, ordenados por `order`. */
 export function vocabForDeck(deck: HanziDeck): readonly HanziVocabItem[] {
-  const source = deck === 'colors' ? HANZI_COLORS : HANZI_ANIMALS;
+  let source: readonly HanziVocabItem[];
+  if (deck === 'colors') source = HANZI_COLORS;
+  else if (deck === 'animals') source = HANZI_ANIMALS;
+  else if (deck === 'nature') source = HANZI_NATURE;
+  else source = HANZI_FAMILY;
   return [...source].sort((a, b) => a.order - b.order);
 }

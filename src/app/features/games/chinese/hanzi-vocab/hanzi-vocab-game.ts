@@ -29,6 +29,8 @@ import {
 const GAME_BY_DECK: Record<HanziDeck | 'listening', string> = {
   colors: 'hanzi-colors',
   animals: 'hanzi-animals',
+  nature: 'hanzi-nature',
+  family: 'hanzi-family',
   listening: 'hanzi-listening',
 };
 
@@ -36,12 +38,16 @@ const GAME_BY_DECK: Record<HanziDeck | 'listening', string> = {
 const SKILL_BY_DECK: Record<HanziDeck | 'listening', string> = {
   colors: 'chinese.vocab.colors',
   animals: 'chinese.vocab.animals',
+  nature: 'chinese.vocab.nature',
+  family: 'chinese.vocab.family',
   listening: 'chinese.listening',
 };
 
 const DECK_ICON: Record<HanziDeck | 'listening', string> = {
   colors: '🎨',
   animals: '🐲',
+  nature: '🌿',
+  family: '👨‍👩‍👧‍👦',
   listening: '👂',
 };
 

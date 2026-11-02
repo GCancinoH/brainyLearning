@@ -1,8 +1,8 @@
 /**
  * Generador de "vocabulario Hanzi" (Planeta Dragón 🐉 — Sabio Long).
  *
- * Un solo motor para tres juegos: Colores, Animales y ¿Qué escuchaste?. Lógica pura,
- * sin Angular, para poder probarla con vitest.
+ * Un solo motor para cinco juegos: Colores, Animales, Naturaleza, Familia y ¿Qué escuchaste?.
+ * Lógica pura, sin Angular, para poder probarla con vitest.
  *
  * LOS TRES MODOS
  *  - `hear`: suena la palabra y se elige la imagen.
@@ -17,8 +17,8 @@
  * salto cambian dos cosas a la vez, no se sabe cuál causó la dificultad.
  *
  * Los distractores "confusables" son palabras que comparten componente (红/绿 → 纟;
- * 猫/狗/猪 → 犭; 牛/羊 → cuernos). En los niveles altos van primero para que la niña
- * tenga que mirar el glifo y no descartar por eliminación.
+ * 猫/狗/猪 → 犭; 牛/羊 → cuernos; 海/河/沙 → 氵; 妈/姐/妹 → 女). En los niveles altos van primero
+ * para que la niña tenga que mirar el glifo y no descartar por eliminación.
  */
 
 import { getProfileDifficultyConfig } from '@core/learning/learning-content';
@@ -72,12 +72,12 @@ export interface LevelKnob {
 }
 
 /**
- * Colores (6 palabras). Tabla §3.2 del plan.
+ * Mazo de 6 palabras (Colores y Familia). Tabla §3.2 del plan.
  *
  * N8 sube las opciones cuando el mazo ya está completo; N9 quita el audio automático del
  * glifo; N10 manda el repaso del SRS.
  */
-const COLOR_LEVELS: readonly LevelKnob[] = [
+const SIX_WORD_LEVELS: readonly LevelKnob[] = [
   { poolSize: 3, modes: ['hear'], confusable: false, extraOption: false, autoAudioGlyph: true, reviewFirst: false },
   { poolSize: 4, modes: ['hear'], confusable: false, extraOption: false, autoAudioGlyph: true, reviewFirst: false },
   { poolSize: 4, modes: ['hear', 'glyph-to-see'], confusable: false, extraOption: false, autoAudioGlyph: true, reviewFirst: false },
@@ -91,15 +91,15 @@ const COLOR_LEVELS: readonly LevelKnob[] = [
 ];
 
 /**
- * Animales (8 palabras): misma estructura que colores, pero el mazo es más largo.
+ * Mazo de 8 palabras (Animales y Naturaleza): misma estructura que 6 palabras, pero el
+ * mazo es más largo.
  *
- * El plan pide "una palabra nueva cada nivel par (鸟 → 马 → 牛 → 羊 → 猪)". Para que N10
- * quede libre para el repaso (la última perilla), las dos últimas (羊, 猪) entran juntas en
- * N8: el salto de N8 es el de **palabras**, y añadir dos sigue siendo una sola perilla.
- * Por la misma razón Animales no activa `extraOption` en N8: con 8 palabras y tres modos
- * ya hay suficiente variedad, y así el salto no mueve dos cosas.
+ * El plan pide "una palabra nueva cada nivel par". Para que N10 quede libre para el
+ * repaso (la última perilla), las dos últimas entran juntas en N8: el salto de N8 es el de
+ * **palabras**, y añadir dos sigue siendo una sola perilla. Por la misma razón este mazo
+ * no activa `extraOption` en N8: con 8 palabras y tres modos ya hay suficiente variedad.
  */
-const ANIMAL_LEVELS: readonly LevelKnob[] = [
+const EIGHT_WORD_LEVELS: readonly LevelKnob[] = [
   { poolSize: 3, modes: ['hear'], confusable: false, extraOption: false, autoAudioGlyph: true, reviewFirst: false },
   { poolSize: 4, modes: ['hear'], confusable: false, extraOption: false, autoAudioGlyph: true, reviewFirst: false },
   { poolSize: 4, modes: ['hear', 'glyph-to-see'], confusable: false, extraOption: false, autoAudioGlyph: true, reviewFirst: false },
@@ -130,8 +130,8 @@ const LISTENING_LEVELS: readonly LevelKnob[] = [
 ];
 
 function tableFor(deck: HanziDeck | 'listening'): readonly LevelKnob[] {
-  if (deck === 'colors') return COLOR_LEVELS;
-  if (deck === 'animals') return ANIMAL_LEVELS;
+  if (deck === 'colors' || deck === 'family') return SIX_WORD_LEVELS;
+  if (deck === 'animals' || deck === 'nature') return EIGHT_WORD_LEVELS;
   return LISTENING_LEVELS;
 }
 

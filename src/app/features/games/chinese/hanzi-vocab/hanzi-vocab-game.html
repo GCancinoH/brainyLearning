@@ -5,6 +5,8 @@
   class="vocab-container"
   [class.deck-colors]="deck === 'colors'"
   [class.deck-animals]="deck === 'animals'"
+  [class.deck-nature]="deck === 'nature'"
+  [class.deck-family]="deck === 'family'"
   [class.deck-listening]="deck === 'listening'"
 >
   <!-- ENCABEZADO -->
@@ -44,7 +46,7 @@
             </button>
           }
           @case ('glyph-to-see') {
-            <div class="hanzi-grande" lang="zh-CN" [style.color]="tinteHanzi()" aria-live="polite">
+            <div class="hanzi-grande" [class.hanzi-grande--largo]="p.hanzi.length > 1" lang="zh-CN" [style.color]="tinteHanzi()" aria-live="polite">
               {{ p.hanzi }}
             </div>
           }
@@ -75,7 +77,7 @@
             [attr.aria-label]="o.es"
           >
             @if (modo() === 'see-to-glyph') {
-              <span class="opcion-hanzi" lang="zh-CN">{{ o.hanzi }}</span>
+              <span class="opcion-hanzi" lang="zh-CN" [class.opcion-hanzi--largo]="o.hanzi.length > 1">{{ o.hanzi }}</span>
             } @else {
               @if (usaCohete() && o.cssColor) {
                 <paintable-rocket class="cohete-opcion" [color]="o.cssColor ?? null" />
