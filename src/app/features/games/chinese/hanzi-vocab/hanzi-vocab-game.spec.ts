@@ -12,6 +12,7 @@ import { HANZI_VOCAB_DECK, SpacedRepetition } from '@core/learning/spaced-repeti
 import { installMemoryStorage } from '@core/testing/memory-storage';
 import { HANZI_COLORS, HANZI_VOCAB } from '@core/learning/hanzi-vocab';
 import { DUDA_OYE, wordClip } from './hanzi-vocab-narration';
+import { poolFor } from './hanzi-vocab-problem';
 
 /**
  * Integración del motor único de vocabulario.
@@ -88,8 +89,13 @@ describe('HanziVocabGame (integración)', () => {
       ],
     });
     TestBed.inject(GameAudioService).setEnabled(false);
+    const srs = TestBed.inject(SpacedRepetition);
     if (opts.listeningPool) {
-      TestBed.inject(SpacedRepetition).markIntroduced(HANZI_VOCAB_DECK, [...opts.listeningPool]);
+      srs.markIntroduced(HANZI_VOCAB_DECK, [...opts.listeningPool]);
+    } else if (deck !== 'listening') {
+      // Pre-introducir las palabras del pool para evitar la tarjeta de intro en tests.
+      const pool = poolFor(deck, level);
+      srs.markIntroduced(HANZI_VOCAB_DECK, pool.map(i => i.id));
     }
     // La narración en jsdom no suena y su espera es con reloj real.
     decir = vi.spyOn(TestBed.inject(Narrator), 'say').mockResolvedValue(true);

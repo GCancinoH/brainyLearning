@@ -19,6 +19,10 @@
     "tts": "Tócalos uno por uno y escucha.",
     "lang": "es-MX"
   },
+  "hv.intro": {
+    "tts": "Esto es",
+    "lang": "es-MX"
+  },
   "hv.puente": {
     "tts": "Ahora mira la imagen y busca su hanzi.",
     "lang": "es-MX"

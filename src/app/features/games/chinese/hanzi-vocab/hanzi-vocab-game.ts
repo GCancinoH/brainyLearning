@@ -17,12 +17,13 @@ import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
 import { PaintableRocket } from '@shared/game-ui/paintable-rocket/paintable-rocket';
 import { RoundTracker } from '@core/games/round-tracker';
 import { gameMaxLevel } from '@core/models/game-catalog';
-import { CLIP_BASE, CLIP_EXT, CLIP_MANIFEST, DUDA_OYE, MODE_CLIP, wordClip } from './hanzi-vocab-narration';
+import { CLIP_BASE, CLIP_EXT, CLIP_MANIFEST, DUDA_OYE, INTRO, MODE_CLIP, wordClip } from './hanzi-vocab-narration';
 import {
   MAX_LEVEL as VOCAB_MAX_LEVEL,
   buildVocabProblem,
   knobFor,
   type VocabMode,
+  type VocabProblem,
 } from './hanzi-vocab-problem';
 
 /** El juego que toca según la ruta. */
@@ -135,6 +136,13 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     { que: 'repaso' as const, emoji: '🖐️', text: 'La misma', aria: 'La misma palabra otra vez' },
     { que: 'ancla' as const, emoji: '👂', text: 'Con audio', aria: 'Que el audio te acompañe al entrar' },
   ];
+
+  // ============================================
+  // INTRO DE PALABRA NUEVA (4 años)
+  // ============================================
+
+  readonly showingIntro = signal(false);
+  readonly introItem = signal<HanziVocabItem | null>(null);
 
   // ============================================
   // FIN DE JUEGO
@@ -265,7 +273,11 @@ export class HanziVocabGame implements OnInit, OnDestroy {
   // ============================================
 
   generateProblem(): void {
+    // Si hay una intro en curso, la cancelamos antes de generar un problema nuevo.
+    this.showingIntro.set(false);
+    this.introItem.set(null);
     this.clearTimers();
+
     this.hint.set('');
     this.localFeedback.set('idle');
     this.busyFreed();
@@ -307,6 +319,25 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     }
 
     const p = problema;
+    const esNueva = !this.srs.isIntroduced(HANZI_VOCAB_DECK, p.item.id);
+    const mostrarIntro = esNueva && this.deck !== 'listening' && !this.isSix();
+
+    if (mostrarIntro) {
+      // Tarjeta "esto es 红 🔴" para 4 años: se muestra antes del problema real.
+      this.introItem.set(p.item);
+      this.showingIntro.set(true);
+      this.palabra.set(p.item); // para que el tinte/cohete coincidan
+      void this.narrar([INTRO, wordClip(p.item.id)]);
+      this.later(() => {
+        if (!this.destroyed) this.cerrarIntroYEmpezar(p);
+      }, 2500); // tiempo para ver la tarjeta + oír la palabra
+      return;
+    }
+
+    this.iniciarProblemaReal(p, esNueva);
+  }
+
+  private iniciarProblemaReal(p: VocabProblem, esNueva: boolean): void {
     this.palabra.set(p.item);
     this.modo.set(p.mode);
     this.opciones.set(p.options);
@@ -314,13 +345,18 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     this.rondaEmpezadaEn = Date.now();
     this.vistosHoy.add(p.item.id);
 
-    // Presentar una palabra por primera vez la deja disponible para ¿Qué escuchaste?.
-    if (!this.srs.isIntroduced(HANZI_VOCAB_DECK, p.item.id)) {
+    if (esNueva) {
       this.srs.markIntroduced(HANZI_VOCAB_DECK, [p.item.id]);
     }
 
     const ask = MODE_CLIP[p.mode];
     void this.narrar(this.autoAudio() ? [ask, wordClip(p.item.id)] : [ask]);
+  }
+
+  private cerrarIntroYEmpezar(p: VocabProblem): void {
+    this.showingIntro.set(false);
+    this.introItem.set(null);
+    this.iniciarProblemaReal(p, true);
   }
 
   /** Un intento de problema con el generador puro. */
@@ -355,7 +391,7 @@ export class HanziVocabGame implements OnInit, OnDestroy {
   // ============================================
 
   elegir(opcion: HanziVocabItem): void {
-    if (this.busy() || this.isOver() || this.solved()) return;
+    if (this.busy() || this.isOver() || this.solved() || this.showingIntro()) return;
     const item = this.palabra();
     if (!item) return;
 

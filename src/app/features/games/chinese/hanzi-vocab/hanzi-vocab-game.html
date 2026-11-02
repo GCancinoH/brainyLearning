@@ -114,6 +114,27 @@
     }
   </main>
 
+  <!-- INTRO PALABRA NUEVA (4 años): "esto es 红 🔴" -->
+  @if (showingIntro()) {
+    <div class="intro" role="dialog" aria-label="Nueva palabra">
+      @if (introItem(); as i) {
+        <div class="intro-contenido">
+          <p class="intro-texto" aria-hidden="true">Esto es</p>
+          <div class="intro-hanzi" [class.intro-hanzi--largo]="i.hanzi.length > 1" lang="zh-CN" [style.color]="tinteHanzi()" aria-live="polite">
+            {{ i.hanzi }}
+          </div>
+          <div class="intro-imagen" role="img" [attr.aria-label]="i.es" aria-live="polite">
+            @if (usaCohete() && i.cssColor) {
+              <paintable-rocket class="cohete-intro" [color]="i.cssColor ?? null" />
+            } @else {
+              {{ i.emoji }}
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
   <!-- FIN DEL JUEGO: los 10 niveles completados -->
   @if (finished()) {
     <div class="finish" role="dialog" aria-label="Juego completado">

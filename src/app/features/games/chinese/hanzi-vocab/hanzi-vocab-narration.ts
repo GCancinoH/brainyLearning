@@ -51,6 +51,9 @@ export const DUDA_COMPARA: ClipKey = 'hv.duda.compara';
 /** Puente al modo nuevo (se dice antes del primer problema de N7). */
 export const PUENTE: ClipKey = 'hv.puente';
 
+/** Intro de palabra nueva (solo 4 años): "esto es 红 🔴". */
+export const INTRO: ClipKey = 'hv.intro';
+
 /** Palabras que un juego con método socrático no puede pronunciar nunca. */
 export const FORBIDDEN_IN_NARRATION = [
   'incorrecto',
@@ -82,6 +85,8 @@ export const CLIP_TEXT: Record<ClipKey, string> = {
   'hv.duda.compara': 'Mira bien y compara.',
   /** Al entrar en `see-to-glyph` por primera vez: el modo nuevo se explica antes. */
   'hv.puente': 'Ahora mira la imagen y busca su hanzi.',
+  /** Intro de palabra nueva (solo 4 años): se dice antes de la primera presentación. */
+  'hv.intro': 'Esto es',
 };
 
 // ============================================
