@@ -498,11 +498,6 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     this.generateProblem();
   }
 
-  /** El texto que se ve debajo del emoji: solo para 6 años. */
-  etiqueta(item: HanziVocabItem): string {
-    return item.es;
-  }
-
   goBack(): void {
     this.narrator.cancel();
     this.session.endSession('user-exit');
