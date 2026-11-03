@@ -421,6 +421,10 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     this.anclaPedida = modo === 'ancla';
 
     const poolIds = this.deck === 'listening' ? this.listeningPoolIds() : undefined;
+    // Pool del mazo actual para filtrar los vencidos del SRS (evita coger palabras de otro mazo).
+    const currentPoolIds = this.deck === 'listening'
+      ? poolIds!
+      : poolFor(this.deck, level).map(i => i.id);
 
     // Repaso: primero lo que pidió la reflexión; luego, en N10, los vencidos del SRS.
     let forced: string | undefined;
@@ -429,7 +433,7 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     } else if (knobFor(this.deck, level).reviewFirst) {
       forced = this.srs
         .due(HANZI_VOCAB_DECK)
-        .find(id => !poolIds || poolIds.includes(id));
+        .find(id => currentPoolIds.includes(id));
     }
 
     const anterior = this.palabra()?.id;
