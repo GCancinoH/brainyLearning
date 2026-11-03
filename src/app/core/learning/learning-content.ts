@@ -329,6 +329,19 @@ export const CHINESE_SKILLS: SkillDefinition[] = [
     recommendedAgeMin: 4
   },
   {
+    id: 'chinese.vocab.actions',
+    name: 'Vocabulario chino: acciones',
+    category: 'chinese',
+    subcategory: 'vocab',
+    description: 'Reconocer los verbos de acción en chino por oído y por su hanzi',
+    representationProgression: [
+      ['audio', 'image'],
+      ['kanji', 'image'],
+      ['image', 'kanji']
+    ],
+    recommendedAgeMin: 4
+  },
+  {
     id: 'chinese.listening',
     name: 'Comprensión auditiva (chino)',
     category: 'chinese',

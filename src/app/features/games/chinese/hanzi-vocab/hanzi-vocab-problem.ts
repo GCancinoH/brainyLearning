@@ -1,8 +1,8 @@
 /**
  * Generador de "vocabulario Hanzi" (Planeta Dragón 🐉 — Sabio Long).
  *
- * Un solo motor para cinco juegos: Colores, Animales, Naturaleza, Familia y ¿Qué escuchaste?.
- * Lógica pura, sin Angular, para poder probarla con vitest.
+ * Un solo motor para seis juegos: Colores, Animales, Naturaleza, Familia, Acciones y
+ * ¿Qué escuchaste?. Lógica pura, sin Angular, para poder probarla con vitest.
  *
  * LOS TRES MODOS
  *  - `hear`: suena la palabra y se elige la imagen.
@@ -31,7 +31,7 @@ import {
 
 export type Rng = () => number;
 
-/** Los 10 niveles de los tres juegos de vocabulario. */
+/** Los 10 niveles de los juegos de vocabulario. */
 export const MAX_LEVEL = 10;
 
 export type VocabMode = 'hear' | 'glyph-to-see' | 'see-to-glyph';
@@ -91,8 +91,8 @@ const SIX_WORD_LEVELS: readonly LevelKnob[] = [
 ];
 
 /**
- * Mazo de 8 palabras (Animales y Naturaleza): misma estructura que 6 palabras, pero el
- * mazo es más largo.
+ * Mazo de 8 palabras (Animales, Naturaleza y Acciones): misma estructura que 6 palabras,
+ * pero el mazo es más largo.
  *
  * El plan pide "una palabra nueva cada nivel par". Para que N10 quede libre para el
  * repaso (la última perilla), las dos últimas entran juntas en N8: el salto de N8 es el de
@@ -131,7 +131,7 @@ const LISTENING_LEVELS: readonly LevelKnob[] = [
 
 function tableFor(deck: HanziDeck | 'listening'): readonly LevelKnob[] {
   if (deck === 'colors' || deck === 'family') return SIX_WORD_LEVELS;
-  if (deck === 'animals' || deck === 'nature') return EIGHT_WORD_LEVELS;
+  if (deck === 'animals' || deck === 'nature' || deck === 'actions') return EIGHT_WORD_LEVELS;
   return LISTENING_LEVELS;
 }
 

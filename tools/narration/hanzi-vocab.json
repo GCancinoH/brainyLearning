@@ -39,6 +39,10 @@
     "tts": "草",
     "lang": "zh-CN"
   },
+  "hv.w.chi": {
+    "tts": "吃",
+    "lang": "zh-CN"
+  },
   "hv.w.dao": {
     "tts": "岛",
     "lang": "zh-CN"
@@ -115,16 +119,44 @@
     "tts": "牛",
     "lang": "zh-CN"
   },
+  "hv.w.pao": {
+    "tts": "跑",
+    "lang": "zh-CN"
+  },
   "hv.w.sha": {
     "tts": "沙",
+    "lang": "zh-CN"
+  },
+  "hv.w.shui": {
+    "tts": "睡",
+    "lang": "zh-CN"
+  },
+  "hv.w.shuo": {
+    "tts": "说",
     "lang": "zh-CN"
   },
   "hv.w.tian": {
     "tts": "天",
     "lang": "zh-CN"
   },
+  "hv.w.tiao": {
+    "tts": "跳",
+    "lang": "zh-CN"
+  },
+  "hv.w.ting": {
+    "tts": "听",
+    "lang": "zh-CN"
+  },
+  "hv.w.wan": {
+    "tts": "玩",
+    "lang": "zh-CN"
+  },
   "hv.w.yang": {
     "tts": "羊",
+    "lang": "zh-CN"
+  },
+  "hv.w.yin": {
+    "tts": "喝",
     "lang": "zh-CN"
   },
   "hv.w.yu": {

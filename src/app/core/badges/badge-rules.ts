@@ -31,6 +31,9 @@
  * | japanese-calendar        | ✅       | ✅           | ❌        |                                          |
  * | hanzi-colors             | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
  * | hanzi-animals            | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
+ * | hanzi-nature             | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
+ * | hanzi-family             | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
+ * | hanzi-actions            | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
  * | hanzi-listening          | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
  *
  * Leyenda: ✅ = reporta correctamente, ❌ = no aplica / no implementado.

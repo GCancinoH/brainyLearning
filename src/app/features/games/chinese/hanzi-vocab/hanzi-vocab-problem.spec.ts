@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  HANZI_ACTIONS,
   HANZI_ANIMALS,
   HANZI_COLORS,
   HANZI_FAMILY,
@@ -43,12 +44,13 @@ function perillas(k: LevelKnob): Record<string, string | number | boolean> {
 }
 
 describe('datos del vocabulario', () => {
-  it('son 28 palabras: 6 colores, 8 animales, 8 naturaleza, 6 familia', () => {
-    expect(HANZI_VOCAB).toHaveLength(28);
+  it('son 36 palabras: 6 colores, 8 animales, 8 naturaleza, 6 familia, 8 acciones', () => {
+    expect(HANZI_VOCAB).toHaveLength(36);
     expect(HANZI_COLORS).toHaveLength(6);
     expect(HANZI_ANIMALS).toHaveLength(8);
     expect(HANZI_NATURE).toHaveLength(8);
     expect(HANZI_FAMILY).toHaveLength(6);
+    expect(HANZI_ACTIONS).toHaveLength(8);
   });
 
   it('ids ASCII únicos, sin pinyin con tono', () => {
@@ -62,7 +64,7 @@ describe('datos del vocabulario', () => {
   });
 
   it('cada mazo tiene su `order` 1..n sin huecos', () => {
-    for (const deck of ['colors', 'animals', 'nature', 'family'] as const) {
+    for (const deck of ['colors', 'animals', 'nature', 'family', 'actions'] as const) {
       const orders = vocabForDeck(deck).map(i => i.order);
       expect(orders).toEqual(Array.from({ length: orders.length }, (_, i) => i + 1));
     }
@@ -73,6 +75,14 @@ describe('datos del vocabulario', () => {
     for (const item of HANZI_ANIMALS) expect(item.cssColor, item.id).toBeUndefined();
     for (const item of HANZI_NATURE) expect(item.cssColor, item.id).toBeUndefined();
     for (const item of HANZI_FAMILY) expect(item.cssColor, item.id).toBeUndefined();
+    for (const item of HANZI_ACTIONS) expect(item.cssColor, item.id).toBeUndefined();
+  });
+
+  it('Acciones marca sus 8 verbos; los demás mazos son sustantivos implícitos', () => {
+    expect(HANZI_ACTIONS.every(i => i.pos === 'verb')).toBe(true);
+    for (const item of [...HANZI_COLORS, ...HANZI_ANIMALS, ...HANZI_NATURE, ...HANZI_FAMILY]) {
+      expect(item.pos, item.id).toBeUndefined();
+    }
   });
 });
 
@@ -83,7 +93,7 @@ describe('knobFor', () => {
   });
 
   it('cada salto de nivel cambia UNA sola perilla', () => {
-    for (const deck of ['colors', 'animals', 'nature', 'family', 'listening'] as const) {
+    for (const deck of ['colors', 'animals', 'nature', 'family', 'actions', 'listening'] as const) {
       for (let nivel = 2; nivel <= MAX_LEVEL; nivel++) {
         const antes = perillas(knobFor(deck, nivel - 1));
         const ahora = perillas(knobFor(deck, nivel));
@@ -108,6 +118,10 @@ describe('knobFor', () => {
     expect(knobFor('nature', 8).poolSize).toBe(8);
     expect(knobFor('nature', 10).reviewFirst).toBe(true);
 
+    // Acciones usa la misma tabla de 8 palabras que Animales/Naturaleza.
+    expect(knobFor('actions', 8).poolSize).toBe(8);
+    expect(knobFor('actions', 10).reviewFirst).toBe(true);
+
     // Familia igual que Colores (6 palabras).
     expect(knobFor('family', 8).extraOption).toBe(true);
     expect(knobFor('family', 10).reviewFirst).toBe(true);
@@ -127,6 +141,7 @@ describe('poolFor', () => {
     expect(poolFor('animals', 8)).toHaveLength(8);
     expect(poolFor('nature', 8)).toHaveLength(8);
     expect(poolFor('family', 6)).toHaveLength(6);
+    expect(poolFor('actions', 8)).toHaveLength(8);
   });
 
   it('listening solo acepta palabras ya presentadas', () => {
@@ -138,7 +153,7 @@ describe('poolFor', () => {
 
 describe('buildVocabProblem', () => {
   it('la respuesta está siempre entre las opciones y no hay duplicados', () => {
-    for (const deck of ['colors', 'animals', 'nature', 'family'] as const) {
+    for (const deck of ['colors', 'animals', 'nature', 'family', 'actions'] as const) {
       for (let nivel = 1; nivel <= MAX_LEVEL; nivel++) {
         const pool = new Set(poolFor(deck, nivel).map(i => i.id));
         for (const edad of [4, 6]) {
@@ -156,7 +171,7 @@ describe('buildVocabProblem', () => {
   it('el número de opciones respeta la edad y el tope del pool', () => {
     for (const edad of [4, 6] as const) {
       const cfg = getProfileDifficultyConfig(edad);
-      for (const deck of ['colors', 'animals', 'nature', 'family'] as const) {
+      for (const deck of ['colors', 'animals', 'nature', 'family', 'actions'] as const) {
         for (let nivel = 1; nivel <= MAX_LEVEL; nivel++) {
           const tope = Math.min(
             cfg.maxOptions + (knobFor(deck, nivel).extraOption ? 1 : 0),
@@ -192,7 +207,7 @@ describe('buildVocabProblem', () => {
     }
   });
 
-  it('con `confusable`, el parecido entra primero (红 → 绿; 海 → 河; 妈 → 姐)', () => {
+  it('con `confusable`, el parecido entra primero (红 → 绿; 海 → 河; 妈 → 姐; 吃 → 喝)', () => {
     // N5 ya tiene 红 y 绿 (comparten 纟). Con cualquier semilla, 绿 debe estar entre las
     // opciones: si el número de opciones es 2, es el único distractor posible.
     for (let seed = 1; seed <= 60; seed++) {
@@ -209,10 +224,17 @@ describe('buildVocabProblem', () => {
       const p = buildVocabProblem('family', 5, 4, mulberry32(seed), { forced: 'mama' });
       expect(p.options.map(o => o.id), `semilla ${seed}`).toContain('jiejie');
     }
+    // Acciones N5: 吃/喝 comparten 口 y 跑/跳 comparten 足.
+    for (let seed = 1; seed <= 60; seed++) {
+      const boca = buildVocabProblem('actions', 5, 4, mulberry32(seed), { forced: 'chi' });
+      expect(boca.options.map(o => o.id), `semilla ${seed}`).toContain('yin');
+      const pie = buildVocabProblem('actions', 5, 4, mulberry32(seed), { forced: 'pao' });
+      expect(pie.options.map(o => o.id), `semilla ${seed}`).toContain('tiao');
+    }
   });
 
   it('los modos solo aparecen cuando la perilla los abre', () => {
-    const vistos = (deck: 'colors' | 'animals' | 'nature' | 'family', nivel: number): Set<VocabMode> => {
+    const vistos = (deck: 'colors' | 'animals' | 'nature' | 'family' | 'actions', nivel: number): Set<VocabMode> => {
       const out = new Set<VocabMode>();
       for (let seed = 1; seed <= 120; seed++) {
         out.add(buildVocabProblem(deck, nivel, 6, mulberry32(seed)).mode);
@@ -237,6 +259,11 @@ describe('buildVocabProblem', () => {
     expect([...vistos('family', 2)]).toEqual(['hear']);
     expect(vistos('family', 4)).toEqual(new Set<VocabMode>(['hear', 'glyph-to-see']));
     expect(vistos('family', 7)).toEqual(new Set<VocabMode>(['hear', 'glyph-to-see', 'see-to-glyph']));
+
+    // Acciones: misma tabla de 8 palabras que Animales/Naturaleza.
+    expect([...vistos('actions', 2)]).toEqual(['hear']);
+    expect(vistos('actions', 4)).toEqual(new Set<VocabMode>(['hear', 'glyph-to-see']));
+    expect(vistos('actions', 7)).toEqual(new Set<VocabMode>(['hear', 'glyph-to-see', 'see-to-glyph']));
   });
 
   it('el audio automático sigue la perilla del nivel', () => {

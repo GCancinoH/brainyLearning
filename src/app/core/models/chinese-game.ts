@@ -104,6 +104,20 @@ export const CHINESE_GAMES: ChineseGameInfo[] = [
     startLevel: { 4: 1, 6: 1 },
   },
   {
+    id: 'hanzi-actions',
+    category: 'chinese',
+    maxLevel: 10,
+    title: 'Acciones en Hanzi',
+    description: 'Aprende a decir comer, beber, correr y más en el Planeta Dragón',
+    icon: '🏃',
+    route: '/games/chinese/hanzi-actions',
+    cssClass: 'hanzi-actions',
+    // Sin candado: los verbos son la puerta al futuro juego de frases.
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
+  {
     id: 'hanzi-listening',
     category: 'chinese',
     maxLevel: 10,

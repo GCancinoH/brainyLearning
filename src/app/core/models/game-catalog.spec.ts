@@ -31,17 +31,34 @@ describe('catálogo de juegos', () => {
     expect(() => gameMaxLevel('no-existe')).toThrow(/Juego desconocido/);
   });
 
-  it('el Planeta Dragón ya tiene los tres juegos de vocabulario', () => {
+  it('el Planeta Dragón ya tiene sus juegos de vocabulario', () => {
     const ids = CHINESE_GAMES.map(g => g.id);
     expect(ids).toEqual(
-      expect.arrayContaining(['hanzi-colors', 'hanzi-animals', 'hanzi-listening']),
+      expect.arrayContaining([
+        'hanzi-colors',
+        'hanzi-animals',
+        'hanzi-nature',
+        'hanzi-family',
+        'hanzi-actions',
+        'hanzi-listening',
+      ]),
     );
     expect(gameMaxLevel('hanzi-colors')).toBe(10);
     expect(gameMaxLevel('hanzi-animals')).toBe(10);
+    expect(gameMaxLevel('hanzi-nature')).toBe(10);
+    expect(gameMaxLevel('hanzi-family')).toBe(10);
+    expect(gameMaxLevel('hanzi-actions')).toBe(10);
     expect(gameMaxLevel('hanzi-listening')).toBe(10);
-    // Los tres tienen pantalla: no son anuncios.
+    // Todos tienen pantalla: no son anuncios.
     const disponibles = availableGames().map(g => g.id);
-    for (const id of ['hanzi-colors', 'hanzi-animals', 'hanzi-listening']) {
+    for (const id of [
+      'hanzi-colors',
+      'hanzi-animals',
+      'hanzi-nature',
+      'hanzi-family',
+      'hanzi-actions',
+      'hanzi-listening',
+    ]) {
       expect(disponibles).toContain(id);
     }
 

@@ -19,11 +19,11 @@ import { poolFor } from './hanzi-vocab-problem';
  *
  * La lógica pura ya garantiza problemas válidos. Aquí se comprueba lo que solo se ve
  * montado: que un error no rompa la racha ni reciba veredicto, que cada toque suene una
- * sola vez, que la ronda se anote una vez y que el mismo componente sirva a los tres
+ * sola vez, que la ronda se anote una vez y que el mismo componente sirva a los seis
  * juegos cambiando solo la ruta.
  */
 
-type Deck = 'colors' | 'animals' | 'listening';
+type Deck = 'colors' | 'animals' | 'nature' | 'family' | 'actions' | 'listening';
 
 class ProfileStub {
   age: 4 | 6 = 4;
@@ -400,6 +400,15 @@ describe('HanziVocabGame (integración)', () => {
     expect(component.GAME_ID).toBe('hanzi-animals');
     expect(HANZI_VOCAB.some(i => i.id === component.palabra()!.id && i.deck === 'animals')).toBe(true);
     expect(['mao', 'gou', 'yu']).toContain(component.palabra()!.id);
+  });
+
+  it('el mismo componente sirve a Acciones: verbos y su propio juego', () => {
+    mount('actions', 4, 1);
+    expect(component.GAME_ID).toBe('hanzi-actions');
+    expect(component.deckIcon).toBe('🏃');
+    expect(HANZI_VOCAB.some(i => i.id === component.palabra()!.id && i.deck === 'actions')).toBe(true);
+    expect(['chi', 'he', 'pao']).toContain(component.palabra()!.id);
+    expect(component.palabra()!.pos).toBe('verb');
   });
 
   it('¿Qué escuchaste? solo usa palabras ya presentadas', () => {

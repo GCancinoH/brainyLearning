@@ -32,6 +32,7 @@ const GAME_BY_DECK: Record<HanziDeck | 'listening', string> = {
   animals: 'hanzi-animals',
   nature: 'hanzi-nature',
   family: 'hanzi-family',
+  actions: 'hanzi-actions',
   listening: 'hanzi-listening',
 };
 
@@ -41,6 +42,7 @@ const SKILL_BY_DECK: Record<HanziDeck | 'listening', string> = {
   animals: 'chinese.vocab.animals',
   nature: 'chinese.vocab.nature',
   family: 'chinese.vocab.family',
+  actions: 'chinese.vocab.actions',
   listening: 'chinese.listening',
 };
 
@@ -49,13 +51,15 @@ const DECK_ICON: Record<HanziDeck | 'listening', string> = {
   animals: '🐲',
   nature: '🌿',
   family: '👨‍👩‍👧‍👦',
+  actions: '🏃',
   listening: '👂',
 };
 
 /**
- * Vocabulario Hanzi — un solo componente para Colores, Animales y ¿Qué escuchaste?.
+ * Vocabulario Hanzi — un solo componente para Colores, Animales, Naturaleza, Familia,
+ * Acciones y ¿Qué escuchaste?.
  *
- * El juego se configura desde `route.data.deck`; no hay tres copias. Lo que cambia es el
+ * El juego se configura desde `route.data.deck`; no hay seis copias. Lo que cambia es el
  * mazo (`HanziVocabItem`), el pool y la skill que se anota.
  *
  * LO QUE LA NIÑA HACE

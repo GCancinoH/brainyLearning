@@ -1,6 +1,6 @@
 // ============================================
 // Vocabulario Hanzi — Planeta Dragón 🐉
-// Un solo estilo para Colores, Animales y ¿Qué escuchaste?
+// Un solo estilo para Colores, Animales, Naturaleza, Familia, Acciones y ¿Qué escuchaste?
 // ============================================
 
 $oro: #fbbf24;
@@ -42,6 +42,12 @@ $oro-oscuro: #b45309;
     --acento: #f472b6;
     --acento-suave: rgba(244, 114, 182, 0.2);
     --acento-borde: rgba(244, 114, 182, 0.55);
+  }
+
+  &.deck-actions {
+    --acento: #fb923c;
+    --acento-suave: rgba(251, 146, 60, 0.2);
+    --acento-borde: rgba(251, 146, 60, 0.55);
   }
 
   &.deck-listening {

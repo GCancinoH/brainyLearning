@@ -2,7 +2,8 @@
  * Mazos de vocabulario Hanzi (Planeta Dragón 🐉 — Sabio Long).
  *
  * Datos puros, sin Angular. Los consumen `hanzi-colors`, `hanzi-animals`,
- * `hanzi-nature`, `hanzi-family` y `hanzi-listening`, que comparten motor (§3 del plan).
+ * `hanzi-nature`, `hanzi-family`, `hanzi-actions` y `hanzi-listening`, que comparten
+ * motor (§3 del plan).
  *
  * REGLAS DE LOS IDS
  *  - Son pinyin **sin tono y solo ASCII** (`hong`, `lv`): son nombre de fichero de audio y
@@ -23,7 +24,7 @@
  */
 
 /** Mazo jugable. `listening` se deriva de todos ellos en el juego de escucha. */
-export type HanziDeck = 'colors' | 'animals' | 'nature' | 'family';
+export type HanziDeck = 'colors' | 'animals' | 'nature' | 'family' | 'actions';
 
 export interface HanziVocabItem {
   /** 'hong'. Pinyin sin tono, ASCII, nombre de clip. Nunca se muestra. */
@@ -37,6 +38,11 @@ export interface HanziVocabItem {
   emoji: string;
   /** Nombre en español, solo para aria-label y lectores de 6 años. */
   es: string;
+  /**
+   * Categoría gramatical. Los mazos de sustantivos la dejan sin declarar; Acciones
+   * marca sus verbos para que el futuro juego de frases sepa qué pieza es cada una.
+   */
+  pos?: 'noun' | 'verb';
   /** Grupo de distractores parecidos (comparten componente). */
   confusable?: string;
   /** Solo colores: valor CSS para la muestra / cohete. */
@@ -107,12 +113,41 @@ export const HANZI_FAMILY: readonly HanziVocabItem[] = [
   { id: 'meimei', deck: 'family', order: 6, hanzi: '妹妹', emoji: '👶', es: 'hermana menor', confusable: 'female' },
 ];
 
+/**
+ * Acciones (8). Los primeros verbos del Planeta Dragón, elegidos para que el futuro
+ * juego de frases pueda combinarlos con sustantivos concretos (agua, arroz, música…)
+ * y forme oraciones cortas: 我喝水, 我吃饭, 我听音乐…
+ *
+ * D6 · INTERFERENCIA CON JAPONÉS
+ * Ninguno de los 8 glifos simplificados (吃 喝 跑 跳 睡 玩 说 听) aparece en el catálogo
+ * japonés (`kanji-compose` / `japanese-vocabulary`), así que no hay "mismo dibujo, otro
+ * sonido". Se evita a propósito 看, que sí vive en `kanji-compose`.
+ *
+ * Confusables por componente:
+ * - mouth: 吃/喝/听 (口)
+ * - foot:  跑/跳 (足)
+ *
+ * `喝` usa la clave `yin` porque `he` ya es 河 (naturaleza). El id nunca se muestra;
+ * `yin` es el sinónimo culto 饮, solo para no pisar el clip y el recuerdo SRS del río.
+ */
+export const HANZI_ACTIONS: readonly HanziVocabItem[] = [
+  { id: 'chi', deck: 'actions', order: 1, hanzi: '吃', emoji: '🍽️', es: 'comer', pos: 'verb', confusable: 'mouth' },
+  { id: 'yin', deck: 'actions', order: 2, hanzi: '喝', emoji: '🥤', es: 'beber', pos: 'verb', confusable: 'mouth' },
+  { id: 'pao', deck: 'actions', order: 3, hanzi: '跑', emoji: '🏃', es: 'correr', pos: 'verb', confusable: 'foot' },
+  { id: 'tiao', deck: 'actions', order: 4, hanzi: '跳', emoji: '🤸', es: 'saltar', pos: 'verb', confusable: 'foot' },
+  { id: 'shui', deck: 'actions', order: 5, hanzi: '睡', emoji: '😴', es: 'dormir', pos: 'verb' },
+  { id: 'wan', deck: 'actions', order: 6, hanzi: '玩', emoji: '🧸', es: 'jugar', pos: 'verb' },
+  { id: 'shuo', deck: 'actions', order: 7, hanzi: '说', emoji: '🗣️', es: 'hablar', pos: 'verb' },
+  { id: 'ting', deck: 'actions', order: 8, hanzi: '听', emoji: '👂', es: 'escuchar', pos: 'verb', confusable: 'mouth' },
+];
+
 /** Todos los items de los mazos jugables, en orden de mazo. */
 export const HANZI_VOCAB: readonly HanziVocabItem[] = [
   ...HANZI_COLORS,
   ...HANZI_ANIMALS,
   ...HANZI_NATURE,
   ...HANZI_FAMILY,
+  ...HANZI_ACTIONS,
 ];
 
 /** Índice por id para resolver el `forced` del SRS sin recorrer el array. */
@@ -125,6 +160,7 @@ export function vocabForDeck(deck: HanziDeck): readonly HanziVocabItem[] {
   if (deck === 'colors') source = HANZI_COLORS;
   else if (deck === 'animals') source = HANZI_ANIMALS;
   else if (deck === 'nature') source = HANZI_NATURE;
-  else source = HANZI_FAMILY;
+  else if (deck === 'family') source = HANZI_FAMILY;
+  else source = HANZI_ACTIONS;
   return [...source].sort((a, b) => a.order - b.order);
 }
