@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import confetti from 'canvas-confetti';
 import { ProfileStateService } from '@core/services/profile-state';
@@ -11,6 +11,7 @@ import { FirstAttemptGuard } from '@core/learning/first-attempt-guard';
 import { SkillProgressService } from '@core/learning/skill-progress.service';
 import { HANZI_VOCAB_DECK, SpacedRepetition } from '@core/learning/spaced-repetition';
 import { HANZI_COLORS, HANZI_VOCAB, type HanziDeck, type HanziVocabItem } from '@core/learning/hanzi-vocab';
+import { getProfileDifficultyConfig } from '@core/learning/learning-content';
 import type { RepresentationType } from '@core/learning/learning-content';
 import { GameFeedbackComponent } from '@shared/feedback/game-feedback';
 import { GameRestOverlayComponent } from '@shared/game-ui/game-rest-overlay';
@@ -22,9 +23,12 @@ import {
   MAX_LEVEL as VOCAB_MAX_LEVEL,
   buildVocabProblem,
   knobFor,
+  poolFor,
+  randInt,
   type VocabMode,
   type VocabProblem,
 } from './hanzi-vocab-problem';
+import { shuffle } from './hanzi-vocab-problem';
 
 /** El juego que toca según la ruta. */
 const GAME_BY_DECK: Record<HanziDeck | 'listening', string> = {
@@ -112,6 +116,17 @@ export class HanziVocabGame implements OnInit, OnDestroy {
   readonly isTimeUp = this.session.isTimeUp;
 
   // ============================================
+  // MÁQUINA DE FASES (piloto: solo Colores)
+  // ============================================
+  readonly esPiloto = this.deck === 'colors';
+  readonly phase = signal<'intro' | 'guided' | 'play'>('play');
+  readonly introWords = signal<readonly HanziVocabItem[]>([]);
+  readonly introIndex = signal(0);
+  private _guidedQueue: HanziVocabItem[] = [];
+  private _gradedSinceIntro = 4; // PLAY_BETWEEN_INTROS = 4: permite presentar al arranque
+  readonly showHint = signal(false);
+
+  // ============================================
   // PROBLEMA
   // ============================================
 
@@ -128,7 +143,7 @@ export class HanziVocabGame implements OnInit, OnDestroy {
   /** Pista visual: un icono, nunca una frase que juzgue. */
   readonly hint = signal('');
 
-  private readonly localFeedback = signal<'idle' | 'success'>('idle');
+  private readonly localFeedback = signal<'idle' | 'success' | 'try-again'>('idle');
 
   // ============================================
   // REFLEXIÓN (6 años)
@@ -143,6 +158,25 @@ export class HanziVocabGame implements OnInit, OnDestroy {
 
   // ============================================
   // INTRO DE PALABRA NUEVA (4 años)
+  // ============================================
+
+  readonly introCurrent = computed(() => this.introWords()[this.introIndex()] ?? null);
+  readonly isLastIntro = computed(() => this.introIndex() >= this.introWords().length - 1);
+
+  // Reproduce la palabra al entrar en cada ficha del carrusel de intro.
+  private _introPlayTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly introNarrationEffect = effect(() => {
+    const word = this.introCurrent();
+    if (word && this.showingIntro() && this.phase() === 'intro') {
+      if (this._introPlayTimer) clearTimeout(this._introPlayTimer);
+      this._introPlayTimer = setTimeout(() => {
+        if (!this.destroyed) void this.narrar([INTRO, wordClip(word.id)]);
+      }, 300);
+    }
+  });
+
+  // ============================================
+  // INTRO PALABRA NUEVA (4 años) — legado (no-piloto)
   // ============================================
 
   readonly showingIntro = signal(false);
@@ -170,6 +204,7 @@ export class HanziVocabGame implements OnInit, OnDestroy {
   readonly mood = computed(() => {
     if (this.solved()) return '🤩';
     if (this.feedbackState() === 'game-over') return '🌙';
+    if (this.localFeedback() === 'try-again') return '🤔';
     return '🙂';
   });
 
@@ -211,7 +246,6 @@ export class HanziVocabGame implements OnInit, OnDestroy {
   private readonly vistosHoy = new Set<string>();
   private modoReflexion: 'nuevo' | 'repaso' | 'ancla' | null = null;
   private anclaPedida = false;
-  private _ultimaNarracion: string[] = [];
 
   ngOnInit(): void {
     this.narrator.configure({ base: CLIP_BASE, ext: CLIP_EXT, manifest: CLIP_MANIFEST });
@@ -225,9 +259,18 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     this.iniciarPartida();
   }
 
+  /** Verificación de subida de nivel para el piloto: no subir si quedan palabras sin reconocer. */
+  private readonly canLevelUp = computed(() => {
+    if (!this.esPiloto) return true;
+    const level = Math.min(this.currentLevel(), VOCAB_MAX_LEVEL);
+    const pool = poolFor(this.deck, level);
+    return pool.every(item => this.srs.isIntroduced(HANZI_VOCAB_DECK, item.id));
+  });
+
   ngOnDestroy(): void {
     this.destroyed = true;
     this.clearTimers();
+    if (this._introPlayTimer) clearTimeout(this._introPlayTimer);
     this.unsubscribeEvents?.();
     // ⚠️ `narrator.cancel()` ANTES de `audio.dispose()`.
     this.narrator.cancel();
@@ -251,12 +294,18 @@ export class HanziVocabGame implements OnInit, OnDestroy {
         // sube del 10 y el juego se queda sin final (mismo arreglo que logic-blocks).
         maxLevel: this.MAX_LEVEL + 1,
         initialLevel: Math.min(guardado, this.MAX_LEVEL),
+        canLevelUp: this.canLevelUp,
       },
       this.activeProfile()?.age,
     );
 
     this.unsubscribeEvents = this.session.onEvent(e => this.handleSessionEvent(e));
-    this.generateProblem();
+    if (this.esPiloto) {
+      this._gradedSinceIntro = 4; // PLAY_BETWEEN_INTROS
+      this.nextStep();
+    } else {
+      this.generateProblem();
+    }
   }
 
   private handleSessionEvent(event: SessionEvent): void {
@@ -268,8 +317,79 @@ export class HanziVocabGame implements OnInit, OnDestroy {
       return;
     }
     this.later(() => {
-      if (!this.isOver()) this.generateProblem();
+      if (!this.isOver()) {
+        if (this.esPiloto) this.nextStep();
+        else this.generateProblem();
+      }
     }, 2500);
+  }
+
+  /** Motor de fases para el piloto (Colores). */
+  private nextStep(): void {
+    if (this.isOver()) return;
+
+    if (this._guidedQueue.length > 0) {
+      this.phase.set('guided');
+      this.generateGuided();
+      return;
+    }
+
+    const level = Math.min(this.currentLevel(), VOCAB_MAX_LEVEL);
+    const pool = poolFor(this.deck, level);
+    const unintroduced = pool.filter(item => !this.srs.isIntroduced(HANZI_VOCAB_DECK, item.id));
+
+    if (unintroduced.length > 0 && this._gradedSinceIntro >= 4) {
+      const batch = unintroduced.slice(0, 4);
+      this.introWords.set(batch);
+      this.introIndex.set(0);
+      this.phase.set('intro');
+      // La narración "Esto es" se reproduce al entrar en el carrusel (efecto en introCurrent)
+      return;
+    }
+
+    if (unintroduced.length === 0) {
+      this.phase.set('play');
+      this.generateProblem();
+      return;
+    }
+
+    // Caso raro: hay sin-introducir pero no toca intro aún (contador). Juega con lo presentado.
+    this.phase.set('play');
+    this.generateProblem();
+  }
+
+  /** Genera un problema de fase guiada (reconocimiento sin calificar). */
+  private generateGuided(): void {
+    const target = this._guidedQueue[0];
+    if (!target) {
+      this.phase.set('play');
+      this.nextStep();
+      return;
+    }
+    const level = Math.min(this.currentLevel(), VOCAB_MAX_LEVEL);
+    const pool = poolFor(this.deck, level);
+    // Distractores: del pool (incluye la propia palabra), barajados, 2-3 opciones
+    const cfg = getProfileDifficultyConfig(this.activeProfile()?.age ?? 4);
+    const pedidas = randInt(cfg.minOptions, cfg.maxOptions, Math.random);
+    const cantidad = Math.max(2, Math.min(pedidas, pool.length)) - 1;
+    const disponibles = pool.filter(i => i.id !== target.id);
+    const elegidos = shuffle(disponibles, Math.random).slice(0, cantidad);
+
+    this.palabra.set(target);
+    this.modo.set('hear');
+    this.opciones.set(shuffle([target, ...elegidos], Math.random));
+    this.autoAudio.set(true);
+    this.showHint.set(false);
+    this.localFeedback.set('idle');
+    this.descartadas.set(new Set());
+    this.problemaId.update(n => n + 1);
+    this.rondaEmpezadaEn = Date.now();
+    this.dudaDicha = false;
+    this.primerToqueErrado = null;
+    this.problemaActual = {};
+    this.primerIntento.set(null);
+
+    void this.narrar([MODE_CLIP.hear, wordClip(target.id)]);
   }
 
   // ============================================
@@ -324,10 +444,10 @@ export class HanziVocabGame implements OnInit, OnDestroy {
 
     const p = problema;
     const esNueva = !this.srs.isIntroduced(HANZI_VOCAB_DECK, p.item.id);
-    const mostrarIntro = esNueva && this.deck !== 'listening' && !this.isSix();
+    const mostrarIntro = esNueva && this.deck !== 'listening' && !this.isSix() && !this.esPiloto;
 
     if (mostrarIntro) {
-      // Tarjeta "esto es 红 🔴" para 4 años: se muestra antes del problema real.
+      // Tarjeta "esto es 红 🔴" para 4 años (no-piloto): se muestra antes del problema real.
       this.introItem.set(p.item);
       this.showingIntro.set(true);
       this.palabra.set(p.item); // para que el tinte/cohete coincidan
@@ -396,6 +516,13 @@ export class HanziVocabGame implements OnInit, OnDestroy {
 
   elegir(opcion: HanziVocabItem): void {
     if (this.busy() || this.isOver() || this.solved() || this.showingIntro()) return;
+
+    // Fase guiada (piloto Colores): reconocimiento sin calificar.
+    if (this.phase() === 'guided') {
+      this.elegirGuiada(opcion);
+      return;
+    }
+
     const item = this.palabra();
     if (!item) return;
 
@@ -428,15 +555,63 @@ export class HanziVocabGame implements OnInit, OnDestroy {
     void this.narrar(primeraDuda ? [wordClip(opcion.id), DUDA_OYE] : wordClip(opcion.id));
   }
 
-  /** Repite la palabra del problema (botón 🔊). */
+  /** Respuesta en fase guiada: sin veredicto, la correcta pulsa y se repite la palabra. */
+  private elegirGuiada(opcion: HanziVocabItem): void {
+    const target = this.palabra();
+    if (!target) return;
+
+    if (opcion.id === target.id) {
+      // Acierto en guiada: éxito, elogio, marca como presentada, avanza cola.
+      this.localFeedback.set('success');
+      this.showHint.set(false);
+      this.srs.markIntroduced(HANZI_VOCAB_DECK, [target.id]);
+      this._guidedQueue.shift();
+      this._gradedSinceIntro = 0;
+      void this.narrar(wordClip(target.id)).then(oido => {
+        if (oido) void this.audio.playPraise();
+      });
+      this.later(() => this.nextStep(), 1200);
+      return;
+    }
+
+    // Error en guiada: sin veredicto, pulsa la correcta y repite la palabra objetivo.
+    this.localFeedback.set('try-again');
+    this.showHint.set(true);
+    // La opción tocada NO se atenúa (la niña puede volver a tocarla), la correcta pulsa.
+    this.later(() => {
+      if (!this.destroyed) void this.narrar(wordClip(target.id));
+    }, 500);
+  }
+
+  /** Repite la palabra del problema (botón 🔊 en la tarjeta). */
   repeatWord(): void {
     const item = this.palabra();
     if (item) void this.narrar(wordClip(item.id));
   }
 
-  /** Repite la última narración completa. */
-  repeatLast(): void {
-    if (this._ultimaNarracion.length > 0) void this.narrator.say(this._ultimaNarracion);
+  /** Repite la palabra del carrusel de intro. */
+  replayIntroWord(): void {
+    const item = this.introCurrent();
+    if (item) void this.narrar(wordClip(item.id));
+  }
+
+  /** Avanza el carrusel de intro. */
+  nextIntro(): void {
+    if (this.isLastIntro()) {
+      this.onIntroDone();
+    } else {
+      this.introIndex.update(i => i + 1);
+    }
+  }
+
+  /** Fin del carrusel: marca presentadas, inicia fase guiada. */
+  private onIntroDone(): void {
+    const batch = this.introWords();
+    this.srs.markIntroduced(HANZI_VOCAB_DECK, batch.map(i => i.id));
+    this._guidedQueue = shuffle(batch, Math.random);
+    this.introWords.set([]);
+    this.phase.set('guided');
+    this.nextStep();
   }
 
   // ============================================
@@ -482,7 +657,10 @@ export class HanziVocabGame implements OnInit, OnDestroy {
       }, 1600);
     } else {
       this.later(() => {
-        if (!this.isOver()) this.generateProblem();
+        if (!this.isOver()) {
+          if (this.esPiloto) this.nextStep();
+          else this.generateProblem();
+        }
       }, 2600);
     }
   }
@@ -547,10 +725,16 @@ export class HanziVocabGame implements OnInit, OnDestroy {
         requiredCorrectForLevelUp: this.requiredCorrect,
         maxLevel: this.MAX_LEVEL + 1,
         initialLevel: this.MAX_LEVEL,
+        canLevelUp: this.canLevelUp,
       },
       this.activeProfile()?.age,
     );
-    this.generateProblem();
+    if (this.esPiloto) {
+      this._gradedSinceIntro = 4;
+      this.nextStep();
+    } else {
+      this.generateProblem();
+    }
   }
 
   goBack(): void {
@@ -574,7 +758,6 @@ export class HanziVocabGame implements OnInit, OnDestroy {
   private narrar(keys: string | string[] | null): Promise<boolean> {
     if (!keys) return Promise.resolve(false);
     const lista = Array.isArray(keys) ? keys : [keys];
-    this._ultimaNarracion = lista;
     return this.narrator.say(lista);
   }
 

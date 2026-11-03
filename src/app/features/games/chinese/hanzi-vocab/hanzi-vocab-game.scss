@@ -137,6 +137,7 @@ $oro-oscuro: #b45309;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1.1rem;
   flex: 1;
 }
@@ -214,6 +215,43 @@ $oro-oscuro: #b45309;
     font-size: 1.1rem;
     font-weight: 600;
   }
+
+  // glyph-to-see: hanzi + botón de audio pequeño debajo
+  .prompt-glyph {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  // see-to-glyph: imagen + botón de audio pequeño debajo
+  .prompt-image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  // Botón de audio pequeño (para glyph-to-see y see-to-glyph)
+  .speaker--small {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--acento-borde);
+    background: var(--acento-suave);
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+    animation: latido 1.8s ease-in-out infinite;
+
+    &:hover {
+      background: color-mix(in srgb, var(--acento) 28%, transparent);
+    }
+
+    &:active {
+      transform: scale(0.94);
+    }
+  }
 }
 
 @keyframes latido {
@@ -272,6 +310,12 @@ $oro-oscuro: #b45309;
       animation: acierto 0.4s ease;
     }
 
+    // Fase guiada: la opción correcta pulsa como pista.
+    &--pista {
+      animation: pista-pulso 0.8s ease-in-out infinite alternate;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.4);
+    }
+
     .opcion-emoji {
       font-size: 3rem;
       line-height: 1;
@@ -324,6 +368,15 @@ $oro-oscuro: #b45309;
   }
   100% {
     transform: scale(1);
+  }
+}
+
+@keyframes pista-pulso {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
   }
 }
 
@@ -499,6 +552,120 @@ $oro-oscuro: #b45309;
     width: clamp(8rem, 32vw, 13rem);
     height: clamp(8rem, 32vw, 13rem);
   }
+
+  // Carrusel de intro (piloto Colores)
+  &--carousel {
+    .intro-contenido {
+      display: none; // ocultamos el layout legacy
+    }
+
+    .intro-carousel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 40rem;
+      padding: 1.5rem;
+    }
+
+    .intro-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      max-width: 28rem;
+      aspect-ratio: 1;
+      border: 3px solid var(--acento-borde);
+      border-radius: 32px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      padding: 1rem;
+      transition: transform 0.12s ease, border-color 0.15s ease;
+
+      &:hover {
+        transform: scale(1.02);
+        border-color: var(--acento);
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+
+      .intro-hanzi {
+        font-size: clamp(5rem, 20vw, 8rem);
+        text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      .intro-hanzi--largo {
+        font-size: clamp(3.5rem, 14vw, 5.5rem);
+      }
+
+      .intro-imagen {
+        font-size: clamp(5rem, 20vw, 8rem);
+      }
+
+      .cohete-intro {
+        width: clamp(7rem, 28vw, 11rem);
+        height: clamp(7rem, 28vw, 11rem);
+      }
+
+      .intro-es {
+        color: #cbd5e1;
+        font-size: 1.3rem;
+        font-weight: 600;
+      }
+
+      .intro-speaker {
+        font-size: 2.2rem;
+        opacity: 0.7;
+        margin-top: 0.5rem;
+      }
+    }
+
+    .intro-dots {
+      display: flex;
+      gap: 0.6rem;
+
+      span {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        transition: background 0.2s ease, transform 0.2s ease;
+
+        &.on {
+          background: var(--acento);
+          transform: scale(1.2);
+        }
+      }
+    }
+
+    .intro-next {
+      width: 100%;
+      max-width: 28rem;
+      padding: 1rem;
+      border: none;
+      border-radius: 18px;
+      background: var(--acento);
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+
+      &:hover {
+        background: color-mix(in srgb, var(--acento) 85%, white);
+      }
+
+      &:active {
+        transform: scale(0.96);
+      }
+    }
+  }
 }
 
 @keyframes fadeIn {
@@ -512,12 +679,21 @@ $oro-oscuro: #b45309;
     animation: none !important;
   }
 
+  .speaker--small {
+    animation: none !important;
+  }
+
   .opcion--acierto {
+    animation: none !important;
+  }
+
+  .opcion--pista {
     animation: none !important;
   }
 
   .opcion,
   .speaker,
+  .speaker--small,
   .finish-btn,
   .reflexion-btn {
     transition: none !important;

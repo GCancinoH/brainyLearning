@@ -25,7 +25,6 @@
           <span [class.active]="s < consecutiveCorrect()">⭐</span>
         }
       </div>
-      <button class="repeat-btn" (click)="repeatLast()" aria-label="Repetir audio">🔊</button>
     </div>
   </header>
 
@@ -47,21 +46,31 @@
             </button>
           }
           @case ('glyph-to-see') {
-            <div class="hanzi-grande" [class.hanzi-grande--largo]="p.hanzi.length > 1" lang="zh-CN" [style.color]="tinteHanzi()" aria-live="polite">
-              {{ p.hanzi }}
+            <div class="prompt-glyph">
+              <div class="hanzi-grande" [class.hanzi-grande--largo]="p.hanzi.length > 1" lang="zh-CN" [style.color]="tinteHanzi()" aria-live="polite">
+                {{ p.hanzi }}
+              </div>
+              <button class="speaker speaker--small" type="button" (click)="repeatWord()" aria-label="Escuchar la palabra">
+                🔊
+              </button>
             </div>
           }
           @case ('see-to-glyph') {
-            <div class="imagen-grande" role="img" [attr.aria-label]="p.es" aria-live="polite">
-              @if (usaCohete() && p.cssColor) {
-                <paintable-rocket class="cohete-grande" [color]="p.cssColor ?? null" />
-              } @else {
-                {{ p.emoji }}
+            <div class="prompt-image">
+              <div class="imagen-grande" role="img" [attr.aria-label]="p.es" aria-live="polite">
+                @if (usaCohete() && p.cssColor) {
+                  <paintable-rocket class="cohete-grande" [color]="p.cssColor ?? null" />
+                } @else {
+                  {{ p.emoji }}
+                }
+              </div>
+              @if (isSix()) {
+                <span class="imagen-es">{{ p.es }}</span>
               }
+              <button class="speaker speaker--small" type="button" (click)="repeatWord()" aria-label="Escuchar la palabra">
+                🔊
+              </button>
             </div>
-            @if (isSix()) {
-              <span class="imagen-es">{{ p.es }}</span>
-            }
           }
         }
       </div>
@@ -74,6 +83,7 @@
             type="button"
             [class.opcion--no]="descartadas().has(o.id)"
             [class.opcion--acierto]="solved() && o.id === p.id"
+            [class.opcion--pista]="phase() === 'guided' && showHint() && o.id === p?.id"
             (click)="elegir(o)"
             [attr.aria-label]="o.es"
           >
@@ -115,24 +125,37 @@
     }
   </main>
 
-  <!-- INTRO PALABRA NUEVA (4 años): "esto es 红 🔴" -->
-  @if (showingIntro()) {
-    <div class="intro" role="dialog" aria-label="Nueva palabra">
-      @if (introItem(); as i) {
-        <div class="intro-contenido">
-          <p class="intro-texto" aria-hidden="true">Esto es</p>
-          <div class="intro-hanzi" [class.intro-hanzi--largo]="i.hanzi.length > 1" lang="zh-CN" [style.color]="tinteHanzi()" aria-live="polite">
-            {{ i.hanzi }}
-          </div>
-          <div class="intro-imagen" role="img" [attr.aria-label]="i.es" aria-live="polite">
-            @if (usaCohete() && i.cssColor) {
-              <paintable-rocket class="cohete-intro" [color]="i.cssColor ?? null" />
-            } @else {
-              {{ i.emoji }}
+  <!-- CARRUSEL INTRO (piloto Colores): presentación de palabras nuevas -->
+  @if (showingIntro() && introWords().length > 0) {
+    <div class="intro intro--carousel" role="dialog" aria-label="Nuevas palabras">
+      <div class="intro-carousel">
+        @if (introCurrent(); as i) {
+          <div class="intro-card" (click)="replayIntroWord()">
+            <div class="intro-hanzi" [class.intro-hanzi--largo]="i.hanzi.length > 1" lang="zh-CN" [style.color]="tinteHanzi()" aria-live="polite">
+              {{ i.hanzi }}
+            </div>
+            <div class="intro-imagen" role="img" [attr.aria-label]="i.es" aria-live="polite">
+              @if (usaCohete() && i.cssColor) {
+                <paintable-rocket class="cohete-intro" [color]="i.cssColor ?? null" />
+              } @else {
+                {{ i.emoji }}
+              }
+            </div>
+            @if (isSix()) {
+              <span class="intro-es">{{ i.es }}</span>
             }
+            <span class="intro-speaker" aria-hidden="true">🔊</span>
           </div>
+        }
+        <div class="intro-dots">
+          @for (w of introWords(); track w.id; let idx = $index) {
+            <span [class.on]="idx === introIndex()"></span>
+          }
         </div>
-      }
+        <button class="intro-next" type="button" (click)="nextIntro()">
+          {{ isLastIntro() ? '¡A jugar! 🎮' : 'Siguiente ▶' }}
+        </button>
+      </div>
     </div>
   }
 
