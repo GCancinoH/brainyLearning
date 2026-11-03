@@ -1,0 +1,126 @@
+{
+  "hs.ask": {
+    "tts": "Ordena los hanzis para decir la frase.",
+    "lang": "es-MX"
+  },
+  "hs.duda": {
+    "tts": "Toca cada ficha y escucha.",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-chi-fan": {
+    "tts": "Yo como arroz",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-he-cha": {
+    "tts": "Yo bebo té",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-he-shui": {
+    "tts": "Yo bebo agua",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-kan-shu": {
+    "tts": "Yo leo un libro",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-pao": {
+    "tts": "Yo corro",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-ting-yinyue": {
+    "tts": "Yo escucho música",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-wan": {
+    "tts": "Yo juego",
+    "lang": "es-MX"
+  },
+  "hs.prompt.zh-wo-zai-he-shui": {
+    "tts": "Yo estoy bebiendo agua",
+    "lang": "es-MX"
+  },
+  "hs.say.zh-wo-chi-fan": {
+    "tts": "我吃饭",
+    "lang": "zh-CN"
+  },
+  "hs.say.zh-wo-he-cha": {
+    "tts": "我喝茶",
+    "lang": "zh-CN"
+  },
+  "hs.say.zh-wo-he-shui": {
+    "tts": "我喝水",
+    "lang": "zh-CN"
+  },
+  "hs.say.zh-wo-kan-shu": {
+    "tts": "我看书",
+    "lang": "zh-CN"
+  },
+  "hs.say.zh-wo-pao": {
+    "tts": "我跑",
+    "lang": "zh-CN"
+  },
+  "hs.say.zh-wo-ting-yinyue": {
+    "tts": "我听音乐",
+    "lang": "zh-CN"
+  },
+  "hs.say.zh-wo-wan": {
+    "tts": "我玩",
+    "lang": "zh-CN"
+  },
+  "hs.say.zh-wo-zai-he-shui": {
+    "tts": "我在喝水",
+    "lang": "zh-CN"
+  },
+  "hs.w.cha": {
+    "tts": "茶",
+    "lang": "zh-CN"
+  },
+  "hs.w.chi": {
+    "tts": "吃",
+    "lang": "zh-CN"
+  },
+  "hs.w.fan": {
+    "tts": "饭",
+    "lang": "zh-CN"
+  },
+  "hs.w.he": {
+    "tts": "喝",
+    "lang": "zh-CN"
+  },
+  "hs.w.kan": {
+    "tts": "看",
+    "lang": "zh-CN"
+  },
+  "hs.w.pao": {
+    "tts": "跑",
+    "lang": "zh-CN"
+  },
+  "hs.w.shu": {
+    "tts": "书",
+    "lang": "zh-CN"
+  },
+  "hs.w.shui": {
+    "tts": "水",
+    "lang": "zh-CN"
+  },
+  "hs.w.ting": {
+    "tts": "听",
+    "lang": "zh-CN"
+  },
+  "hs.w.wan": {
+    "tts": "玩",
+    "lang": "zh-CN"
+  },
+  "hs.w.wo": {
+    "tts": "我",
+    "lang": "zh-CN"
+  },
+  "hs.w.yinyue": {
+    "tts": "音乐",
+    "lang": "zh-CN"
+  },
+  "hs.w.zai": {
+    "tts": "在",
+    "lang": "zh-CN"
+  }
+}

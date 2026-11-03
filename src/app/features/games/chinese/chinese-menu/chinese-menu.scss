@@ -122,6 +122,16 @@
     }
   }
 
+  // Frases en Hanzi: índigo de construcción, distinto de los mazos de vocabulario.
+  &.hanzi-sentences {
+    background: linear-gradient(135deg, #818cf8 0%, #3730a3 100%);
+    box-shadow: 0 10px 25px rgba(55, 48, 163, 0.35);
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
   &.disabled {
     background: rgba(255, 255, 255, 0.05);
     border: 1px dashed rgba(255, 255, 255, 0.2);

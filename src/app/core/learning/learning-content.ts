@@ -342,6 +342,18 @@ export const CHINESE_SKILLS: SkillDefinition[] = [
     recommendedAgeMin: 4
   },
   {
+    id: 'chinese.sentences.build',
+    name: 'Frases chinas: construir',
+    category: 'chinese',
+    subcategory: 'sentences',
+    description: 'Ordenar fichas Hanzi para construir una frase con sentido (SVO y progresivo 在)',
+    representationProgression: [
+      ['audio'],
+      ['kanji']
+    ],
+    recommendedAgeMin: 4
+  },
+  {
     id: 'chinese.listening',
     name: 'Comprensión auditiva (chino)',
     category: 'chinese',

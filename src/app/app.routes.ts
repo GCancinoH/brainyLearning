@@ -110,6 +110,11 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)
   },
   {
+    path: 'games/chinese/hanzi-sentences',
+    data: { language: 'zh' },
+    loadComponent: () => import('@features/games/chinese/hanzi-sentences/hanzi-sentence-game').then(m => m.HanziSentenceGame)
+  },
+  {
     path: 'games/chinese/hanzi-listening',
     data: { deck: 'listening' },
     loadComponent: () => import('@features/games/chinese/hanzi-vocab/hanzi-vocab-game').then(m => m.HanziVocabGame)

@@ -1,0 +1,115 @@
+<!-- Fin de sesión por tiempo -->
+<game-rest-overlay [isVisible]="isTimeUp()" (onBack)="goBack()" />
+
+<div class="sentence-container">
+  <!-- ENCABEZADO -->
+  <header class="game-header">
+    <button class="back-btn" (click)="goBack()">⬅️ Menú</button>
+
+    <div class="deck-badge" role="img" aria-label="Juego de frases">
+      {{ deckIcon }}
+    </div>
+
+    <div class="level-badge">
+      <span>Nivel {{ displayLevel() }}</span>
+      <div class="stars">
+        @for (s of starSlots; track s) {
+          <span [class.active]="s < consecutiveCorrect()">⭐</span>
+        }
+      </div>
+      <button class="repeat-btn" (click)="repeatPrompt()" aria-label="Repetir la frase">🔊</button>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <!-- 4 años: cara de ánimo. 6 años: banner con mensajes. -->
+    @if (isSix()) {
+      <game-feedback [state]="feedbackState()" [customMessages]="customFeedbackMessages" />
+    } @else {
+      <div class="mood" aria-label="Ánimo" aria-live="polite">{{ mood() }}</div>
+    }
+
+    @if (frame(); as f) {
+      <!-- LO QUE SE PIDE -->
+      <div class="prompt">
+        <div class="prompt-emoji" role="img" [attr.aria-label]="prompt()">{{ f.emoji }}</div>
+        @if (isSix()) {
+          <p class="prompt-texto">{{ prompt() }}</p>
+        } @else {
+          <button class="speaker" type="button" (click)="repeatPrompt()" aria-label="Escuchar la frase otra vez">
+            🔊
+          </button>
+        }
+      </div>
+
+      <!-- CASILLAS: una por ficha. Tocar una ficha colocada la devuelve. -->
+      <div class="slots" role="group" aria-label="Frase que estás construyendo">
+        @for (slot of placed(); track $index) {
+          <button
+            class="slot"
+            type="button"
+            [class.slot--lleno]="!!slot"
+            [class.slot--acierto]="solved() && !!slot"
+            (click)="removeAt($index)"
+            [attr.aria-label]="slot ? 'Quitar ' + slot.glossEs : 'Casilla vacía ' + ($index + 1)"
+          >
+            @if (slot) {
+              <span class="slot-hanzi" lang="zh-CN">{{ slot.text }}</span>
+            } @else {
+              <span class="slot-vacio" aria-hidden="true">·</span>
+            }
+          </button>
+        }
+      </div>
+
+      <!-- BANDEJA: las fichas que quedan. Tocar una la coloca y la pronuncia. -->
+      <div class="tray" role="group" aria-label="Fichas disponibles">
+        @for (t of tray(); track problemaId() + ':' + t.id) {
+          <button
+            class="token"
+            type="button"
+            (click)="place(t)"
+            [disabled]="solved()"
+            [attr.aria-label]="t.glossEs"
+          >
+            <span class="token-hanzi" lang="zh-CN">{{ t.text }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Pista: un icono, nunca una frase que juzgue -->
+    @if (hint()) {
+      <p class="hint" aria-live="polite">{{ hint() }}</p>
+    }
+
+    <!-- REFLEXIÓN (6 años): cada botón cambia la frase siguiente -->
+    @if (reflecting()) {
+      <div class="reflexion" role="dialog" aria-label="¿Qué quieres ahora?">
+        <p class="reflexion-titulo" aria-hidden="true">🤔 ¿Qué quieres ahora?</p>
+        <div class="reflexion-opciones">
+          @for (r of reflexiones; track r.que) {
+            <button class="reflexion-btn" type="button" (click)="chooseReflection(r.que)" [attr.aria-label]="r.aria">
+              <span class="reflexion-emoji" aria-hidden="true">{{ r.emoji }}</span>
+              <span class="reflexion-texto">{{ r.text }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </main>
+
+  <!-- FIN DEL JUEGO: los 10 niveles completados -->
+  @if (finished()) {
+    <div class="finish" role="dialog" aria-label="Juego completado">
+      <div class="finish-emoji" aria-hidden="true">🧩🎉</div>
+      <p class="finish-texto">¡Terminaste los 10 niveles!</p>
+      <div class="finish-acciones">
+        <button class="finish-btn finish-btn--repeat" type="button" (click)="playAgain()">
+          🔁 Jugar otra vez
+        </button>
+        <button class="finish-btn" type="button" (click)="goBack()">🏠 Menú</button>
+      </div>
+    </div>
+  }
+</div>

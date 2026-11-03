@@ -8,6 +8,13 @@ export const KANJI_COMPOSITION_DECK = 'kanji-composition';
 export const HANZI_NUMBERS_DECK = 'hanzi-numbers';
 /** Fase 4 · Mazo de vocabulario Hanzi (Colores y Animales): un recuerdo por palabra. */
 export const HANZI_VOCAB_DECK = 'hanzi-vocab';
+/**
+ * Fase 5 · Mazo de frases Hanzi: un recuerdo por **frase**, no por ficha.
+ *
+ * La frase es la unidad que se practica; las fichas sueltas no se programan. Un fallo
+ * en 我在喝水 vuelve a poner la frase entera en la caja 1.
+ */
+export const HANZI_SENTENCE_DECK = 'hanzi-sentences';
 const STORAGE_KEY = 'brainyLearning_srs';
 
 /**

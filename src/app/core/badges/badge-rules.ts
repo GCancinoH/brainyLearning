@@ -34,6 +34,7 @@
  * | hanzi-nature             | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
  * | hanzi-family             | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
  * | hanzi-actions            | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
+ * | hanzi-sentences          | ✅       | ✅           | ✅        | repetir prompt = help-used               |
  * | hanzi-listening          | ✅       | ✅           | ✅        | duda hablada / repetir = help-used       |
  *
  * Leyenda: ✅ = reporta correctamente, ❌ = no aplica / no implementado.

@@ -62,6 +62,9 @@ JUEGOS = {
     # Vocabulario del Planeta Dragón: 14 palabras zh-CN + consignas es-MX.
     "hanzi-vocab": ("hanzi-vocab.json", "audio/hanzi-vocab", "m4a",
                     ["-c:a", "aac", "-b:a", "48k"]),
+    # Frases del Planeta Dragón: fichas y frases zh-CN + prompts es-MX.
+    "hanzi-sentences": ("hanzi-sentences.json", "audio/hanzi-sentences", "m4a",
+                        ["-c:a", "aac", "-b:a", "48k"]),
 }
 
 

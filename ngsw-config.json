@@ -70,6 +70,17 @@
       }
     },
     {
+      "name": "hanzi-sentences-audio",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/audio/hanzi-sentences/**/*.m4a",
+          "/audio/hanzi-sentences/*.m4a"
+        ]
+      }
+    },
+    {
       "name": "game-audio",
       "installMode": "lazy",
       "updateMode": "prefetch",

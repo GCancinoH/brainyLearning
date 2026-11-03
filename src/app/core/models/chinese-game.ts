@@ -118,6 +118,20 @@ export const CHINESE_GAMES: ChineseGameInfo[] = [
     startLevel: { 4: 1, 6: 1 },
   },
   {
+    id: 'hanzi-sentences',
+    category: 'chinese',
+    maxLevel: 10,
+    title: 'Frases en Hanzi',
+    description: 'Ordena las fichas para decir yo bebo agua, yo como arroz y más',
+    icon: '🧩',
+    route: '/games/chinese/hanzi-sentences',
+    cssClass: 'hanzi-sentences',
+    // Sin candado: es un prototipo para probar el modelo de frases con las niñas.
+    unlockRequirement: null,
+    minAge: 4,
+    startLevel: { 4: 1, 6: 1 },
+  },
+  {
     id: 'hanzi-listening',
     category: 'chinese',
     maxLevel: 10,

@@ -40,6 +40,7 @@ describe('catálogo de juegos', () => {
         'hanzi-nature',
         'hanzi-family',
         'hanzi-actions',
+        'hanzi-sentences',
         'hanzi-listening',
       ]),
     );
@@ -48,6 +49,7 @@ describe('catálogo de juegos', () => {
     expect(gameMaxLevel('hanzi-nature')).toBe(10);
     expect(gameMaxLevel('hanzi-family')).toBe(10);
     expect(gameMaxLevel('hanzi-actions')).toBe(10);
+    expect(gameMaxLevel('hanzi-sentences')).toBe(10);
     expect(gameMaxLevel('hanzi-listening')).toBe(10);
     // Todos tienen pantalla: no son anuncios.
     const disponibles = availableGames().map(g => g.id);
@@ -57,6 +59,7 @@ describe('catálogo de juegos', () => {
       'hanzi-nature',
       'hanzi-family',
       'hanzi-actions',
+      'hanzi-sentences',
       'hanzi-listening',
     ]) {
       expect(disponibles).toContain(id);

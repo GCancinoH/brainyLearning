@@ -1,0 +1,416 @@
+// ============================================
+// Frases Hanzi — Planeta Dragón 🐉
+// Prototipo chino del modelo multiidioma de frases.
+// ============================================
+
+$oro: #fbbf24;
+
+.sentence-container {
+  --acento: #818cf8;
+  --acento-suave: rgba(129, 140, 248, 0.2);
+  --acento-borde: rgba(129, 140, 248, 0.6);
+
+  min-height: 100vh;
+  padding: 1.5rem;
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  background: radial-gradient(1100px 480px at 50% -10%, var(--acento-suave), transparent 70%);
+}
+
+// ---------- ENCABEZADO ----------
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+
+  .back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.6rem 1.1rem;
+    border-radius: 16px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  .deck-badge {
+    background: var(--acento-suave);
+    border: 1px solid var(--acento-borde);
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .level-badge {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid $oro;
+    padding: 0.5rem 1.1rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-weight: bold;
+    color: $oro;
+
+    .stars span {
+      opacity: 0.3;
+      font-size: 0.9rem;
+
+      &.active {
+        opacity: 1;
+      }
+    }
+
+    .repeat-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 14px;
+      padding: 0.3rem 0.6rem;
+      font-size: 1.4rem;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      &:active {
+        transform: scale(0.94);
+      }
+    }
+  }
+}
+
+// ---------- TABLERO ----------
+.game-board {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--acento-borde);
+  border-radius: 32px;
+  padding: 1.6rem 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  flex: 1;
+}
+
+.mood {
+  font-size: 2.4rem;
+  line-height: 1;
+  min-height: 2.6rem;
+}
+
+// ---------- LO QUE SE PIDE ----------
+.prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 8.5rem;
+  width: 100%;
+
+  .prompt-emoji {
+    font-size: clamp(5rem, 20vw, 7.5rem);
+    line-height: 1;
+  }
+
+  .prompt-texto {
+    margin: 0;
+    max-width: 32rem;
+    text-align: center;
+    font-size: clamp(1.15rem, 4vw, 1.5rem);
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .speaker {
+    width: 5.2rem;
+    height: 5.2rem;
+    border-radius: 50%;
+    border: 2px solid var(--acento-borde);
+    background: var(--acento-suave);
+    font-size: 2.4rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--acento) 28%, transparent);
+    }
+
+    &:active {
+      transform: scale(0.94);
+    }
+  }
+}
+
+// ---------- CASILLAS ----------
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.slot {
+  min-width: 4.6rem;
+  min-height: 5.4rem;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  cursor: default;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+
+  &--lleno {
+    border-style: solid;
+    border-color: var(--acento-borde);
+    background: var(--acento-suave);
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &--acierto {
+    border-color: $oro;
+    background: rgba(251, 191, 36, 0.22);
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.14);
+    animation: acierto 0.4s ease;
+  }
+
+  .slot-hanzi {
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: clamp(2.2rem, 9vw, 3.1rem);
+    line-height: 1.1;
+    font-weight: 700;
+  }
+
+  .slot-vacio {
+    font-size: 2rem;
+    color: rgba(255, 255, 255, 0.28);
+  }
+}
+
+// ---------- BANDEJA ----------
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding-top: 0.2rem;
+}
+
+.token {
+  min-width: 4.6rem;
+  min-height: 4.8rem;
+  padding: 0.35rem 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .token-hanzi {
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: clamp(2.2rem, 9vw, 3rem);
+    line-height: 1.1;
+    font-weight: 700;
+  }
+}
+
+@keyframes acierto {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// ---------- PISTA ----------
+.hint {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+// ---------- REFLEXIÓN (6 años) ----------
+.reflexion {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--acento-borde);
+  border-radius: 28px;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+
+  .reflexion-titulo {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .reflexion-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+
+  .reflexion-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 7.4rem;
+    padding: 0.9rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--acento-suave);
+      border-color: var(--acento-borde);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    .reflexion-emoji {
+      font-size: 1.9rem;
+    }
+
+    .reflexion-texto {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+  }
+}
+
+// ---------- FIN DEL JUEGO ----------
+.finish {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: radial-gradient(900px 500px at 50% 35%, rgba(49, 46, 129, 0.6), rgba(2, 6, 23, 0.94));
+
+  .finish-emoji {
+    font-size: 4.2rem;
+  }
+
+  .finish-texto {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: $oro;
+  }
+
+  .finish-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+
+  .finish-btn {
+    padding: 0.9rem 1.4rem;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.96);
+    }
+
+    &--repeat {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: $oro;
+      color: $oro;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .sentence-container {
+    padding: 1rem;
+  }
+
+  .game-header {
+    flex-wrap: wrap;
+
+    .level-badge {
+      margin-left: auto;
+    }
+  }
+
+  .game-board {
+    padding: 1.2rem 0.9rem 1.6rem;
+  }
+
+  .slot,
+  .token {
+    min-width: 3.9rem;
+    min-height: 4.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot--acierto {
+    animation: none;
+  }
+}
