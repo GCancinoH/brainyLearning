@@ -52,6 +52,15 @@ export interface HanziVocabItem {
 /**
  * Colores (6). El color se reconoce sin leer, así que es el mazo de entrada a los 4 años.
  * `cssColor` es el tono de la muestra; el hanzi puede ir teñido con él hasta el N4.
+ *
+ * D6 · INTERFERENCIA CON JAPONÉS
+ * 3 de 6 glifos coinciden con el catálogo japonés (mismo dibujo, otro sonido):
+ * - 黄 (amarillo) = japonés 黄 en 黄色 (きいろ)
+ * - 白 (blanco)   = japonés 白 (しろ)
+ * - 绿/緑 (verde) = japonés 緑 (みどり) — misma raíz, distinta simplificación
+ * 红 (rojo), 蓝 (azul), 黑 (negro) no coinciden.
+ * Se acepta la interferencia: el Planeta Dragón usa simplificado, Sakura usa shinjitai;
+ * la niña aprenderá a distinguir el contexto (pinyin vs hiragana, emoji distinto).
  */
 export const HANZI_COLORS: readonly HanziVocabItem[] = [
   { id: 'hong', deck: 'colors', order: 1, hanzi: '红', emoji: '🔴', es: 'rojo', confusable: 'silk', cssColor: '#ef4444' },
@@ -65,6 +74,15 @@ export const HANZI_COLORS: readonly HanziVocabItem[] = [
 /**
  * Animales (8). En simplificado 鸟, 鱼 y 马 ya no parecen el animal: el pictograma es el
  * emoji y el hanzi es "su nombre en el Planeta Dragón". No se promete adivinar por forma.
+ *
+ * D6 · INTERFERENCIA CON JAPONÉS
+ * 4 de 8 glifos coinciden con el catálogo japonés (mismo dibujo, otro sonido):
+ * - 猫 (gato)   = japonés 猫 (ねこ)
+ * - 牛 (vaca)   = japonés 牛 (うし)
+ * - 羊 (oveja)  = japonés 羊 (ひつじ)
+ * - 猪 (cerdo)  = japonés 豚 (ぶた) — distinto, pero 龙/猪 comparten radical ⺧ en ambos
+ * 鱼/魚, 鸟/鳥, 马/馬, 狗/犬 son pares simplificado/tradicional (distinto trazo).
+ * Se acepta la interferencia en 猫/牛/羊; el emoji y el audio distinguen el contexto.
  */
 export const HANZI_ANIMALS: readonly HanziVocabItem[] = [
   { id: 'mao', deck: 'animals', order: 1, hanzi: '猫', emoji: '🐱', es: 'gato', confusable: 'dog' },
@@ -103,6 +121,12 @@ export const HANZI_NATURE: readonly HanziVocabItem[] = [
  * 哥哥/姐姐/弟弟/妹妹. No se incluye 我 (abstracto) ni el árbol genealógico (caro);
  * esos quedan para un pulido posterior. El componente 女 aparece en 妈/姐/妹 → grupo
  * 'female'. Los masculinos no comparten componente, así que no hay grupo 'male'.
+ *
+ * D6 · INTERFERENCIA CON JAPONÉS
+ * 1 glifo coincide exactamente:
+ * - 妹 (hermana menor, en 妹妹) = japonés 妹 (いもうと)
+ * 妈/姐 no existen como kanji aislados en el catálogo base japonés.
+ * Interferencia leve: solo 妹, y siempre en contexto reduplicado 妹妹 vs 妹.
  */
 export const HANZI_FAMILY: readonly HanziVocabItem[] = [
   { id: 'baba', deck: 'family', order: 1, hanzi: '爸爸', emoji: '👨', es: 'papá' },
