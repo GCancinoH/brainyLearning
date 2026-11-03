@@ -407,7 +407,8 @@ describe('HanziVocabGame (integración)', () => {
     expect(component.GAME_ID).toBe('hanzi-actions');
     expect(component.deckIcon).toBe('🏃');
     expect(HANZI_VOCAB.some(i => i.id === component.palabra()!.id && i.deck === 'actions')).toBe(true);
-    expect(['chi', 'he', 'pao']).toContain(component.palabra()!.id);
+    // Acciones N1 pool=3: chi(1), yin(2), pao(3)
+    expect(['chi', 'yin', 'pao']).toContain(component.palabra()!.id);
     expect(component.palabra()!.pos).toBe('verb');
   });
 

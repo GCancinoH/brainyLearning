@@ -133,6 +133,12 @@ const baseRoutes: Routes = [
     loadComponent: () => import('@features/dev/kanji-compose-lab/kanji-compose-lab').then(m => m.KanjiComposeLab)
   },
   {
+    // Laboratorio de Vocabulario Hanzi (Colores, Animales, Naturaleza, Familia, Acciones, ¿Qué escuchaste?)
+    path: 'lab/hanzi-vocab',
+    canActivate: [devOnlyGuard],
+    loadComponent: () => import('@features/dev/hanzi-vocab-lab/hanzi-vocab-lab').then(m => m.HanziVocabLab)
+  },
+  {
     // Laboratorio de insignias: todas las variantes sin jugar 15 juegos
     path: 'lab/badges',
     canActivate: [devOnlyGuard],
